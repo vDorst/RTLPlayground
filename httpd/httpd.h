@@ -12,6 +12,9 @@
    for each TCP connection. */
 typedef struct httpd_state {
    uint8_t tstate;
+   uint8_t outbuf[2048];
+   uint16_t slen;
+   uint16_t o_idx;
 } uip_tcp_appstate_t;
 
 /* Finally we define the application function to be called by uIP. */

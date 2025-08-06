@@ -12,10 +12,7 @@
 extern __code struct f_data f_data[];
 extern __code fcall_ptr f_calls[];
 
-__xdata uint8_t outbuf[2048];
 __xdata uint8_t entry;
-__xdata uint16_t slen;
-__xdata uint16_t o_idx;
 __xdata uint16_t mpos;
 __xdata uint16_t len_left;
 
@@ -60,6 +57,7 @@ uint8_t find_entry(uint8_t *e)
 void httpd_appcall(void)
 {
 	__xdata struct httpd_state *s = &(uip_conn->appstate);
+	__xdata uint8_t *outbuf = s->outbuf;
 
 	write_char('P');
 	if(uip_connected() && s->tstate == TSTATE_CLOSED) {
@@ -77,24 +75,24 @@ void httpd_appcall(void)
 //		write_char('p');
 	} else if (uip_acked() && s->tstate == TSTATE_TX) {
 		print_string("ACK\n");
-		if (slen > uip_mss()) {
-			slen -= uip_mss();
-			o_idx += uip_mss();
+		if (s->slen > uip_mss()) {
+			s->slen -= uip_mss();
+			s->o_idx += uip_mss();
 		} else {
-			slen = 0;
-			o_idx += slen;
+			s->slen = 0;
+			s->o_idx += s->slen;
 		}
 
 		s->tstate = TSTATE_ACKED;
 
-		if (slen > uip_mss()) {
-			print_string("Sending A: "); print_short(slen); write_char('\n');
-			uip_send(outbuf + o_idx, uip_mss());
+		if (s->slen > uip_mss()) {
+			print_string("Sending A: "); print_short(s->slen); write_char('\n');
+			uip_send(outbuf + s->o_idx, uip_mss());
 			print_string("Sending A done\n");
 			s->tstate = TSTATE_TX;
-		} else if (slen > 0) {
-			print_string("Sending B: "); print_short(slen); write_char('\n');
-			uip_send(outbuf + o_idx, slen);
+		} else if (s->slen > 0) {
+			print_string("Sending B: "); print_short(s->slen); write_char('\n');
+			uip_send(outbuf + s->o_idx, s->slen);
 			print_string("Sending B done\n");
 			s->tstate = TSTATE_TX;
 		}
@@ -121,14 +119,14 @@ void httpd_appcall(void)
 		print_string("Entry is: "); print_byte(entry); write_char('\n');
 		if (entry == 0xff) {
 			print_string("Not found\n");
-			slen = strtox(outbuf, "HTTP/1.1 404 Not found\r\nContent-Type: text/html\r\n\r\n");
-			print_string("slen: "); print_short(slen); write_char('\n');
-			slen += strtox(outbuf + slen, "<!DOCTYPE HTML PUBLIC>\n<title>404 Not Found</title>\n<h1>Not Found</h1>\n");
+			s->slen = strtox(outbuf, "HTTP/1.1 404 Not found\r\nContent-Type: text/html\r\n\r\n");
+			print_string("slen: "); print_short(s->slen); write_char('\n');
+			s->slen += strtox(outbuf + s->slen, "<!DOCTYPE HTML PUBLIC>\n<title>404 Not Found</title>\n<h1>Not Found</h1>\n");
 		} else {
 			print_string("Have entry\n");
-			slen = strtox(outbuf, "HTTP/1.1 200 OK\r\nContent-Type: ");
-			slen += strtox(outbuf + slen, f_data[entry].mime);
-			slen += strtox(outbuf + slen, "\r\n\r\n");
+			s->slen = strtox(outbuf, "HTTP/1.1 200 OK\r\nContent-Type: ");
+			s->slen += strtox(outbuf + s->slen, f_data[entry].mime);
+			s->slen += strtox(outbuf + s->slen, "\r\n\r\n");
 			len_left = f_data[entry].len;
 			if (f_data[entry].mime[0] == 't' && f_data[entry].mime[5] == 'h') {
 				print_string("MIME is html len is "); print_short(len_left); write_char('\n');
@@ -139,49 +137,49 @@ void httpd_appcall(void)
 					print_string("Entry-len:"); print_short(len_left); write_char('\n');
 					mpos = len_left - mpos;
 					print_string("l/pos: "); print_short(mpos); write_char('\n');
-					flash_read_bulk(outbuf + slen, f_data[entry].start + f_data[entry].len - len_left, mpos + CMARK_S);  // call marker is e.g. #{001}
-					slen += mpos;
-					write_char('@'); write_char(outbuf[slen + 2]); write_char(outbuf[slen + 3]); write_char(outbuf[slen + 4]);
-					fcall_ptr ptr = f_calls[(outbuf[slen + 2] - '0') * 100 + (outbuf[slen + 3]-'0') * 10 + outbuf[slen + 4] - '0'];
-					slen -= CMARK_S; // Overwrite marker with generated html
+					flash_read_bulk(outbuf + s->slen, f_data[entry].start + f_data[entry].len - len_left, mpos + CMARK_S);  // call marker is e.g. #{001}
+					s->slen += mpos;
+					write_char('@'); write_char(outbuf[s->slen + 2]); write_char(outbuf[s->slen + 3]); write_char(outbuf[s->slen + 4]);
+					fcall_ptr ptr = f_calls[(outbuf[s->slen + 2] - '0') * 100 + (outbuf[s->slen + 3]-'0') * 10 + outbuf[s->slen + 4] - '0'];
+					s->slen -= CMARK_S; // Overwrite marker with generated html
 					print_string("Call location is: "); print_short((uint16_t)ptr); write_char('\n');
-//					f_calls[outbuf[slen + 2] * 100 + outbuf[slen + 3] * 10 + outbuf[slen + 4]]();
-					ptr();
+//					f_calls[outbuf[s->slen + 2] * 100 + outbuf[s->slen + 3] * 10 + outbuf[s->slen + 4]]();
+					ptr(outbuf);
 					print_string("call done\n");
 					mpos += CMARK_S;
 					len_left -= mpos;
 					flash_find_mark(f_data[entry].start + mpos, len_left, "#{");
 				}
 				print_string("At end mpos: "); print_short(mpos); write_char('\n');
-				flash_read_bulk(outbuf + slen, f_data[entry].start + f_data[entry].len - len_left, len_left);
-				slen += len_left;
+				flash_read_bulk(outbuf + s->slen, f_data[entry].start + f_data[entry].len - len_left, len_left);
+				s->slen += len_left;
 			} else {
 				print_string("MIME: "); print_string(f_data[entry].mime); write_char('\n');
-				flash_read_bulk(outbuf + slen, f_data[entry].start, len_left);
-				slen += len_left;
+				flash_read_bulk(outbuf + s->slen, f_data[entry].start, len_left);
+				s->slen += len_left;
 			}
 		}
-		print_string("slen: "); print_short(slen); write_char('\n');
-		o_idx = 0;
-		if (slen > uip_mss()) {
-			print_string("Sending a: "); print_short(slen); write_char('\n');
-			uip_send(outbuf + o_idx, uip_mss());
+		print_string("slen: "); print_short(s->slen); write_char('\n');
+		s->o_idx = 0;
+		if (s->slen > uip_mss()) {
+			print_string("Sending a: "); print_short(s->slen); write_char('\n');
+			uip_send(outbuf + s->o_idx, uip_mss());
 			print_string("Sending a done\n");
 		} else {
-			print_string("Sending b: "); print_short(slen); write_char('\n');
-			uip_send(outbuf + o_idx, slen);
+			print_string("Sending b: "); print_short(s->slen); write_char('\n');
+			uip_send(outbuf + s->o_idx, s->slen);
 			print_string("Sending b done\n");
 		}
 		s->tstate = TSTATE_TX;
 	} else if (uip_rexmit()) { // Connection established, need to rexmit?
 		print_string("RETRANSMIT requested\n");
-		if (slen > uip_mss()) {
-			print_string("Sending C: "); print_short(slen); write_char('\n');
-			uip_send(outbuf + o_idx, uip_mss());
+		if (s->slen > uip_mss()) {
+			print_string("Sending C: "); print_short(s->slen); write_char('\n');
+			uip_send(outbuf + s->o_idx, uip_mss());
 			print_string("Sending C done\n");
-		} else if (slen > 0) {
-			print_string("Sending D: "); print_short(slen); write_char('\n');
-			uip_send(outbuf + o_idx, slen);
+		} else if (s->slen > 0) {
+			print_string("Sending D: "); print_short(s->slen); write_char('\n');
+			uip_send(outbuf + s->o_idx, s->slen);
 			print_string("Sending D done\n");
 		}
 		s->tstate = TSTATE_TX;

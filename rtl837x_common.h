@@ -3,6 +3,7 @@
 
 #include "uip/uip-conf.h"
 #include <stdint.h>
+#include "rtl837x_sfr.h"
 
 // This has to be set to the number of SFP+ ports, i.e. 1 or 2
 #define NSFP 2
@@ -85,24 +86,20 @@ uint16_t strlen_x(register __xdata const char *s);
 uint16_t strtox(register __xdata uint8_t *dst, register __code const char *s);
 void tcpip_output(void);
 void print_string_x(__xdata char *p);
-
+void phy_read_print_args(uint8_t phy_id, uint8_t dev_id, uint16_t reg);
+void phy_read_print_result(void);
 
 /* This macro replaces PHY_READ().
    Now the compiler directly converts the values and write directly to the SFR.
    It don´t need any extra stack.
 */
-#define PHY_READ(phy_id, dev_id, reg)                                          \
-  do {        
-    #ifdef REGDBG
-	    print_string("p"); print_byte(phy_id); print_byte(dev_id); write_char('.'); print_byte(reg>>8); print_byte(reg); write_char(':');
-    #endif                                                                 \
-    phy_read_set_phy_id(phy_id);                                               \
-    phy_read_set_reg(reg);                                                     \
-    phy_read_set_dev_id(dev_id);                                               \
-    phy_read_execture();
-    #ifdef REGDBG
-	    print_byte(SFR_DATA_8); print_byte(SFR_DATA_0); write_char(' ');
-    #endif                                                       \
+#define PHY_READ(phy_id, dev_id, reg) do { \
+    phy_read_print_args(phy_id, dev_id, reg); \
+    phy_read_set_phy_id(phy_id); \
+    phy_read_set_reg(reg); \
+    phy_read_set_dev_id(dev_id); \
+    phy_read_execture(); \
+    phy_read_print_result(); \
   } while (0)
 
 #endif

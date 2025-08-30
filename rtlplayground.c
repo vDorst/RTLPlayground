@@ -1113,32 +1113,33 @@ inline void phy_read_set_dev_id(uint8_t dev_id) {
   SFR_SMI_DEV = dev_id << 3 | 2; // c4
 }
 
-void phy_read_execture() {
+void phy_read_execture(void) {
   SFR_EXEC_GO = SFR_EXEC_READ_SMI;
   do {
   } while (SFR_EXEC_STATUS != 0);
 }
 
-/*
- * Read a phy register via MDIO clause 45
- * Input must be: phy_id < 64,  device_id < 32,  reg < 0x10000)
- * The result is in SFR A6 and A7 (SFR_DATA_8, SFR_DATA_0)
- */
-void phyread(uint8_t phy_id, uint8_t dev_id, uint16_t reg)
-{
-#ifdef REGDBG
-	print_string("p"); print_byte(phy_id); print_byte(dev_id); write_char('.'); print_byte(reg>>8); print_byte(reg); write_char(':');
-#endif
-  phy_read_set_phy_id(phy_id); // a5
-  phy_read_set_dev_id(dev_id); // c4
-  phy_read_set_reg(reg); // c2, c3
+void phy_read_print_args(uint8_t phy_id, uint8_t dev_id, uint16_t reg) {
+  #ifdef REGDBG
+  print_string("p");
+  print_byte(phy_id);
+  print_byte(dev_id);
+  write_char('.');
+  print_byte(reg>>8);
+  print_byte(reg);
+  write_char(':');
+  #else
 
-  phy_read_execture();
-#ifdef REGDBG
-	print_byte(SFR_DATA_8); print_byte(SFR_DATA_0); write_char(' ');
-#endif
+  #endif
 }
 
+void phy_read_print_result(void) {
+  #ifdef REGDBG
+  print_byte(SFR_DATA_8);
+  print_byte(SFR_DATA_0);
+  write_char(' ');
+  #endif
+}
 
 void nic_setup(void)
 {

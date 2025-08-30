@@ -1,3 +1,6 @@
+#ifndef __RTL_SFR__
+#define __RTL_SFR__
+
 /* SFR control registers for switch register access */
 __sfr __at(0xa0) SFR_EXEC_GO;
 __sfr __at(0xa1) SFR_EXEC_STATUS;
@@ -90,3 +93,4 @@ __sfr __at(0xb3) SFR_NIC_DATA_L;
 __sfr __at(0xb4) SFR_NIC_DATA_H;
 __sfr __at(0xb5) SFR_NIC_RING_L;
 __sfr __at(0xb6) SFR_NIC_RING_H;
+#endif

@@ -1119,24 +1119,12 @@ void phy_read_execture() {
   } while (SFR_EXEC_STATUS != 0);
 }
 
-/* This macro replaces phy_read().
-   Now the compiler directly converts the values and write directly to the SFR.
-   It don´t need any extra stack.
-*/
-#define PHY_READ(phy_id, dev_id, reg)                                          \
-  do {                                                                         \
-    phy_read_set_phy_id(phy_id);                                               \
-    phy_read_set_reg(reg);                                                     \
-    phy_read_set_dev_id(dev_id);                                               \
-    phy_read_execture();                                                       \
-  } while (0)
-
 /*
  * Read a phy register via MDIO clause 45
  * Input must be: phy_id < 64,  device_id < 32,  reg < 0x10000)
  * The result is in SFR A6 and A7 (SFR_DATA_8, SFR_DATA_0)
  */
-void phy_read(uint8_t phy_id, uint8_t dev_id, uint16_t reg)
+void phyread(uint8_t phy_id, uint8_t dev_id, uint16_t reg)
 {
 #ifdef REGDBG
 	print_string("p"); print_byte(phy_id); print_byte(dev_id); write_char('.'); print_byte(reg>>8); print_byte(reg); write_char(':');

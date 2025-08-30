@@ -61,7 +61,10 @@ void print_byte(uint8_t a);
 void print_sfr_data(void);
 void print_phy_data(void);
 void phy_write(uint16_t phy_mask, uint8_t dev_id, uint16_t reg, uint16_t v);
-void phy_read(uint8_t phy_id, uint8_t dev_id, uint16_t reg);
+inline void phy_read_set_phy_id(uint8_t phy_id);
+inline void phy_read_set_dev_id(uint8_t dev_id);
+inline void phy_read_set_reg(uint16_t reg);
+void phy_read_execture(void);
 void reg_read(uint16_t reg_addr);
 void reg_read_m(uint16_t reg_addr);
 void reg_write(uint16_t reg_addr);
@@ -83,5 +86,23 @@ uint16_t strtox(register __xdata uint8_t *dst, register __code const char *s);
 void tcpip_output(void);
 void print_string_x(__xdata char *p);
 
+
+/* This macro replaces PHY_READ().
+   Now the compiler directly converts the values and write directly to the SFR.
+   It don´t need any extra stack.
+*/
+#define PHY_READ(phy_id, dev_id, reg)                                          \
+  do {        
+    #ifdef REGDBG
+	    print_string("p"); print_byte(phy_id); print_byte(dev_id); write_char('.'); print_byte(reg>>8); print_byte(reg); write_char(':');
+    #endif                                                                 \
+    phy_read_set_phy_id(phy_id);                                               \
+    phy_read_set_reg(reg);                                                     \
+    phy_read_set_dev_id(dev_id);                                               \
+    phy_read_execture();
+    #ifdef REGDBG
+	    print_byte(SFR_DATA_8); print_byte(SFR_DATA_0); write_char(' ');
+    #endif                                                       \
+  } while (0)
 
 #endif

@@ -217,7 +217,7 @@ void send_status(void)
 		} else {
 			char_to_html('0');
 			slen += strtox(outbuf + slen, ",\"enabled\":");
-			phy_read(i, 0x1f, 0xa610);
+			PHY_READ(i, 0x1f, 0xa610);
 			if (SFR_DATA_8 == 0x20)
 				char_to_html('1');
 			else

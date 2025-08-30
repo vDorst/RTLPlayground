@@ -396,7 +396,7 @@ void port_stats_print(void) __banked
 	print_string("\n Port\tState\tLink\tTxGood\t\tTxBad\t\tRxGood\t\tRxBad\n");
 	for (uint8_t i = minPort; i <= maxPort; i++) {
 		write_char('1' + i); write_char('\t');
-		phy_read(i, 0x1f, 0xa610); // p001f.a610:2058
+		PHY_READ(i, 0x1f, 0xa610); // p001f.a610:2058
 		if (i <= maxPort - nSFPPorts) {
 			if (SFR_DATA_8 == 0x20)
 				print_string("On\t");

@@ -1201,7 +1201,7 @@ void sds_init(void)
 	p001e.000d:0010 R02f8-00000010 R02f4-0000001a P000001.1e00000d:b7fe
 	p001e.000d:0010 p001e.000d:0010	R02f8-00000010 R02f4-00000010 P000001.1e00000d:b7fe
 */
-	phy_read(0, 0x1e, 0xd);
+	PHY_READ(0, 0x1e, 0xd);
 	uint16_t pval = SFR_DATA_8;
 	pval <<= 8;
 	pval |= SFR_DATA_0;
@@ -1217,7 +1217,7 @@ void sds_init(void)
 
 	phy_write(0x1, 0x1e, 0xd, pval);
 
-	phy_read(0, 0x1e, 0xd);
+	PHY_READ(0, 0x1e, 0xd);
 	pval = SFR_DATA_8;
 	pval <<= 8;
 	pval |= SFR_DATA_0;

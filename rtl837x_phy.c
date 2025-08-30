@@ -68,7 +68,7 @@ void rtl8224_phy_enable(void) __banked
 {
 	// p001e.0a90:00f3 R02f8-000000f3 R02f4-000000fc P000001.1e000a90:00fc
 	print_string("\r\nrtl8224_phy_enable called\r\n");
-	phy_read(0, 0x1e, 0xa90);
+	PHY_READ(0, 0x1e, 0xa90);
 	uint16_t pval = SFR_DATA_8;
 	pval <<= 8;
 	pval |= SFR_DATA_0;
@@ -82,7 +82,7 @@ void rtl8224_phy_enable(void) __banked
 
 	phy_write(0x1, 0x1e, 0xa90, pval);
 
-	phy_read(0, 0x1e, 0xa90);
+	PHY_READ(0, 0x1e, 0xa90);
 	pval = SFR_DATA_8;
 	pval <<= 8;
 	pval |= SFR_DATA_0;
@@ -101,7 +101,7 @@ void phy_config(uint8_t phy) __banked
 	delay(20);
 	// PHY configuration: External 8221B?
 //	p081e.75f3:ffff P000100.1e0075f3:fffe
-	phy_read(phy, 0x1e, 0x75f3);
+	PHY_READ(phy, 0x1e, 0x75f3);
 	pval = SFR_DATA_8;
 	pval <<= 8;
 	pval |= SFR_DATA_0 & 0xfe;
@@ -110,7 +110,7 @@ void phy_config(uint8_t phy) __banked
 
 //	p081e.697a:ffff P000100.1e00697a:ffc1 / p031e.697a:0003 P000008.1e00697a:0001
 	// SERDES OPTION 1 Register (MMD 30.0x6) bits 0-5: 0x01: Set HiSGMII+SGMII
-	phy_read(phy, 0x1e, 0x697a);
+	PHY_READ(phy, 0x1e, 0x697a);
 	pval = SFR_DATA_8;
 	pval <<= 8;
 	pval |= SFR_DATA_0 & 0xc0 | 0x01;
@@ -119,7 +119,7 @@ void phy_config(uint8_t phy) __banked
 
 //	p031f.a432:0811 P000008.1f00a432:0831
 	// PHYCR2 PHY Specific Control Register 2, MMD 31. 0xA432), set bit 5: enable EEE
-	phy_read(phy, 0x1f, 0xa432);
+	PHY_READ(phy, 0x1f, 0xa432);
 	pval = SFR_DATA_8;
 	pval <<= 8;
 	pval |= SFR_DATA_0 | 0x20;
@@ -127,7 +127,7 @@ void phy_config(uint8_t phy) __banked
 
 //	p0307.003e:0000 P000008.0700003e:0001
 	// EEE avertisment 2 register MMMD 7.0x003e, set bit 0: 2.5G has EEE capability
-	phy_read(phy, 0x7, 0x3e);
+	PHY_READ(phy, 0x7, 0x3e);
 	pval = SFR_DATA_8;
 	pval <<= 8;
 	pval |= SFR_DATA_0 | 0x1;
@@ -136,7 +136,7 @@ void phy_config(uint8_t phy) __banked
 
 //	p031f.a442:043c P000008.1f00a442:0430
 	// Unknown, but clear bits 2/3
-	phy_read(phy, 0x1f, 0xa442);
+	PHY_READ(phy, 0x1f, 0xa442);
 	pval = SFR_DATA_8;
 	pval <<= 8;
 	pval |= SFR_DATA_0 & 0xf3;
@@ -149,7 +149,7 @@ void phy_config(uint8_t phy) __banked
 
 //	p031e.75b2:0000 P000008.1e0075b2:0060
 	// set bits 5/6
-	phy_read(phy, 0x1e, 0x75b2);
+	PHY_READ(phy, 0x1e, 0x75b2);
 	pval = SFR_DATA_8;
 	pval <<= 8;
 	pval |= SFR_DATA_0 | 0x60;
@@ -158,7 +158,7 @@ void phy_config(uint8_t phy) __banked
 
 //	p081f.d040:ffff P000100.1f00d040:feff
 	// LCR6 (LED Control Register 6, MMD 31.D040), set bits 8/9 to 0b10
-	phy_read(phy, 0x1e, 0xd040);
+	PHY_READ(phy, 0x1e, 0xd040);
 	pval = (SFR_DATA_8 & 0xfc) | 0x02;
 	pval <<= 8;
 	pval |= SFR_DATA_0;
@@ -170,14 +170,14 @@ void phy_config(uint8_t phy) __banked
 	// FEDCR (Fast Ethernet Duplex Control Register, MMD 31.0xA400)
 	// Set bit 14, sleep, then clear again, according to the datasheet these bits are reserved
 
-	phy_read(phy, 0x1f, 0xa400);
+	PHY_READ(phy, 0x1f, 0xa400);
 	pval = SFR_DATA_8 | 0x40;
 	pval <<= 8;
 	pval |= SFR_DATA_0;
 	phy_write(bit_mask[phy], 0x1f, 0xa400, pval);
 	delay(20);
 
-	phy_read(phy, 0x1f, 0xa400);
+	PHY_READ(phy, 0x1f, 0xa400);
 	pval = SFR_DATA_8 & 0xbf;
 	pval <<= 8;
 	pval |= SFR_DATA_0;
@@ -194,7 +194,7 @@ void phy_config_8224(void) __banked
 
 	uint16_t pval;
 	print_string("\r\nphy_config_8224 called\r\n");
-	phy_read(0, 0x1e, 0x7b20);
+	PHY_READ(0, 0x1e, 0x7b20);
 	pval = SFR_DATA_8;
 	pval <<= 8;
 	pval |= SFR_DATA_0;
@@ -212,7 +212,7 @@ void phy_config_8224(void) __banked
 		phy_write(0x1, 0x1e, 0x3f8, rtl8224_ca[i]);
 		i++;
 		do {
-			phy_read(0, 0x1e, 0x3f8);
+			PHY_READ(0, 0x1e, 0x3f8);
 		} while (SFR_DATA_8 & 0x80);
 	}
 
@@ -227,7 +227,7 @@ void phy_config_8224(void) __banked
 void phy_set_mode(uint8_t port, uint8_t speed, uint8_t flow_control, uint8_t duplex) __banked
 {
 	uint16_t v;
-	phy_read(port, 0x1f, 0xa610);
+	PHY_READ(port, 0x1f, 0xa610);
 	v = (((uint16_t)SFR_DATA_8) << 8) | SFR_DATA_0;
 	if (speed == PHY_OFF) {
 		phy_write(bit_mask[port], 0x1f, 0xa610, v | 0x0800);
@@ -252,14 +252,14 @@ void phy_set_mode(uint8_t port, uint8_t speed, uint8_t flow_control, uint8_t dup
 			// Multi-GBASE-TBASE-T AN Control 1 Register (MMD 7.0x0020)
 			phy_write(bit_mask[port], 0x07, 0x20, 0x6001);	// bit 14: SLAVE, bit 13: Multi-Port device, 1: LD Loop timin enableed
 			// GBCR (1000Base-T Control Register, MMD 31.0xA412)
-			phy_read(port, 0x1f, 0xa412);
+			PHY_READ(port, 0x1f, 0xa412);
 			v = (((uint16_t)SFR_DATA_8) << 8) | SFR_DATA_0;
 			phy_write(bit_mask[port], 0x1f, 0xa412, v | 0x0200);
 		} else if (speed == PHY_SPEED_2G5) {
 			// Multi-GBASE-TBASE-T AN Control 1 Register (MMD 7.0x0020)
 			phy_write(bit_mask[port], 0x07, 0x20, 0x6081);	// bit 14: SLAVE, bit 13: Multi-Port device, bit 8: 2.5GBit available, 1: LD Loop timin enableed
 			// GBCR (1000Base-T Control Register, MMD 31.0xA412)
-			phy_read(port, 0x1f, 0xa412);
+			PHY_READ(port, 0x1f, 0xa412);
 			v = (((uint16_t)SFR_DATA_8) << 8) | SFR_DATA_0;
 			phy_write(bit_mask[port], 0x1f, 0xa412, v & 0xfdff);
 		}

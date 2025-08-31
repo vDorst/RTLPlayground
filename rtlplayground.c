@@ -395,7 +395,6 @@ void nic_rx_header(uint16_t ring_ptr)
 	uint16_t buffer = (uint16_t) &rx_headers[0];
 	SFR_NIC_DATA_U16LE = buffer;
 	SFR_NIC_RING_U16LE = ring_ptr;
-
 	SFR_NIC_CTRL = 1;
 	do { } while (SFR_NIC_CTRL != 0);
 }
@@ -432,7 +431,6 @@ void nic_tx_packet(uint16_t ring_ptr)
 //	uint16_t buffer = (uint16_t) tx_buf;
 	uint16_t buffer = (uint16_t) uip_buf + VLAN_TAG_SIZE;
 	SFR_NIC_DATA_U16LE = buffer;
-	
 	ring_ptr <<= 3;
 	ring_ptr |= 0x8000;
 	SFR_NIC_RING_U16LE = ring_ptr;
@@ -1085,8 +1083,7 @@ void phy_write(uint16_t phy_mask, uint8_t dev_id, uint16_t reg, uint16_t v)
 	print_string("P"); print_byte(phy_mask>>8); print_byte(phy_mask); print_byte(dev_id); write_char('.'); print_byte(reg>>8); print_byte(reg); write_char(':');
 	print_byte(v>>8); print_byte(v); write_char(' ');
 #endif
-	SFR_DATA_U16 = v ;			    // SFR_A6, SFR_A7
-
+	SFR_DATA_U16 = v;			    // SFR_A6, SFR_A7
 	SFR_SMI_PHYMASK = phy_mask;		// SFR_C5
 	SFR_SMI_REG_U16 = reg;			// SFR_C2, SFR_C3
 
@@ -1108,10 +1105,8 @@ void phy_read(uint8_t phy_id, uint8_t dev_id, uint16_t reg)
 	print_string("p"); print_byte(phy_id); print_byte(dev_id); write_char('.'); print_byte(reg>>8); print_byte(reg); write_char(':');
 #endif
 	SFR_SMI_REG_U16 = reg;		// c2, c2
-
 	SFR_SMI_PHY = phy_id;		// a5
 	SFR_SMI_DEV = dev_id << 3 | 2;	// c4
-
 	SFR_EXEC_GO = SFR_EXEC_READ_SMI;
 	do {
 	} while (SFR_EXEC_STATUS != 0);
@@ -1184,7 +1179,6 @@ void sds_init(void)
 */
 	phy_read(0, 0x1e, 0xd);
 	uint16_t pval = SFR_DATA_U16;
-
 	// PHY Initialization:
 	REG_WRITE(0x2f8, 0, 0, pval >> 8, pval);
 	delay(20);
@@ -1198,7 +1192,6 @@ void sds_init(void)
 
 	phy_read(0, 0x1e, 0xd);
 	pval = SFR_DATA_U16;
-
 	REG_WRITE(0x2f8, 0, 0, pval >> 8, pval);
 
 	pval &= 0xfff0;
@@ -1380,14 +1373,10 @@ void rtl8373_init(void)
 	// q000601:c800 Q000601:c804 q000601:c804 Q000601:c800
 	sds_read(0, 0x06, 0x01);
 	uint16_t pval = SFR_DATA_U16;
-
-
 	sds_write_v(0, 0x06, 0x01, pval | 0x04);
 	delay(50);
 	sds_read(0, 0x06, 0x01);
 	pval = SFR_DATA_U16;
-
-
 	sds_write_v(0, 0x06, 0x01, pval & 0xfffb);
 
 	phy_config_8224();
@@ -1402,9 +1391,6 @@ void rtl8373_init(void)
 	sds_write_v(1, 0x1f, 0x02, 0x001f);
 	sds_read(1, 0x1f, 0x15);
 	pval = SFR_DATA_U16;
-
-
-
 	// r0a90:000000f3 R0a90-000000fc
 	reg_read_m(0xa90);
 	sfr_mask_data(0, 0x0f,0x0c);

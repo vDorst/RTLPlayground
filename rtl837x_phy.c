@@ -71,9 +71,6 @@ void rtl8224_phy_enable(void) __banked
 	phy_read(0, 0x1e, 0xa90);
 	uint16_t pval = SFR_DATA_U16;
 
-
-
-	
 	// PHY Initialization:
 	REG_WRITE(0x2f8, 0, 0, pval >> 8, pval);
 
@@ -85,8 +82,6 @@ void rtl8224_phy_enable(void) __banked
 
 	phy_read(0, 0x1e, 0xa90);
 	pval = SFR_DATA_U16;
-
-
 	delay(50);
 	print_string("\r\nrtl8224_phy_enable done\r\n");
 }
@@ -103,8 +98,6 @@ void phy_config(uint8_t phy) __banked
 //	p081e.75f3:ffff P000100.1e0075f3:fffe
 	phy_read(phy, 0x1e, 0x75f3);
 	pval = SFR_DATA_U16 & 0xfffe;
-
-
 	phy_write(bit_mask[phy], 0x1e, 0x75f3, pval);
 	delay(20);
 
@@ -112,8 +105,6 @@ void phy_config(uint8_t phy) __banked
 	// SERDES OPTION 1 Register (MMD 30.0x6) bits 0-5: 0x01: Set HiSGMII+SGMII
 	phy_read(phy, 0x1e, 0x697a);
 	pval = SFR_DATA_U16 & 0xffc0 | 0x0001;
-
-
 	phy_write(bit_mask[phy], 0x1e, 0x697a, pval);
 	delay(20);
 
@@ -121,16 +112,12 @@ void phy_config(uint8_t phy) __banked
 	// PHYCR2 PHY Specific Control Register 2, MMD 31. 0xA432), set bit 5: enable EEE
 	phy_read(phy, 0x1f, 0xa432);
 	pval = SFR_DATA_U16 | 0x0021;
-
-
 	phy_write(bit_mask[phy], 0x1f, 0xa432, pval);
 
 //	p0307.003e:0000 P000008.0700003e:0001
 	// EEE avertisment 2 register MMMD 7.0x003e, set bit 0: 2.5G has EEE capability
 	phy_read(phy, 0x7, 0x3e);
 	pval = SFR_DATA_U16 | 0x0001;
-
-
 	phy_write(bit_mask[phy], 0x7, 0x3e, pval);
 	delay(20);
 
@@ -138,8 +125,6 @@ void phy_config(uint8_t phy) __banked
 	// Unknown, but clear bits 2/3
 	phy_read(phy, 0x1f, 0xa442);
 	pval = SFR_DATA_U16 & 0x00f3;
-	
-	
 	phy_write(bit_mask[phy], 0x1f, 0xa442, pval);
 	delay(20);
 
@@ -151,8 +136,6 @@ void phy_config(uint8_t phy) __banked
 	// set bits 5/6
 	phy_read(phy, 0x1e, 0x75b2);
 	pval = SFR_DATA_U16 | 0x0060;
-
-
 	phy_write(bit_mask[phy], 0x1e, 0x75b2, pval);
 	delay(20);
 
@@ -160,8 +143,6 @@ void phy_config(uint8_t phy) __banked
 	// LCR6 (LED Control Register 6, MMD 31.D040), set bits 8/9 to 0b10
 	phy_read(phy, 0x1e, 0xd040);
 	pval = SFR_DATA_U16 & 0xfc00 | 0x0002;
-
-
 	phy_write(bit_mask[phy], 0x1e, 0xd040, pval);
 	delay(20);
 
@@ -196,9 +177,6 @@ void phy_config_8224(void) __banked
 	print_string("\r\nphy_config_8224 called\r\n");
 	phy_read(0, 0x1e, 0x7b20);
 	pval = SFR_DATA_U16;
-
-
-
 	REG_WRITE(0x2f8, 0, 0, pval >> 8, pval);
 	pval &= 0x0fe0;
 	pval |= 0x000d;

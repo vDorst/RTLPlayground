@@ -124,7 +124,7 @@ void phy_config(uint8_t phy) __banked
 //	p031f.a442:043c P000008.1f00a442:0430
 	// Unknown, but clear bits 2/3
 	phy_read(phy, 0x1f, 0xa442);
-	pval = SFR_DATA_U16 & 0x00f3;
+	pval = SFR_DATA_U16 & 0xfff3;
 	phy_write(bit_mask[phy], 0x1f, 0xa442, pval);
 	delay(20);
 
@@ -142,7 +142,7 @@ void phy_config(uint8_t phy) __banked
 //	p081f.d040:ffff P000100.1f00d040:feff
 	// LCR6 (LED Control Register 6, MMD 31.D040), set bits 8/9 to 0b10
 	phy_read(phy, 0x1e, 0xd040);
-	pval = SFR_DATA_U16 & 0xfc00 | 0x0002;
+	pval = SFR_DATA_U16 & 0xfcff | 0x0200;
 	phy_write(bit_mask[phy], 0x1e, 0xd040, pval);
 	delay(20);
 
@@ -153,15 +153,11 @@ void phy_config(uint8_t phy) __banked
 
 	phy_read(phy, 0x1f, 0xa400);
 	pval = SFR_DATA_U16 | 0x4000;
-
-
 	phy_write(bit_mask[phy], 0x1f, 0xa400, pval);
 	delay(20);
 
 	phy_read(phy, 0x1f, 0xa400);
 	pval = SFR_DATA_U16 & 0xbfff;
-
-
 	phy_write(bit_mask[phy], 0x1f, 0xa400, pval);
 	delay(20);
 

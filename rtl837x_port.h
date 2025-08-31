@@ -8,7 +8,7 @@
 #define STAT_COUNTER_ERR_PKTS 0x30
 
 #define STAT_GET(cnt, port) \
-	REG_WRITE(RTL837X_STAT_GET, 0x00, 0x00, cnt >> 3, (cnt << 5) | (port << 1) | 1); \
+	REG_WRITE(RTL837X_STAT_GET, (uint32_t)( ((uint16_t)cnt << 11) |  (cnt << 5) | (port << 1) | 1)); \
 	do { \
 		reg_read_m(RTL837X_STAT_GET); \
 	} while (sfr_data[3] & 0x1);

@@ -58,6 +58,7 @@ volatile __xdata uint16_t sleep_ticks;
 // Buffer for serial input, SBUF_SIZE must be power of 2 < 256
 __xdata volatile uint8_t sbuf_ptr;
 __xdata uint8_t sbuf[SBUF_SIZE];
+
 __xdata uint8_t sfr_data[4];
 
 extern __xdata uint8_t cmd_buffer[SBUF_SIZE];
@@ -284,8 +285,7 @@ void setup_timer0(void)
 
 void reg_read(uint16_t reg_addr)
 {
-	SFR_REG_ADDRH = reg_addr >> 8;
-	SFR_REG_ADDRL = reg_addr;
+	SFR_REG_ADDR = reg_addr;
 	SFR_EXEC_GO = SFR_EXEC_READ_REG;
 	do {
 	} while (SFR_EXEC_STATUS != 0);
@@ -298,15 +298,11 @@ void reg_read_m(uint16_t reg_addr)
 #ifdef REGDBG
 	if (EA) { write_char('r'); print_byte(reg_addr >> 8); print_byte(reg_addr); write_char(':'); }
 #endif
-	SFR_REG_ADDRH = reg_addr >> 8;
-	SFR_REG_ADDRL = reg_addr;
+	SFR_REG_ADDR = reg_addr;
 	SFR_EXEC_GO = SFR_EXEC_READ_REG;
 	do {
 	} while (SFR_EXEC_STATUS != 0);
-	sfr_data[0] = SFR_DATA_24;
-	sfr_data[1] = SFR_DATA_16;
-	sfr_data[2] = SFR_DATA_8;
-	sfr_data[3] = SFR_DATA_0;
+	*(uint32_t*)sfr_data = SFR_REG_DATA32_LE;
 #ifdef REGDBG
 	if (EA) { print_byte(sfr_data[0]);  print_byte(sfr_data[1]);  print_byte(sfr_data[2]);  print_byte(sfr_data[3]); write_char(' '); }
 #endif
@@ -316,8 +312,7 @@ void reg_read_m(uint16_t reg_addr)
 void reg_write(uint16_t reg_addr)
 {
 	/* Data to write must be in SFR A4, A5, A6, A7 */
-	SFR_REG_ADDRH = reg_addr >> 8;
-	SFR_REG_ADDRL = reg_addr;
+	SFR_REG_ADDR = reg_addr;
 	SFR_EXEC_GO = SFR_EXEC_WRITE_REG;
 	do {
 	} while (SFR_EXEC_STATUS != 0);
@@ -332,12 +327,9 @@ void reg_write_m(uint16_t reg_addr)
 		print_byte(sfr_data[0]);  print_byte(sfr_data[1]);  print_byte(sfr_data[2]);  print_byte(sfr_data[3]); write_char(' ');
 	}
 #endif
-	SFR_REG_ADDRH = reg_addr >> 8;
-	SFR_REG_ADDRL = reg_addr;
-	SFR_DATA_24 = sfr_data[0] ;
-	SFR_DATA_16 = sfr_data[1];
-	SFR_DATA_8 = sfr_data[2];
-	SFR_DATA_0 = sfr_data[3];
+	SFR_REG_ADDR = reg_addr;
+	// Write Litte Endian
+	SFR_REG_DATA32_LE = *(uint32_t*)sfr_data;
 
 	SFR_EXEC_GO = SFR_EXEC_WRITE_REG;
 	do {
@@ -507,8 +499,7 @@ void sds_write_v(uint8_t sds_id, uint8_t page, uint8_t reg, uint16_t v)
 	print_string("Q"); print_byte(sds_id); print_byte(page); print_byte(reg);
 	write_char(':'); print_byte(v >> 8); print_byte(v); write_char(' ');
 #endif
-	SFR_DATA_8 = v >> 8;
-	SFR_DATA_0 = v;
+	SFR_REG_DATA16 = v;
 	SFR_93 = reg;
 	SFR_94 = page << 1 | sds_id;
 	SFR_EXEC_GO = SFR_EXEC_WRITE_SDS;
@@ -720,7 +711,7 @@ uint8_t sfp_read_reg(uint8_t slot, uint8_t reg)
 		reg_write_m(RTL837X_REG_I2C_CTRL);
 	}
 
-	REG_WRITE(RTL837X_REG_I2C_IN, 0, 0, 0, reg);
+	REG_WRITE(RTL837X_REG_I2C_IN, (uint32_t)reg);
 
 	// Execute I2C Read
 	reg_bit_set(RTL837X_REG_I2C_CTRL, 0);
@@ -1088,8 +1079,7 @@ void phy_write(uint16_t phy_mask, uint8_t dev_id, uint16_t reg, uint16_t v)
 	print_string("P"); print_byte(phy_mask>>8); print_byte(phy_mask); print_byte(dev_id); write_char('.'); print_byte(reg>>8); print_byte(reg); write_char(':');
 	print_byte(v>>8); print_byte(v); write_char(' ');
 #endif
-	SFR_DATA_8 = v >> 8;			// SFR_A6
-	SFR_DATA_0 = v;				// SFR_A7
+	SFR_REG_DATA16 = v;				// SFR_A6, SFR_A7
 	SFR_SMI_PHYMASK = phy_mask;		// SFR_C5
 	SFR_SMI_REG_H = reg >> 8;		// SFR_C2
 	SFR_SMI_REG_L = reg;			// SFR_C3
@@ -1186,30 +1176,25 @@ void sds_init(void)
 	p001e.000d:0010 p001e.000d:0010	R02f8-00000010 R02f4-00000010 P000001.1e00000d:b7fe
 */
 	phy_read(0, 0x1e, 0xd);
-	uint16_t pval = SFR_DATA_8;
-	pval <<= 8;
-	pval |= SFR_DATA_0;
+	uint16_t pval = SFR_REG_DATA16;
 
 	// PHY Initialization:
-	REG_WRITE(0x2f8, 0, 0, pval >> 8, pval);
+	REG_WRITE(0x2f8, (uint32_t)pval);
 	delay(20);
 
 	pval &= 0xfff0;
 	pval |= 0x0a;
-	REG_WRITE(0x2f4, 0, 0, pval >> 8, pval);
+	REG_WRITE(0x2f4, (uint32_t)pval);
 	delay(10);
 
 	phy_write(0x1, 0x1e, 0xd, pval);
 
 	phy_read(0, 0x1e, 0xd);
-	pval = SFR_DATA_8;
-	pval <<= 8;
-	pval |= SFR_DATA_0;
-
-	REG_WRITE(0x2f8, 0, 0, pval >> 8, pval);
+	pval = SFR_REG_DATA16;
+	REG_WRITE(0x2f8, (uint32_t)pval);
 
 	pval &= 0xfff0;
-	REG_WRITE(0x2f4, 0, 0, pval >> 8, pval);
+	REG_WRITE(0x2f4, (uint32_t)pval);
 
 	phy_write(0x1, 0x1e, 0xd, pval);
 }
@@ -1386,15 +1371,11 @@ void rtl8373_init(void)
 
 	// q000601:c800 Q000601:c804 q000601:c804 Q000601:c800
 	sds_read(0, 0x06, 0x01);
-	uint16_t pval = SFR_DATA_8;
-	pval <<= 8;
-	pval |= SFR_DATA_0;
+	uint16_t pval = SFR_REG_DATA16;
 	sds_write_v(0, 0x06, 0x01, pval | 0x04);
 	delay(50);
 	sds_read(0, 0x06, 0x01);
-	pval = SFR_DATA_8;
-	pval <<= 8;
-	pval |= SFR_DATA_0;
+	pval = SFR_REG_DATA16;
 	sds_write_v(0, 0x06, 0x01, pval & 0xfffb);
 
 	phy_config_8224();
@@ -1408,9 +1389,7 @@ void rtl8373_init(void)
 	sds_write_v(1, 0x36, 0x05, 0x4000);
 	sds_write_v(1, 0x1f, 0x02, 0x001f);
 	sds_read(1, 0x1f, 0x15);
-	pval = SFR_DATA_8;
-	pval <<= 8;
-	pval |= SFR_DATA_0;
+	pval = SFR_REG_DATA16;
 
 	// r0a90:000000f3 R0a90-000000fc
 	reg_read_m(0xa90);

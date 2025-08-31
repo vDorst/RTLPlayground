@@ -50,8 +50,13 @@ void port_mirror_set(register uint8_t port, __xdata uint16_t rx_pmask, __xdata u
 	print_string("Mirroring port: "); print_byte(port); print_string(" with rx-mask: ");
 	print_short(rx_pmask); print_string(", tx mask: "); print_short(tx_pmask);
 
-	REG_WRITE(RTL837x_MIRROR_CONF, rx_pmask >> 8, rx_pmask, tx_pmask >> 8, tx_pmask);
-	REG_WRITE(RTL837x_MIRROR_CTRL, 0, 0, 0, (port << 1) | 0x1);
+	// rx_pmask >> 8, rx_pmask, tx_pmask >> 8, tx_pmask
+	uint32_t data =  (((uint32_t)rx_pmask << 16) & 0xFFFF0000) | (tx_pmask & 0x0000FFFF);
+	REG_WRITE(RTL837x_MIRROR_CONF, data);
+
+	// (port << 1) | 0x1
+	data = ((port & 0x0F) << 1) | 0x1;
+	REG_WRITE(RTL837x_MIRROR_CTRL, data);
 }
 
 
@@ -85,19 +90,38 @@ void port_pvid_set(uint8_t port, __xdata uint16_t pvid) __banked
 	uint16_t reg = RTL837x_PVID_BASE_REG + ((port >> 1) << 2);
 
 	reg_read_m(reg);
+	uint32_t data;
 	if (port & 0x1) {
-		REG_WRITE(reg, sfr_data[0], pvid >> 4, sfr_data[2] & 0x0f | (pvid << 4), sfr_data[3]);
+		// REG_WRITE(reg, sfr_data[0], pvid >> 4, sfr_data[2] & 0x0f | (pvid << 4), sfr_data[3]);
+		data = (uint32_t)sfr_data[0] << 24;
+		data |= (uint32_t)pvid << 12;
+		data |= (uint32_t)(sfr_data[2] & 0x0f) << 8;
+		data |= sfr_data[3];
+		
 	} else {
-		REG_WRITE(reg, sfr_data[0], sfr_data[1], sfr_data[2] & 0xf0 | (pvid >> 8), pvid);
+		// REG_WRITE(reg, sfr_data[0], sfr_data[1], sfr_data[2] & 0xf0 | (pvid >> 8), pvid);
+		data = (uint32_t)sfr_data[0] << 24;
+		data = (uint32_t)sfr_data[1] << 16;
+		data |= (uint32_t)(sfr_data[2] & 0x0f) << 8;
+		data |= pvid ;
 	}
+	REG_WRITE(reg, data);
 }
 
 
 void vlan_delete(uint16_t vlan) __banked
 {
+	
 	print_string("\nvlan_delete called \n"); print_short(vlan);
-	REG_WRITE(RTL837x_TBL_DATA_IN_A, 0, 0, 0, 0);
-	REG_WRITE(RTL837X_TBL_CTRL, vlan >> 8, vlan, TBL_VLAN, TBL_WRITE | TBL_EXECUTE);
+	// REG_WRITE(RTL837x_TBL_DATA_IN_A, 0, 0, 0, 0);
+	uint32_t data = 0x00000000;
+	REG_WRITE(RTL837x_TBL_DATA_IN_A, data);
+
+	// REG_WRITE(RTL837X_TBL_CTRL, vlan >> 8, vlan, TBL_VLAN, TBL_WRITE | TBL_EXECUTE);
+	data = (uint32_t)vlan << 16;
+	data |= (uint32_t)TBL_VLAN << 8;
+	data |= TBL_WRITE | TBL_EXECUTE;
+	REG_WRITE(RTL837X_TBL_CTRL, data);
 }
 
 
@@ -110,7 +134,11 @@ int8_t vlan_get(register uint16_t vlan) __banked
 	if (vlan >= 0x3ff) // VLAN 4095 is special
 		return -1;
 
-	REG_WRITE(RTL837X_TBL_CTRL, vlan >> 8, vlan, TBL_VLAN, TBL_EXECUTE);
+	// REG_WRITE(RTL837X_TBL_CTRL, vlan >> 8, vlan, TBL_VLAN, TBL_EXECUTE);
+	uint32_t data = (uint32_t)vlan << 16;
+	data |= (uint32_t)TBL_VLAN << 8;
+	data |=  TBL_EXECUTE;
+	REG_WRITE(RTL837X_TBL_CTRL, data);
 	do {
 		reg_read_m(RTL837X_TBL_CTRL);
 	} while (sfr_data[3] & TBL_EXECUTE);
@@ -156,8 +184,19 @@ void vlan_create(register uint16_t vlan, register uint16_t members, register uin
 	}
 
 	// Initialize VLAN table with VLAN 1
-	REG_WRITE(RTL837x_TBL_DATA_IN_A, 0x02, (a >> 6) & 0x0f, (a << 2) | (members >> 8), members);
-	REG_WRITE(RTL837X_TBL_CTRL, vlan >> 8, vlan, TBL_VLAN, TBL_WRITE | TBL_EXECUTE);
+
+	// 0x02, (a >> 6) & 0x0f, (a << 2) | (members >> 8), members
+	uint32_t data = 0x02000000;
+		data |= (uint32_t)a << 2;
+		data |= members;
+
+	REG_WRITE(RTL837x_TBL_DATA_IN_A, data);
+	// vlan >> 8, vlan, TBL_VLAN, TBL_WRITE | TBL_EXECUTE
+	data = (uint32_t)vlan << 16;
+	data |= (uint32_t)TBL_VLAN << 8;
+	data |= TBL_WRITE | TBL_EXECUTE;
+
+	REG_WRITE(RTL837X_TBL_CTRL, data);
 	do {
 		reg_read_m(RTL837X_TBL_CTRL);
 	} while (sfr_data[3] & TBL_EXECUTE);
@@ -200,9 +239,18 @@ void vlan_setup(void) __banked
 #endif
 		reg_read_m(reg);
 		if (i & 0x1) {
-			REG_WRITE(reg, sfr_data[0], 0, sfr_data[2] & 0x0f | 0x10, sfr_data[3]);
+			uint32_t data = (uint32_t)sfr_data[0] << 24;
+			data |= (uint32_t)(sfr_data[2]  & 0x0f | 0x10) << 16;
+			data |= sfr_data[3];
+
+			REG_WRITE(reg, data);
 		} else {
-			REG_WRITE(reg, sfr_data[0], sfr_data[1], sfr_data[2] & 0xf0, 0x01);
+			uint32_t data = (uint32_t)sfr_data[0] << 24;
+			data |= (uint32_t)sfr_data[1] << 24;
+			data |= (uint32_t)(sfr_data[2] & 0x0f) << 16;
+			data |= 0x01;
+
+			REG_WRITE(reg, data);
 		}
 #ifdef DEBUG
 		reg_read_m(reg);
@@ -261,9 +309,9 @@ void vlan_setup(void) __banked
 void trunk_set(uint8_t group, uint16_t mask) __banked
 {
 	if (group == 1) {
-		REG_WRITE(RTL837x_TRUNK_CTRL_A, 0, 0, mask >> 8, mask);
+		REG_WRITE(RTL837x_TRUNK_CTRL_A, (uint32_t)mask);
 	} else if (group == 2) {
-		REG_WRITE(RTL837x_TRUNK_CTRL_B, 0, 0, mask >> 8, mask);
+		REG_WRITE(RTL837x_TRUNK_CTRL_B, (uint32_t)mask);
 	} else {
 		print_string("\nTrunk group must be 1 or 2\n");
 	}
@@ -310,9 +358,18 @@ void port_l2_learned(void) __banked
 	while (1) {
 		uint8_t port = 0, other = 0;
 		reg_read_m(RTL837x_TBL_DATA_0);
-		REG_WRITE(RTL837x_TBL_DATA_0, sfr_data[0], sfr_data[1],sfr_data[2] | 0xc0, sfr_data[3]);
+		uint32_t data = (uint32_t)sfr_data[0] << 24;
+		data |= (uint32_t)sfr_data[1] << 16;
+		data |= ((uint32_t)sfr_data[2] | 0xc0) << 8;
+		data |= (uint32_t)sfr_data[3];
 
-		REG_WRITE(RTL837X_TBL_CTRL, entry >> 8, entry, TBL_L2_UNICAST, 0x1);
+		REG_WRITE(RTL837x_TBL_DATA_0, data);
+
+		data = (uint32_t)entry << 16;
+		data |= (uint32_t)TBL_L2_UNICAST << 8;
+		data |= 0x01;
+
+		REG_WRITE(RTL837X_TBL_CTRL, data);
 		do {
 			reg_read_m(RTL837X_TBL_CTRL);
 		} while (sfr_data[3] & 0x1);
@@ -482,7 +539,7 @@ uint16_t port_isolation_get(register uint8_t port)
  */
 void port_rldp_on(__xdata uint16_t p_ms)
 {
-	REG_WRITE(RTL8373_RLDP_TIMER, p_ms >> 8, p_ms, p_ms >> 8, p_ms);
+	REG_WRITE(RTL8373_RLDP_TIMER, (uint32_t)p_ms | ((uint32_t)p_ms << 16));
 
 	REG_SET(RTL837X_RMA0_CONF, 0x00000000); // R4ecc
 	REG_SET(RTL837X_RMA_CONF, 0x00000000); // R4ecc

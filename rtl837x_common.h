@@ -17,7 +17,7 @@
 #define SBUF_SIZE 128
 
 // Size of the TCP Output buffer
-#define TCP_OUTBUF_SIZE 2500
+#define TCP_OUTBUF_SIZE 1500
 
 // Size of the memory area dedicated to VLAN-names
 #define VLAN_NAMES_SIZE 1024

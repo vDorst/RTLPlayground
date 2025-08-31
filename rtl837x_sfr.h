@@ -2,12 +2,14 @@
 __sfr __at(0xa0) SFR_EXEC_GO;
 __sfr __at(0xa1) SFR_EXEC_STATUS;
 __sfr16 __at(0xa2a3) SFR_REG_ADDR;
-__sfr __at(0xa2) SFR_REG_ADDRH;
-__sfr __at(0xa3) SFR_REG_ADDRL;
-__sfr16 __at(0xa4) SFR_REG_DATA8;
+// __sfr __at(0xa2) SFR_REG_ADDRH;
+// __sfr __at(0xa3) SFR_REG_ADDRL;
+__sfr __at(0xa4) SFR_REG_DATA8;
 __sfr16 __at(0xa4a5) SFR_REG_DATA16;
-__sfr16 __at(0xa4a5a6a7) SFR_REG_DATA32;
-__sfr __at(0xa4) SFR_DATA_24;
+__sfr32 __at(0xa4a5a6a7) SFR_REG_DATA32;
+// Little Endiand version of REG DATA
+__sfr32 __at(0xa7a6a5a4) SFR_REG_DATA32_LE;
+// __sfr __at(0xa4) SFR_DATA_24;
 __sfr __at(0xa5) SFR_DATA_16;
 __sfr __at(0xa6) SFR_DATA_8;
 __sfr __at(0xa7) SFR_DATA_0;

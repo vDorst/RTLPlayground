@@ -74,11 +74,11 @@ void rtl8224_phy_enable(void) __banked
 	pval |= SFR_DATA_0;
 
 	// PHY Initialization:
-	REG_WRITE(0x2f8, 0, 0, pval >> 8, pval);
+	REG_WRITE(0x2f8, (uint32_t)pval);
 
 	pval &= 0xfff0;
 	pval |= 0x0c;
-	REG_WRITE(0x2f4, 0, 0, pval >> 8, pval);
+	REG_WRITE(0x2f4, (uint32_t)pval);
 
 	phy_write(0x1, 0x1e, 0xa90, pval);
 
@@ -199,10 +199,10 @@ void phy_config_8224(void) __banked
 	pval <<= 8;
 	pval |= SFR_DATA_0;
 
-	REG_WRITE(0x2f8, 0, 0, pval >> 8, pval);
+	REG_WRITE(0x2f8,(uint32_t)pval);
 	pval &= 0x0fe0;
 	pval |= 0x000d;
-	REG_WRITE(0x2f4, 0, 0, pval >> 8, pval);
+	REG_WRITE(0x2f4, (uint32_t)pval);
 	phy_write(0x01, 0x1e, 0x7b20, pval);
 
 	uint8_t i = 0;

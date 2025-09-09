@@ -27,10 +27,20 @@ extern __xdata uint8_t isRTL8373;
 extern __xdata uint8_t sfp_pins_last;
 extern __xdata uint8_t vlan_names[VLAN_NAMES_SIZE];
 
-inline void byte_to_html(uint8_t a)
-{
-	outbuf[slen++] = hex[(a >> 4) & 0xf];
-	outbuf[slen++] = hex[a & 0xf];
+
+/*  Convert only the lower nibble to ascii HEX char.
+    For convenience the upper nibble is masked out.
+*/
+inline char itohex(uint8_t val) {
+	// Ignore upper nibble for convenience.
+	val &= 0x0f;
+	val -= 10;
+
+	// 10 or above
+	if ((int8_t)val >= 0)
+		val += ('a' - '0' - 10);
+
+	return val + ('0' + 10);
 }
 
 
@@ -40,7 +50,19 @@ void char_to_html(char c)
 }
 
 
-inline void itoa_html(uint8_t v)
+//  Convert uint8_t to ascii HEX char.
+void byte_to_html(uint8_t val)
+{
+	uint8_t cnt = 2;
+	do {
+		val = (val >> 4) | (val << 4);
+		char_to_html(itohex(val));
+		cnt -= 2;
+	} while(cnt);
+}
+
+
+void itoa_html(uint8_t v)
 {
 	uint8_t t = (v / 100) % 10;
 	if (t)

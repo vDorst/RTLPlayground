@@ -1038,36 +1038,6 @@ void reset_chip(void)
 	REG_SET(RTL837X_REG_RESET, 1);
 }
 
-
-void setup_external_irqs(void)
-{
-	REG_SET(0x5f84, 0x42);
-	REG_SET(0x5f34, 0x3ff);
-
-//	EX0 = 1;	// Enable external IRQ 0 (Link-change)
-	EX0 = 0;
-	IT0 = 1;	// External IRQ on falling edge
-
-	EX1 = 1;	// External IRQ 1 enable
-	EX2 = 1;	// External IRQ 2 enable: bit EIE.0
-	EX3 = 1;	// External IRQ 3 enable: bit EIE.1
-	PX3 = 1;	// Set EIP.1 = 1: External IRQ 3 set to high priority
-}
-
-
-void rtl8224_enable(void)
-{
-	// Set Pin 4 low
-	reg_bit_clear(RTL837X_REG_GPIO_32_63_OUTPUT, 4);
-	// Configure Pin as output
-	reg_bit_set(RTL837X_REG_GPIO_32_63_DIRECTION, 4);
-	delay(100);
-	// Set pin 4 high
-	reg_bit_set(RTL837X_REG_GPIO_32_63_OUTPUT, 4);
-	delay(500);
-}
-
-
 /*
  * Set dividers for a chosen CPU frequency
  */
@@ -1236,377 +1206,6 @@ void nic_setup(void)
 	tx_seq = 0;
 }
 
-
-/*
- * Configure the PHY-Side of the SDS-SDS link between SoC and PHY
- */
-void sds_init(void)
-{
-/*
-	p001e.000d:9535 R02f8-00009535 R02f4-0000953a P000001.1e00000d:953a
-	p001e.000d:953a p001e.000d:953a R02f8-0000953a R02f4-00009530 P000001.1e00000d:9530
-
-	RTL8373:
-	p001e.000d:0010 R02f8-00000010 R02f4-0000001a P000001.1e00000d:b7fe
-	p001e.000d:0010 p001e.000d:0010	R02f8-00000010 R02f4-00000010 P000001.1e00000d:b7fe
-*/
-	phy_read(0, 0x1e, 0xd);
-	uint16_t pval = SFR_DATA_U16;
-
-	// PHY Initialization:
-	REG_WRITE(0x2f8, 0, 0, pval >> 8, pval);
-	delay(20);
-
-	pval &= 0xfff0;
-	pval |= 0x0a;
-	REG_WRITE(0x2f4, 0, 0, pval >> 8, pval);
-	delay(10);
-
-	phy_write_mask(0x1, 0x1e, 0xd, pval);
-
-	phy_read(0, 0x1e, 0xd);
-	pval = SFR_DATA_U16;
-
-	REG_WRITE(0x2f8, 0, 0, pval >> 8, pval);
-
-	pval &= 0xfff0;
-	REG_WRITE(0x2f4, 0, 0, pval >> 8, pval);
-
-	phy_write_mask(0x1, 0x1e, 0xd, pval);
-}
-
-
-void led_config_9xh(void)
-{
-	// r65d8:3ffbedff R65d8-3ffbedff
-	reg_bit_set(0x65d8, 0x1d);
-
-	//  r6520:0021fdb0 R6520-0021e7b0 r6520:0021e7b0 R6520-0021e6b0
-	reg_read_m(0x6520);
-	sfr_mask_data(1, 0x1f, 0x6);
-	sfr_mask_data(0, 0xe0, 0xa0);
-	reg_write_m(0x6520);
-
-	//  r65f8:00000018 R65f8-0000001b
-	reg_read_m(0x65f8);
-	sfr_mask_data(0, 0, 0x3);
-	reg_write_m(0x65f8);
-
-	// R65fc-ffffffff
-	REG_SET(0x65fc, 0xffffffff);
-
-	// Set bits 0-3 of 0x6600 to 0xf
-	// r6600:00000000 R6600-0000000f
-	reg_read_m(0x6600);
-	sfr_mask_data(0, 0, 0x0f);
-	reg_write_m(0x6600);
-
-	// Set bit 0x1d of 0x65dc, clear bit 1b: r65dc:5fffff00 R65dc-7fffff00 r65dc:7fffff00 R65dc-77ffff00
-	reg_bit_set(0x65dc, 0x1d);
-	reg_bit_clear(0x65dc, 0x1b);
-
-	// r7f8c:30000000 R7f8c-30000000 r7f8c:30000000 R7f8c-38000000
-	reg_bit_set(RTL837X_PIN_MUX_0, 0x1b);
-
-	// R6548-0041017f
-	REG_SET(0x6548, 0x0041017f);
-
-	// Configure LED_SET_0 ledid 2
-	//  r6544:01411000 R6544-01410044
-	reg_read_m(0x6544);
-	sfr_data[2] = 0x00;
-	sfr_data[3] = 0x44;
-	reg_write_m(0x6544);
-
-	// r6528:00000000 R6528-0000000f
-	reg_read_m(0x6528);
-	sfr_mask_data(0, 0x0f, 0x0f);
-	reg_write_m(0x6528);
-}
-
-
-void led_config(void)
-{
-	// LED initialization
-	// r6520:0021fdb0 R6520-0021e7b0 r6520:0021e7b0 R6520-0021e6b0
-	reg_read_m(RTL837X_REG_LED_MODE);
-	sfr_mask_data(2, 0xe0, 0x23); 	// Mask blink rate field (0xe0), set blink rate and LED to solid (set bit 1 = bit 17 overall)
-	// Configure led-mode (serial?)
-	sfr_data[2] = 0xe6;
-	sfr_data[3] = 0xb0;
-	reg_write_m(RTL837X_REG_LED_MODE);
-
-	// Clear bits 0,1 of 0x65f8
-//	r65f8:00000018 R65f8-00000018
-	reg_read_m(0x65f8);
-	sfr_mask_data(0, 0x03, 0);
-	reg_write_m(0x65f8);
-
-	// Set 0x65fc to 0xfffff000
-	// R65fc-fffff000
-	REG_SET(0x65fc, 0xfffff000);
-
-	// Set bits 0-3 of 0x6600 to 0xf
-	// r6600:00000000 R6600-0000000f
-	reg_read_m(0x6600);
-	sfr_mask_data(0, 0, 0x0f);
-	reg_write_m(0x6600);
-
-	// Set bit 0x1d of 0x65dc, clear bit 1b: r65dc:5fffff00 R65dc-7fffff00 r65dc:7fffff00 R65dc-77ffff00
-	reg_bit_set(0x65dc, 0x1d);
-	reg_bit_clear(0x65dc, 0x1b);
-
-	// Set bits 1b/1d of 0x7f8c: r7f8c:30000000 R7f8c-30000000 r7f8c:30000000 R7f8c-38000000
-	if (nSFPPorts == 2) {
-		reg_bit_set(RTL837X_PIN_MUX_0, 0x1b); // R7f8c-28000000
-		reg_bit_clear(RTL837X_PIN_MUX_0, 0x1c); // R7f8c-28000000
-		reg_bit_set(RTL837X_PIN_MUX_0, 0x1d); // R7f8c-28000000
-	} else {
-		reg_bit_set(RTL837X_PIN_MUX_0, 0x1d);
-		reg_bit_set(RTL837X_PIN_MUX_0, 0x1c);
-		reg_bit_set(RTL837X_PIN_MUX_0, 0x1b);
-	}
-	// LED setup
-	// r6520:0021fdb0 R6520-0021e7b0 r6520:0021e7b0 R6520-0021e6b0 r65f8:00000018 R65f8-00000018 R65fc-fffff000 r6600:00000000 R6600-0000000f r65dc:5fffff00 R65dc-7fffff00 r65dc:7fffff00 R65dc-77ffff00
-	// r7f8c:30000000 R7f8c-30000000 r7f8c:30000000 R7f8c-38000000 R6548-00410175 r6544:01411000 R6544-01410044 r6528:00000000 R6528-00000011 r6450:000020e6 R6450-000000e6 r644c:0a418820 R644c-0a400820
-
-	// Configure LED_SET_0, ledid 0/1
-	// R6548-00410175
-	REG_SET(0x6548, 0x00410175);
-
-	// Configure LED_SET_0 ledid 2
-	// 6544:01411000 R6544-01410044
-	reg_read_m(0x6544);
-	sfr_data[2] = 0x00;
-	sfr_data[3] = 0x44;
-	reg_write_m(0x6544);
-
-	// Further configure LED_SET_0
-	// r6528:00000000 R6528-00000011
-	reg_read_m(0x6528);
-	sfr_data[3] = 0x11;
-	reg_write_m(0x6528);
-
-	reg_read_m(0x6450);
-	sfr_mask_data(1, 0x7c, 0);
-	reg_write_m(0x6450);
-
-	// SDS bits f-13 set to 0: r644c:0a418820 R644c-0a400820
-	reg_read_m(0x644c);
-	sfr_mask_data(2, 0x0f, 0);
-	sfr_mask_data(1, 0x80, 0);
-	reg_write_m(0x644c);
-}
-
-
-void rtl8373_revision(void)
-{
-	// r000c:00300000 R000c-003a0000 r000c:203a6818 r000c:203a6818 R000c-20306818
-
-	reg_read_m(0x000c);
-	sfr_mask_data(2, 0x0a, 0x0a); 	// Enable reading version
-	reg_write_m(0x000c);
-	delay(50);
-
-	reg_read_m(0x000c);
-	print_string("CPU revision: "); print_byte(sfr_data[2]); print_byte(sfr_data[2]); write_char('\n');
-	sfr_mask_data(2, 0x0a, 0x00); 	// Enable reading version
-	reg_write_m(0x000c);
-}
-
-
-void rtl8373_init(void)
-{
-	print_string("\nrtl8373_init called\n");
-	minPort = 0;
-	maxPort = 8;
-	cpuPort = 9;
-	nSFPPorts = 1;
-
-	// r6330:00015555 R6330-00005555 r6330:00005555 R6330-00005555
-	REG_SET(0x6330, 0x00005555);
-
-	// r6334:00000000 R6334-000001f8  RTL8373: r6334:00000000 R6334-000000ff
-	reg_read_m(0x6334);		// Also in sdsMode_set
-	sfr_mask_data(0, 0, 0xff);
-	reg_write_m(0x6334);
-
-	// Enable MDC
-	// r6454:00000000 R6454-00007000 RTL837X_REG_SMI_CTRL
-	reg_read_m(RTL837X_REG_SMI_CTRL);
-	sfr_mask_data(1, 0, 0x70); 	// Set bits 0xc-0xe to enable MDC for SMI0-SMI2
-	reg_write_m(RTL837X_REG_SMI_CTRL);
-	delay(50);
-
-	rtl8373_revision();
-
-	led_config_9xh();
-	sds_init();
-	// Disable all SERDES for configuration
-	REG_SET(RTL837X_REG_SDS_MODES, 0x000037ff);
-
-	// q000601:c800 Q000601:c804 q000601:c804 Q000601:c800
-	sds_read(0, 0x06, 0x01);
-	uint16_t pval = SFR_DATA_U16;
-	sds_write_v(0, 0x06, 0x01, pval | 0x04);
-	delay(50);
-	sds_read(0, 0x06, 0x01);
-	pval = SFR_DATA_U16;
-	sds_write_v(0, 0x06, 0x01, pval & 0xfffb);
-
-	phy_config_8224();
-	sds_config_mac(1, SDS_OFF);    // Off for now until SFP+ port used
-	sds_config_mac(2, SDS_SGMII);  // For RTL8224
-	sds_config(0, SDS_QXGMII);
-
-	// SDS 1 setup
-	// q012100:4902 Q012100:4906 q013605:0000 Q013605:4000 Q011f02:001f q011f15:0086
-	sds_write_v(1, 0x21, 0x00, 0x4906);
-	sds_write_v(1, 0x36, 0x05, 0x4000);
-	sds_write_v(1, 0x1f, 0x02, 0x001f);
-	sds_read(1, 0x1f, 0x15);
-	pval = SFR_DATA_U16;
-
-	// r0a90:000000f3 R0a90-000000fc
-	reg_read_m(0xa90);
-	sfr_mask_data(0, 0x0f,0x0c);
-	reg_write_m(0xa90);
-
-	rtl8224_phy_enable();
-
-	// Disable PHYs for configuration
-	phy_write_mask(0xff,0x1f,0xa610,0x2858);
-
-	// Set bits 0x13 and 0x14 of 0x5fd4
-	// r5fd4:0002914a R5fd4-001a914a
-	reg_bit_set(0x5fd4, 0x13);
-	reg_bit_set(0x5fd4, 0x14);
-
-	// Configure ports
-	uint16_t reg = 0x1238; // Port base register for the bits we set
-	for (char i = 0; i < 9; i++) {
-		// Bit 7 (0x40) enables replacement of the RTL-VLAN tag with an 802.1Q VLAN tag
-		REG_SET(reg, 0xe77);
-		reg += 0x100;
-	}
-
-	// r0b7c:000000d8 R0b7c-000000f8 r6040:00000030 R6040-00000031
-	reg_bit_set(0xb7c, 5);
-
-
-	// R7124-00001050 R7128-00001050 R712c-00001050 R7130-00001050 R7134-00001050 R7138-00001050 R713c-00001050 R7140-00001050 R7144-00001050 R7148-00001050
-	REG_SET(0x7124, 0x1050); REG_SET(0x7128, 0x1050); REG_SET(0x712c, 0x1050); REG_SET(0x7130, 0x1050); REG_SET(0x7134, 0x1050); REG_SET(0x7138, 0x1050); REG_SET(0x713c, 0x1050);
-	REG_SET(0x7140, 0x1050); REG_SET(0x7144, 0x1050); REG_SET(0x7148, 0x1050);
-
-	reg_bit_set(RTL837X_REG_HW_CONF, 0);
-
-	// TODO: patch the PHYs
-
-	// Re-enable PHY after configuration
-	phy_write_mask(0xff,0x1f,0xa610,0x2058);
-
-	// Enables MAC access
-	// Set bits 0xc-0x14 of 0x632c to 0x1f8, see rtl8372_init
-	// r632c:00000540 R632c-001f8540 // RTL8373: 001ff540
-	reg_read_m(0x632c);
-	sfr_mask_data(1, 0x70, 0xf0); // The ports of the RTL8824
-	sfr_mask_data(2, 0x10, 0x1f);
-	reg_write_m(0x632c);
-
-	REG_SET(0x7f94, 0);
-	print_string("\nrtl8373_init done\n");
-}
-
-
-void rtl8372_init(void)
-{
-	print_string("\nrtl8372_init called\n");
-	minPort = 3;
-	maxPort = 8;
-	cpuPort = 9;
-	nSFPPorts = NSFP;
-
-	// r6330:00015555 R6330-00005555 r6330:00005555 R6330-00005555
-	REG_SET(0x6330, 0x00005555);
-	if (nSFPPorts == 2) {
-		print_string("Configuring 2nd SFP+ port\n");
-		REG_SET(0x6330, 0x00005515);
-	}
-
-	// r6334:00000000 R6334-000001f8  RTL8373: r6334:00000000 R6334-000000ff
-	reg_read_m(0x6334);		// Also in sdsMode_set
-	if (nSFPPorts == 2)  {
-		sfr_mask_data(0, 0, 0xf0);
-	} else {
-		sfr_mask_data(1, 0, 0x01); 	// Set bits 3-8, On RTL8373+8224 set bits 0-7
-		sfr_mask_data(0, 0, 0xf8);
-	}
-	reg_write_m(0x6334);
-
-	// Enable MDC
-	// r6454:00000000 R6454-00007000 RTL837X_REG_SMI_CTRL
-	reg_read_m(RTL837X_REG_SMI_CTRL);
-	sfr_mask_data(1, 0, 0x70); 	// Set bits 0xc-0xe to enable MDC for SMI0-SMI2
-	reg_write_m(RTL837X_REG_SMI_CTRL);
-	delay(50);
-
-	led_config();
-	sds_init();
-	phy_config(8);	// PHY configuration: External 8221B?
-	phy_config(3);	// PHY configuration: all internal PHYs?
-	// Set the MAC SerDes Modes Bits 0-4: SDS 0 = 0x2 (0x2), Bits 5-9: SDS 1: 1f (off)
-	// r7b20:00000bff R7b20-00000bff r7b20:00000bff R7b20-00000bff r7b20:00000bff R7b20-000003ff r7b20:000003ff R7b20-000003e2 r7b20:000003e2 R7b20-000003e2
-	reg_read_m(RTL837X_REG_SDS_MODES);
-	sfr_mask_data(1, 0, 0x03);
-	sfr_mask_data(0, 0, 0xe2);
-	reg_write_m(RTL837X_REG_SDS_MODES);
-
-	// r0a90:000000f3 R0a90-000000fc
-	reg_read_m(0xa90);
-	sfr_mask_data(0, 0x0f,0x0c);
-	reg_write_m(0xa90);
-
-	// Disable PHYs for configuration
-	phy_write_mask(0xf0,0x1f,0xa610,0x2858);
-
-	// Set bits 0x13 and 0x14 of 0x5fd4
-	// r5fd4:0002914a R5fd4-001a914a
-	reg_bit_set(0x5fd4, 0x13);
-	reg_bit_set(0x5fd4, 0x14);
-
-	// Configure ports 3-8:
-	//
-	// r1538:00000e33 R1538-00000e37 r1538:00000e37 R1538-00000e37 r1538:00000e37 R1538-00000f37
-	// [...]
-	///
-	uint16_t reg = 0x1238 + 0x300; // Port base register for the bits we set
-	for (char i = minPort; i <= maxPort; i++) {
-		// Bit 7 (0x40) enables replacement of the RTL-VLAN tag with an 802.1Q VLAN tag
-		REG_SET(reg, 0xe77);
-		reg += 0x100;
-	}
-
-	// r0b7c:000000d8 R0b7c-000000f8 r6040:00000030 R6040-00000031
-	reg_bit_set(0xb7c, 5);
-
-	reg_bit_set(RTL837X_REG_HW_CONF, 0);
-
-	// TODO: patch the PHYs
-
-	// Re-enable PHY after configuration
-	phy_write_mask(0xf0,0x1f,0xa610,0x2058);
-
-	// Enables MAC access
-	// Set bits 0xc-0x14 of 0x632c to 0x1f8, see rtl8372_init
-	// r632c:00000540 R632c-001f8540 // RTL8373: 001ff540
-	reg_read_m(0x632c);
-	sfr_mask_data(1, 0x70, 0x80);
-	sfr_mask_data(2, 0x10, 0x1f);
-	reg_write_m(0x632c);
-	print_string("\nrtl8372_init done\n");
-}
-
-
 /* Set up serial port 0 using Timer 2 with an external trigger
  * as baud generator.
  * The external clock generator uses a crystal at 25MHz.
@@ -1633,20 +1232,6 @@ void setup_serial(void)
 }
 
 
-void setup_i2c(void)
-{
-	REG_SET(0x0414, 0);
-	REG_SET(0x0418, 0x00100280);
-	REG_SET(0x041c, 0);
-
-	// HW Control register, enable I2C?
-	reg_read_m(RTL837X_PIN_MUX_1);
-	sfr_mask_data(3, 0x20, 0x00); // Clear bit 29
-	sfr_mask_data(0, 0x60, 0x40); // Set bits 5-6 to 0b10
-	reg_write_m(RTL837X_PIN_MUX_1);
-}
-
-
 void bootloader(void)
 {
 	ticks = 0;
@@ -1667,95 +1252,12 @@ void bootloader(void)
 	// Disable all interrupts (global interrupt enable bit)
 	EA = 0; // SFR A8.7 / IE.7
 
-	idle_ready = 0;
-	// HW setup, serial, timer, external IRQs
+   // HW setup, serial, timer, external IRQs
 	setup_clock();
 	setup_serial();
 	setup_timer0();
-	setup_external_irqs();
+	
 	EA = 1; // Enable all IRQs
-
-	// Set default for SFP pins so we can start up a module already inserted
-	sfp_pins_last = 0x33; // signal LOS and no module inserted (for both slots, even if only 1 present)
-	// We have not detected any link
-	linkbits_last[0] = linkbits_last[1] = linkbits_last[2] = linkbits_last[3] = 0;
-
-	print_string("Detecting CPU: ");
-	isRTL8373 = 0;
-	reg_read_m(0x4);
-	if (sfr_data[1] == 0x73) { // Register was 0x83730000
-		print_string("RTL8373\n");
-		isRTL8373 = 1;
-		rtl8224_enable();  // Power on the RTL8224
-	} else {
-		print_string("RTL8372\n");
-	}
-
-	print_string("\nStarting up...\n");
-	print_string("  Flash controller\n");
-	flash_init(0);
-
-	// Reset NIC
-	reg_bit_set(0x24, 2);
-	do {
-		reg_read(0x24);
-	} while (SFR_DATA_0 & 0x4);
-	print_string("NIC reset\n");
-
-	uip_ipaddr(&uip_hostaddr, ownIP[0], ownIP[1], ownIP[2], ownIP[3]);
-	uip_ipaddr(&uip_draddr, gatewayIP[0], gatewayIP[1], gatewayIP[2], gatewayIP[3]);
-	uip_ipaddr(&uip_netmask, netmask[0], netmask[1], netmask[2], netmask[3]);
-
-	REG_SET(0x7f94, 0x0);
-	if (isRTL8373)
-		rtl8373_init();
-	else
-		rtl8372_init();
-	delay(1000);
-
-#ifdef DEBUG
-	// This register seems to work on the RTL8373 only if also the SDS
-	// Is correctly configured. Therefore, we can test it, here...
-	// Reset seconds counter
-	print_string("\nTIMER-TEST: \n");
-	REG_SET(RTL837X_REG_SEC_COUNTER, 0x0);
-	delay(100);
-	print_reg(RTL837X_REG_SEC_COUNTER); write_char(' ');
-	REG_SET(RTL837X_REG_SEC_COUNTER, 0x1);
-	delay(100);
-	print_reg(RTL837X_REG_SEC_COUNTER);
-	REG_SET(RTL837X_REG_SEC_COUNTER, 0x2); write_char(' ');
-	delay(100);
-	print_reg(RTL837X_REG_SEC_COUNTER);
-	REG_SET(RTL837X_REG_SEC_COUNTER, 0x3); write_char(' ');
-	print_reg(RTL837X_REG_SEC_COUNTER);
-#endif
-	stpEnabled = 0;
-	nic_setup();
-	vlan_setup();
-	port_l2_setup();
-	uip_init();
-	uip_arp_init();
-	httpd_init();
-
-	was_offline = 1;
-
-	setup_i2c();
-
-	print_string(greeting);
-
-	print_string("\nClock register: ");
-	print_reg(0x6040);
-	print_string("\nRegister 0x7b20/RTL837X_REG_SDS_MODES: ");
-	print_reg(0x7b20);
-
-	print_string("\nVerifying PHY settings:\n");
-//	p031f.a610:2058 p041f.a610:2058  p051f.a610:2058  r4f3c:00000000 p061f.a610:2058 p071f.a610:2058 
-	port_stats_print();
-
-	execute_config();
-	print_string("\n> ");
-	idle_ready = 1;
 
 	// Wait for commands on serial connection
 	// sbuf_ptr is moved forward by serial interrupt, l is the position until we have already
@@ -1763,26 +1265,32 @@ void bootloader(void)
 	__xdata uint8_t l = sbuf_ptr; // We have printed out entered characters until l
 	__xdata uint8_t line_start = sbuf_ptr; // This is where the current line starts
 	while (1) {
-		while (l != sbuf_ptr) {
-			write_char(sbuf[l]);
-			// Check whether there is a full line:
-			if (sbuf[l] == '\n' || sbuf[l] == '\r') {
+		PCON |= 1;
+		if (sec_counter >= 60) {
+			sec_counter -= 60;
+			for (uint8_t idx = 0; idx < 2; idx++) {
+				reg_read(RTL837X_REG_GPIO_00_31_INPUT + (idx * 4));
+				print_string("GPIO ");
+				write_char(idx + '0');
+				write_char(':');
+				write_char(' ');
+
+				print_byte(SFR_DATA_24);
+				print_byte(SFR_DATA_16);
+				print_byte(SFR_DATA_8);
+				print_byte(SFR_DATA_0);
+
+				write_char(' ');
+				print_byte( gpio_last_value[(idx *4)] ^ SFR_DATA_24);
+				gpio_last_value[(idx *4)] = SFR_DATA_24;
+				print_byte( gpio_last_value[(idx *4) + 1] ^ SFR_DATA_16);
+				gpio_last_value[(idx *4) + 1] = SFR_DATA_16;
+				print_byte( gpio_last_value[(idx *4) + 2] ^ SFR_DATA_8);
+				gpio_last_value[(idx *4) + 2] = SFR_DATA_8;
+				print_byte( gpio_last_value[(idx *4) + 3] ^ SFR_DATA_0);
+				gpio_last_value[(idx *4) + 3] = SFR_DATA_0;
 				write_char('\n');
-				register uint8_t i = 0;
-				while (line_start != l) {
-					cmd_buffer[i++] = sbuf[line_start++];
-					line_start &= (SBUF_SIZE - 1);
-				}
-				line_start++;
-				line_start &= (SBUF_SIZE - 1);
-				cmd_buffer[i] = '\0';
-				if (i && !cmd_tokenize())
-					cmd_parser();
-				print_string("\n> ");
 			}
-			l++;
-			l &= (SBUF_SIZE - 1);
 		}
-		idle(); // Enter Idle mode until interrupt occurs
 	}
 }

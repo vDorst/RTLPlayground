@@ -305,7 +305,13 @@ void reg_read_m(uint16_t reg_addr)
 #endif
 	SFR_REG_ADDR_U16 = reg_addr;
 	SFR_EXEC_GO = SFR_EXEC_READ_REG;
+	uint16_t cnt = 0;
 	do {
+		cnt += 1;
+		if (!cnt) {
+			print_string("\nwait for SFR_STATUS: ");
+			print_byte(SFR_EXEC_STATUS);
+		}
 	} while (SFR_EXEC_STATUS != 0);
 	sfr_data[0] = SFR_DATA_24;
 	sfr_data[1] = SFR_DATA_16;
@@ -1255,7 +1261,6 @@ void bootloader(void)
    // HW setup, serial, timer, external IRQs
 	setup_clock();
 	setup_serial();
-	setup_timer0();
 	
 	EA = 1; // Enable all IRQs
 
@@ -1264,33 +1269,37 @@ void bootloader(void)
 	// printed out the entered characters
 	__xdata uint8_t l = sbuf_ptr; // We have printed out entered characters until l
 	__xdata uint8_t line_start = sbuf_ptr; // This is where the current line starts
+
+	uint16_t reg = 0;
+
+	write_char('R');
+
+	print_string("\nStarting up...\n Flash controller\n");
+    flash_init(0);
+
+    reg_bit_set(0x24, 2);
+    do {
+            reg_read(0x24);
+    } while (SFR_DATA_0 & 0x4);
+    print_string("NIC reset\n");
+
+	// reset_chip();
+
+	print_string("\n\n ## Print all the registers of the switch.\n\n");
 	while (1) {
-		PCON |= 1;
-		if (sec_counter >= 60) {
-			sec_counter -= 60;
-			for (uint8_t idx = 0; idx < 2; idx++) {
-				reg_read(RTL837X_REG_GPIO_00_31_INPUT + (idx * 4));
-				print_string("GPIO ");
-				write_char(idx + '0');
-				write_char(':');
-				write_char(' ');
+		
+		print_string("R 0x");
+		print_byte((reg >> 8) & 0xff);
+		print_byte(reg & 0xff);
+		print_string(" = ");
 
-				print_byte(SFR_DATA_24);
-				print_byte(SFR_DATA_16);
-				print_byte(SFR_DATA_8);
-				print_byte(SFR_DATA_0);
+		reg_read_m(reg);
+		print_sfr_data();
 
-				write_char(' ');
-				print_byte( gpio_last_value[(idx *4)] ^ SFR_DATA_24);
-				gpio_last_value[(idx *4)] = SFR_DATA_24;
-				print_byte( gpio_last_value[(idx *4) + 1] ^ SFR_DATA_16);
-				gpio_last_value[(idx *4) + 1] = SFR_DATA_16;
-				print_byte( gpio_last_value[(idx *4) + 2] ^ SFR_DATA_8);
-				gpio_last_value[(idx *4) + 2] = SFR_DATA_8;
-				print_byte( gpio_last_value[(idx *4) + 3] ^ SFR_DATA_0);
-				gpio_last_value[(idx *4) + 3] = SFR_DATA_0;
-				write_char('\n');
-			}
-		}
+		write_char('\n');
+		
+		// low two bits seems to be ignored.
+		// print always the value value four times.
+		reg += 4;
 	}
 }

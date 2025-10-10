@@ -1259,6 +1259,8 @@ void bootloader(void)
 	
 	EA = 1; // Enable all IRQs
 
+	print_string("RST\n");
+
 	// Wait for commands on serial connection
 	// sbuf_ptr is moved forward by serial interrupt, l is the position until we have already
 	// printed out the entered characters

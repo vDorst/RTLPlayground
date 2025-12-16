@@ -19,6 +19,8 @@
 #include "machine.h"
 
 extern __code const struct machine machine;
+__pdata uint8_t PAGEDATA[16];
+__xdata __at(0x100) uint8_t XDATA_PAGE1_DATA[16];
 
 extern __xdata uint16_t crc_value;
 __xdata uint8_t crc_testbytes[10];
@@ -1684,6 +1686,65 @@ void bootloader(void)
 	setup_timer0();
 	setup_external_irqs();
 	EA = 1; // Enable all IRQs
+
+  SFR_MPAGE = 0x00;
+	// Write pdata page 0
+	for (uint8_t idx = 0; idx < 16; idx++) {
+		PAGEDATA[idx] = 'a';
+	}
+
+  SFR_MPAGE = 0x01;
+
+	// Write pdata page 1
+	for (uint8_t idx = 0; idx < 16; idx++) {
+		PAGEDATA[idx] = 'b';
+	}
+
+  SFR_MPAGE = 0x00;
+
+	// read pdata page 0
+	print_string("\nPAGE 0 READ\n");
+	for (uint8_t idx = 0; idx < 16; idx++) {
+		write_char(PAGEDATA[idx]);
+	}
+
+  SFR_MPAGE = 0x01;
+
+	// read pdata page 1
+	print_string("\nPAGE 1 READ\n");
+	for (uint8_t idx = 0; idx < 16; idx++) {
+		write_char(PAGEDATA[idx]);
+	}
+
+	// Write pdata page 1 via XDATA at location 0x100
+	for (uint8_t idx = 0; idx < 16; idx++) {
+		XDATA_PAGE1_DATA[idx] = 'x';
+	}
+
+	// read pdata page 1
+	print_string("\nPAGE 1 READ XDATA\n");
+	for (uint8_t idx = 0; idx < 16; idx++) {
+		write_char(PAGEDATA[idx]);
+	}
+	
+	SFR_MPAGE = 0x00;
+
+	// read pdata page 0
+	print_string("\nPAGE 0 READ\n");
+	for (uint8_t idx = 0; idx < 16; idx++) {
+		write_char(PAGEDATA[idx]);
+	}
+
+  SFR_MPAGE = 0x01;
+
+	// read pdata page 1
+	print_string("\nPAGE 1 READ\n");
+	for (uint8_t idx = 0; idx < 16; idx++) {
+		write_char(PAGEDATA[idx]);
+	}
+
+	SFR_MPAGE = 0x00;
+	write_char('\n');
 
 	// Set default for SFP pins so we can start up a module already inserted
 	sfp_pins_last = 0x33; // signal LOS and no module inserted (for both slots, even if only 1 present)

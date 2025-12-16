@@ -56,6 +56,11 @@ __sfr __at(0x97) SFR_97;	// HADDR?
 __sfr __at(0xb9) SFR_b9;
 __sfr __at(0xba) SFR_ba;
 
+
+// SFR to controll the XDATA PAGED high value
+// Used for instruction `movx @Ri,a` and `movx a,@Ri`
+__sfr __at(0x92) SFR_MPAGE;
+
 // Clause 22 PHY access ???
 __sfr __at(0x93) SFR_93;
 __sfr __at(0x94) SFR_94;

@@ -19,8 +19,8 @@
 #include "machine.h"
 
 extern __code const struct machine machine;
-__pdata __at(0x20)   uint8_t PAGEDATA[16];
-__xdata __at(0x120) uint8_t XDATA_PAGE1_DATA[16];
+__pdata uint8_t PAGEDATA[16] = "RandomData12345";
+__xdata __at(0x101) uint8_t XDATA_PAGE1_DATA[16];
 
 extern __xdata uint16_t crc_value;
 __xdata uint8_t crc_testbytes[10];
@@ -1688,24 +1688,14 @@ void bootloader(void)
 	EA = 1; // Enable all IRQs
 
 	// Print the default MPAGE location at reset.
-	print_string("SFR_MPAGE 0x92=");
-	print_byte(SFR_MPAGE);
+	print_string("_XPAGE 0x92=");
+	print_byte(_XPAGE);
 	write_char('\n');
 
-  SFR_MPAGE = 0x00;
-	// Write pdata page 0
-	for (uint8_t idx = 0; idx < 16; idx++) {
-		PAGEDATA[idx] = 'a';
-	}
+	print_string("PAGEDATA=");
+	print_byte(&PAGEDATA);
+	write_char('\n');
 
-  SFR_MPAGE = 0x01;
-
-	// Write pdata page 1
-	for (uint8_t idx = 0; idx < 16; idx++) {
-		PAGEDATA[idx] = 'b';
-	}
-
-  SFR_MPAGE = 0x00;
 
 	// read pdata page 0
 	print_string("\nPAGE 0 READ\n");
@@ -1713,7 +1703,35 @@ void bootloader(void)
 		write_char(PAGEDATA[idx]);
 	}
 
-  SFR_MPAGE = 0x01;
+	_XPAGE = 0x00;
+
+	// read pdata page 0
+	print_string("\nPAGE 0 READ\n");
+	for (uint8_t idx = 0; idx < 16; idx++) {
+		write_char(PAGEDATA[idx]);
+	}
+
+	// Write pdata page 0
+	for (uint8_t idx = 0; idx < 16; idx++) {
+		PAGEDATA[idx] = 'a';
+	}
+
+	_XPAGE = 0x01;
+
+	// Write pdata page 1
+	for (uint8_t idx = 0; idx < 16; idx++) {
+		PAGEDATA[idx] = 'b';
+	}
+
+	_XPAGE = 0x00;
+
+	// read pdata page 0
+	print_string("\nPAGE 0 READ\n");
+	for (uint8_t idx = 0; idx < 16; idx++) {
+		write_char(PAGEDATA[idx]);
+	}
+
+	_XPAGE = 0x01;
 
 	// read pdata page 1
 	print_string("\nPAGE 1 READ\n");
@@ -1732,7 +1750,7 @@ void bootloader(void)
 		write_char(PAGEDATA[idx]);
 	}
 	
-	SFR_MPAGE = 0x00;
+	_XPAGE = 0x00;
 
 	// read pdata page 0
 	print_string("\nPAGE 0 READ\n");
@@ -1740,7 +1758,7 @@ void bootloader(void)
 		write_char(PAGEDATA[idx]);
 	}
 
-  SFR_MPAGE = 0x01;
+	_XPAGE = 0x01;
 
 	// read pdata page 1
 	print_string("\nPAGE 1 READ\n");
@@ -1748,7 +1766,7 @@ void bootloader(void)
 		write_char(PAGEDATA[idx]);
 	}
 
-	SFR_MPAGE = 0x00;
+	_XPAGE = 0x00;
 	write_char('\n');
 
 	// Set default for SFP pins so we can start up a module already inserted

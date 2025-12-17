@@ -57,9 +57,11 @@ __sfr __at(0xb9) SFR_b9;
 __sfr __at(0xba) SFR_ba;
 
 
-// SFR to controll the XDATA PAGED high value
+// SFR to control the XDATA PAGED high value
 // Used for instruction `movx @Ri,a` and `movx a,@Ri`
-__sfr __at(0x92) SFR_MPAGE;
+// SDCC manual 4.1.1 pdata access by SFR, tells that the register must called `_XPAGE`
+// to make use of the pdata access by SFR.
+__sfr __at(0x92) _XPAGE;
 
 // Clause 22 PHY access ???
 __sfr __at(0x93) SFR_93;

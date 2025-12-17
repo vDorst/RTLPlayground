@@ -19,8 +19,8 @@
 #include "machine.h"
 
 extern __code const struct machine machine;
-__pdata uint8_t PAGEDATA[16];
-__xdata __at(0x100) uint8_t XDATA_PAGE1_DATA[16];
+__pdata __at(0x10)   uint8_t PAGEDATA[16];
+__xdata __at(0x110) uint8_t XDATA_PAGE1_DATA[16];
 
 extern __xdata uint16_t crc_value;
 __xdata uint8_t crc_testbytes[10];

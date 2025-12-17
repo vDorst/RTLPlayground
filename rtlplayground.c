@@ -1687,6 +1687,11 @@ void bootloader(void)
 	setup_external_irqs();
 	EA = 1; // Enable all IRQs
 
+	// Print the default MPAGE location at reset.
+	print_string("SFR_MPAGE 0x92=");
+	print_byte(SFR_MPAGE);
+	write_char('\n');
+
   SFR_MPAGE = 0x00;
 	// Write pdata page 0
 	for (uint8_t idx = 0; idx < 16; idx++) {

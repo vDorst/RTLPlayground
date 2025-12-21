@@ -20,6 +20,22 @@ __code const struct machine machine = {
 	.sfp_port[1].i2c = 0,
 	.reset_pin = 46,
 };
+#elif defined MACHINE_KP_9000_9XHML_X
+__code const struct machine machine = {
+	.machine_name = "keepLink KP-9000-9XHML-X",
+	.isRTL8373 = 1,
+	.min_port = 0,
+	.max_port = 8,
+	.n_sfp = 1,
+	.log_to_phys_port = {1, 2, 3, 4, 5, 6, 7, 8, 9},
+	.phys_to_log_port = {0, 1, 2, 3, 4, 5, 6, 7, 8},
+	.is_sfp = {0, 0, 0, 0, 0, 0, 0, 0, 1},
+	.sfp_port[0].pin_detect = 38,
+	.sfp_port[0].pin_los = 38,
+	.sfp_port[0].sds = 1,
+	.sfp_port[0].i2c = 0,
+	.reset_pin = 48,
+};
 #elif defined MACHINE_KP_9000_6XH_X
 __code const struct machine machine = {
 	.machine_name = "keepLink KP-9000-6XH-X",

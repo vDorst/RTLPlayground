@@ -950,6 +950,10 @@ bool gpio_pin_test(uint8_t pin)
 void handle_sfp(void)
 {
 	for (uint8_t sfp = 0; sfp < machine.n_sfp; sfp++) {
+		if ((machine.sfp_port[sfp].pin_detect & FUNCTION_HAS_NO_PIN) != 0x00) {
+			// Skip when pin-detect has no function.
+			continue;
+		}
 		if (!gpio_pin_test(machine.sfp_port[sfp].pin_detect)) {
 			if (sfp_pins_last & (0x1 << (sfp << 2))) {
 				sfp_pins_last &= ~(0x01 << (sfp << 2));
@@ -973,15 +977,17 @@ void handle_sfp(void)
 			}
 		}
 
-		if (!gpio_pin_test(machine.sfp_port[sfp].pin_los)) {
-			if (sfp_pins_last & (0x2 << (sfp << 2))) { // 0x2 0x08
-				sfp_pins_last &= ~(0x02 << (sfp << 2));
-				print_string("\n<SFP-RX OK>  Slot: "); write_char('1' + sfp); write_char('\n');
-			}
-		} else {
-			if (!(sfp_pins_last & 0x2 << (sfp << 2))) {
-				sfp_pins_last |= 0x02 << (sfp << 2);
-				print_string("\n<SFP-RX LOS>  Slot: "); write_char('1' + sfp); write_char('\n');
+		if ((machine.sfp_port[sfp].pin_los & FUNCTION_HAS_NO_PIN) == 0x00) {
+			if (!(gpio_pin_test(machine.sfp_port[sfp].pin_los))) {
+				if (sfp_pins_last & (0x2 << (sfp << 2))) { // 0x2 0x08
+					sfp_pins_last &= ~(0x02 << (sfp << 2));
+					print_string("\n<SFP-RX OK>  Slot: "); write_char('1' + sfp); write_char('\n');
+				}
+			} else {
+				if (!(sfp_pins_last & 0x2 << (sfp << 2))) {
+					sfp_pins_last |= 0x02 << (sfp << 2);
+					print_string("\n<SFP-RX LOS>  Slot: "); write_char('1' + sfp); write_char('\n');
+				}
 			}
 		}
 	}

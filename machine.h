@@ -3,6 +3,11 @@
 
 #include <stdint.h>
 
+// We have only 64 gpio pins 0..=63, fit perfectly in the 6-bit lower bits.
+// So we have 2 bits left.
+// Use the MSB to define that a function has no GPIO.
+#define FUNCTION_HAS_NO_PIN		0x80
+
 /*
  * Select your machine type below
  */
@@ -16,6 +21,7 @@
 // #define DEFAULT_8C_1SFP
 
 // #define DEFAULT_5C_1SFP
+
 
 struct sfp_port
 {

@@ -116,13 +116,67 @@ __xdata uint8_t sfp_options[2];
 
 #define ETHERTYPE_OFFSET (12 + VLAN_TAG_SIZE + RTL_TAG_SIZE)
 
+// Number of missing reprogramming TIMER0 ticks.
+// See more information below
+#define TIMER0_REPROGRAM_TIMER_TICK_COUNT (12 * 4 / 12)
+
+// This function does:
+// - Disable TIMER0
+// - Reprogram the 16-bit TIMER0 value with:
+//     current TIMER0 value + SYSTICK_TIMER0_VALUE + TIMER0_REPROGRAM_TIMER_TICK_COUNT
+// - Enable TIMER0
+//
+// Every TIMER0 tick is F_SYS / 12.
+// Every Instruction Cycle is F_SYS / 4.
+//
+// These instructions add a delay/gap-time while reprogramming the TIMER0.
+// We assume that TIMER0 is disabled/enabled after clr/setb _TR0 instruction has finished.
+// 
+// Instruction cycle numbers are from "Table 2-4 DW8051 Instruction Set"
+//  Instr. |
+//  Cycles | assembly code
+// --------| -------------
+//    2    | add a, _TL0
+//    2    | mov _TL0, a  
+//    2    | mov a, _TH0
+//    2    | addc a, #(((SYSTICK_TIMER0_VALUE + TIMER0_REPROGRAM_TIMER_TICK_COUNT) >> 8) & 0xFF)
+//    2    | mov _TH0, a
+//    2    | setb _TR0
+// -----------------------
+//   12 instruction cycles to reprogram the timer0 and enable it again.
+// 
+//   Every instruction cycle is 4 F_SYS clock cycles
+//   12 x 4 = 48 clock cycles to reprogram TIMER0.
+//   Because TIMER0 is ticking at F_SYS / 12
+//   48 / 12 = 4 TIMER0 ticks.
+//   So reprogramming TIMER0 costs us 4 TIMER0 ticks. This values we must also
+//   add to TIMER0 value to compensate the reprogram latency/delay/gap-time.
+//   Without it we are missing 4 TIMER0 ticks every reprogramming cycle.
+inline void update_timer0(void) __naked {
+	__asm
+	; Store ACC, PSW both are overwritten.
+	push a
+	push psw
+	mov a, #((SYSTICK_TIMER0_VALUE + TIMER0_REPROGRAM_TIMER_TICK_COUNT) & 0xFF)
+	clr _TR0
+	; Timer0 is disables, every instruction below this line is counted as delay
+	; what the TIMER0 could advance while reprogramming.
+	add a, _TL0
+	mov _TL0, a
+	mov a, _TH0
+	addc a, #(((SYSTICK_TIMER0_VALUE + TIMER0_REPROGRAM_TIMER_TICK_COUNT) >> 8) & 0xFF)
+	mov _TH0, a
+	setb _TR0
+	; Timer 0 is enabled again, every instruction above this line is counted as delay.
+	; Restore PSW, ACC
+	pop psw
+	pop a
+	__endasm;
+}
+
 void isr_timer0(void) __interrupt(1)
 {
-	uint16_t T0 = (SYSTICK_TIMER0_VALUE + 5);
-	TR0 = 0;		// Stop timer 0
-	T0 += TL0;
-	T0_U16 = T0;
-	TR0 = 1;		// Re-start timer 0
+	update_timer0();
 
 	ticks++;
 	if (sleep_ticks > 0)

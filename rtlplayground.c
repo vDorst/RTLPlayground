@@ -118,8 +118,10 @@ __xdata uint8_t sfp_options[2];
 
 void isr_timer0(void) __interrupt(1)
 {
+	uint16_t T0 = (SYSTICK_TIMER0_VALUE + 5);
 	TR0 = 0;		// Stop timer 0
-	T0_U16 = SYSTICK_TIMER0_VALUE;
+	T0 += TL0;
+	T0_U16 = T0;
 	TR0 = 1;		// Re-start timer 0
 
 	ticks++;

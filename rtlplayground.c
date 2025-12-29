@@ -121,10 +121,12 @@ __xdata uint8_t sfp_options[2];
 #define TIMER0_REPROGRAM_TIMER_TICK_COUNT (12 * 4 / 12)
 
 // This function does:
+// - Turn off global interrupts
 // - Disable TIMER0
 // - Reprogram the 16-bit TIMER0 value with:
 //     current TIMER0 value + SYSTICK_TIMER0_VALUE + TIMER0_REPROGRAM_TIMER_TICK_COUNT
 // - Enable TIMER0
+// - Turn on global interrupts
 //
 // Every TIMER0 tick is F_SYS / 12.
 // Every Instruction Cycle is F_SYS / 4.
@@ -154,6 +156,8 @@ __xdata uint8_t sfp_options[2];
 //   Without it we are missing 4 TIMER0 ticks every reprogramming cycle.
 inline void update_timer0(void) __naked {
 	__asm
+	; Turn off global interrupts, to ensure code below is not interrupted.
+	clr _EA
 	; Store ACC, PSW both are overwritten.
 	push a
 	push psw
@@ -171,6 +175,8 @@ inline void update_timer0(void) __naked {
 	; Restore PSW, ACC
 	pop psw
 	pop a
+	; Turn on global interrupts.
+	setb _EA
 	__endasm;
 }
 

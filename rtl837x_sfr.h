@@ -101,3 +101,6 @@ __sfr __at(0xb6) SFR_NIC_RING_H;
 /* Standard 8051 sfr */
 // Timer 0 value
 __sfr16 __at(0x8c8a) T0_U16;
+
+// Timer 1 enable interrupt
+__sbit __at(0xad) ET2;

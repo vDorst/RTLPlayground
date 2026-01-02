@@ -188,6 +188,7 @@ inline void update_timer0(void) __naked {
 
 
 void isr_timer0(void) __interrupt(1)
+{
 }
 
 void isr_serial(void) __interrupt(4)
@@ -353,20 +354,6 @@ void isr_ext3(void) __interrupt(9)
 {
 	EXIF &= 0xdf;	// Clear IRQ flag (bit 6) in EXIF
 	write_char('W');
-}
-
-
-void setup_timer0(void)
-{
-	TMOD = 0x11;  // Timer 1: Mode 1, Timer 0: Mode 1, i.e. 16 bit counters, no auto-reload
-	/* The TH0 registers contain the high/low byte that we load into Timer0 when T0
-	 * overflows to 0x10000
-	 */
-	T0_U16 = SYSTICK_TIMER0_VALUE;
-
-	CKCON &= 0xc7;
-	TCON = 0x10;	// Start timer 0
-	ET0 = 1;	// Enable timer interrupts
 }
 
 // Timer2: handles system tick.
@@ -1729,28 +1716,48 @@ void init_smi(void)
 }
 
 
-/* Set up serial port 0 using Timer 2 with an external trigger
- * as baud generator.
- * The external clock generator uses a crystal at 25MHz.
+#define SMOD0 1
+/* Set up serial port 0 using Timer 1 as baudrate generator.
+ * For 115200 baud we need these settings
+ * - Timer0 Div 4
+ * - SMOD = 1
+ * - TH1  = 17
  */
-void setup_serial(void)
+void setup_serial_timer1(void)
 {
 	IE = 0;
 
-	T2CON = 0x34; // Enable RCLK/TCLK (serial transmit/receive clock for T2), TR2 (Timer 2 RUN), disable CP/RL2 (bit 0)
+	// Timer 1: Mode 2: automatic reload
+	TMOD &= 0x0F;
+	TMOD |= 0xA0; // Timer1: GATE, Mode2: Counter, 8-bit with auto-reload
+	CKCON |= 0x10; // Timer1 clock divider: F_SYS / 4;
+
+	PCON |= 0x80; // SMOD0 = 1; Double the Baud Rate, don't divide Timer1 Overflag signal.
+
 	SCON = 0x50;  // Mode = 1: ASYNC 8N1 with T2 as baud-rate generator, REN_0 Receive enable
 
-	// The RCAP2 registers contain the high/low byte that is loaded into
-	// timer2 when T2 overflows to 0x10000
-	RCAP2H = (0x10000 - ((CLOCK_HZ / SERIAL_BAUD_RATE + 16) / 32)) >> 8;
-	RCAP2L = (0x10000 - ((CLOCK_HZ / SERIAL_BAUD_RATE + 16) / 32)) % 0xff;
+	// The TH1 register contain the reload value
+	// timer1 when T1 overflows to 0x100
 
-	PCON |= 0x80; // Double the Baud Rate
+	/* NOTE: compiler computs the wrong value. 0xF0 is calculated but 0xEF is the right value.
+	 * Also https://www.keil.com/products/c51/baudrate.asp confirms this.
+	 * Added 32 before div by 64 to make sure rounding is correct so that the results are right.
+	 *
+	 * TH1 = 0x100 - (F_SYS / TMR1_DIV / BAUDRATE * 2^SMOD0 / 32)
+	 *     = 0x100 - (125000000 / 4 / BAUDRATE * 2^1 / 32)
+	 *     = 0x100 - (125000000 / 4 / BAUDRATE / 16)
+	 *     = 0x100 - (125000000 / BAUDRATE / 64)
+	 *     = 0x100 - (16.95)
+	 *     = 0x100 - 17
+	 *     = 0xEF
+	 */
+	TH1 = (0x100 - (((CLOCK_HZ / SERIAL_BAUD_RATE) + 32) / 64)) % 0xff;
 
-	SCON = 0x50;
+	TCON |= 0x40;	// Start timer 1
+
+	ET1 = 0 ;// Timer1 Interrupt is NOT wanted!
 	TI = 1;
 	RI = 0;
-
 	ES = 1; // Enable serial IRQ
 }
 
@@ -1795,8 +1802,7 @@ void bootloader(void)
 	idle_ready = 0;
 	// HW setup, serial, timer, external IRQs
 	setup_clock();
-	setup_serial();
-	setup_timer0();
+	setup_serial_timer1();
 	setup_external_irqs();
 	EA = 1; // Enable all IRQs
 

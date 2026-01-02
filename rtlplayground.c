@@ -54,12 +54,18 @@ void crc16(__xdata uint8_t *v) __naked;
 #define CLOCK_DIV 0
 #endif
 
-// Derive divider for the system ticks
-#define TIMER0_DIV (CLOCK_HZ / 12 / SYS_TICK_HZ)
-#if TIMER0_DIV > 0xFFFF
-#error "SYS_TICH_HZ to low, must be >= 158"
+/* Derive divider for the system ticks
+   TIMER2 can divide the F_CPU by 4 or 12.
+   So the F_TICKS are in the range of:
+   -  F_TIMER_DIV4_OVERFLOW = F_SYS /  DIV4 / 1..65536 = 125MHz /  4 / 1..65536 = 31.25 MHz .. 476.8 Hz
+   - T_TIMER_DIV12_OVERFLOW = F_SYS / DIV12 / 1..65536 = 125MHz / 12 / 1..65536 = 10.42 MHz .. 158.9 Hz
+   Selecting dividor 12 settings to get lowest timer tick posiable which is already high.
+*/
+#define TIMER2_DIV (CLOCK_HZ / 12 / SYS_TICK_HZ)
+#if TIMER2_DIV > 0xFFFF
+#error "SYS_TICK_HZ to low, must be >= 159"
 #endif
-#define SYSTICK_TIMER0_VALUE (0x10000 - TIMER0_DIV)
+#define SYSTICK_TIMER2_VALUE (0x10000 - TIMER2_DIV)
 
 __xdata uint8_t idle_ready;
 
@@ -180,17 +186,9 @@ inline void update_timer0(void) __naked {
 	__endasm;
 }
 
+
 void isr_timer0(void) __interrupt(1)
-{
-	update_timer0();
-
-	ticks++;
-	if (sleep_ticks > 0)
-		sleep_ticks--;
-	sec_counter++;
-
 }
-
 
 void isr_serial(void) __interrupt(4)
 {
@@ -201,6 +199,14 @@ void isr_serial(void) __interrupt(4)
 	}
 }
 
+// Timer2: Handle SYS_TICK
+void isr_timer2(void) __interrupt(5)
+{
+	ticks++;
+	if (sleep_ticks > 0)
+		sleep_ticks--;
+	sec_counter++;
+}
 
 void write_char(char c)
 {
@@ -361,6 +367,23 @@ void setup_timer0(void)
 	CKCON &= 0xc7;
 	TCON = 0x10;	// Start timer 0
 	ET0 = 1;	// Enable timer interrupts
+}
+
+// Timer2: handles system tick.
+void setup_timer2(void)
+{
+	T2CON = 0x00; // Timer2: Mode 16-bit timer/counter with auto-reload, disable the timer.
+
+	CKCON &= ~0x20; // Timer 2 clcok select F_SYS / 12;
+
+	// The RCAP2 registers contain the high/low byte that is loaded into
+	// timer2 when T2 overflows to 0x10000
+	RCAP2H = (SYSTICK_TIMER2_VALUE) >> 8;
+	RCAP2L = (SYSTICK_TIMER2_VALUE) % 0xff;
+
+	T2CON = 0x04; // Timer2: Enable
+
+	ET2 = 1; // Enable Timer2 interrupt.
 }
 
 

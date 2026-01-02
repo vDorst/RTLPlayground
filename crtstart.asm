@@ -20,8 +20,8 @@ __interrupt_vect:
 	.ds     7
  	ljmp    _isr_serial	; 0x23
 	.ds     5
-	reti			; 0x2b TIMER 2 IRQ
-	.ds     7
+	ljmp	_isr_timer2	; 0x2b TIMER 2 IRQ
+	.ds     5
 	reti			; 0x33 NOT used by DW8051
 	.ds     7
 	reti			; 0x3b Serial port 1 RX/TX IRQ

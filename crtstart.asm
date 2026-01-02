@@ -40,12 +40,6 @@ __sdcc_gsinit_startup::
 	.area GSFINAL (CODE)
         ljmp	_bootloader
 
-sdcc_atomic_exchange_rollback_start::
-	ret
-
-sdcc_atomic_exchange_rollback_end::
-	ret
-
 __sdcc_banked_call::
 	push	_PSBANK
 	xch	a,r0

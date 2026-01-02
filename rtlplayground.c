@@ -122,6 +122,8 @@ __xdata uint8_t sfp_options[2];
 
 #define ETHERTYPE_OFFSET (12 + VLAN_TAG_SIZE + RTL_TAG_SIZE)
 
+
+
 void isr_timer0(void) __interrupt(1)
 {
 }
@@ -142,6 +144,9 @@ void isr_timer2(void) __interrupt(5)
 	if (sleep_ticks > 0)
 		sleep_ticks--;
 	sec_counter++;
+
+	// Clear TF2 by software
+	T2CON &= 0x7F;
 }
 
 void write_char(char c)

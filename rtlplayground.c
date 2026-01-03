@@ -669,12 +669,12 @@ void sds_config_mac(uint8_t sds, uint8_t mode)
 void delay(uint16_t t)
 {
 	sleep_ticks = t;
-	print_string("\nDelaying: ");print_short(t);
+	// print_string("\nDelaying: ");print_short(t);
 	while (sleep_ticks > 0) {
-		print_string("\n\nDelay:");
-		print_string("\nTick counter: "); print_long(ticks);
-		print_string("\nTimer2: "); print_byte(TL2);
-		print_string("\nsleep_ticks: "); print_short(sleep_ticks);
+		// print_string("\n\nDelay:");
+		// print_string("\nTick counter: "); print_long(ticks);
+		// print_string("\nTimer2: "); print_byte(TL2);
+		// print_string("\nsleep_ticks: "); print_short(sleep_ticks);
 		PCON |= 1;
 	}
 }

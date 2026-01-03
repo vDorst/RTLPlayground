@@ -123,6 +123,17 @@ __xdata uint8_t sfp_options[2];
 #define ETHERTYPE_OFFSET (12 + VLAN_TAG_SIZE + RTL_TAG_SIZE)
 
 
+// Timer2: Handle SYS_TICK
+void isr_timer2(void) __interrupt(5)
+{
+	ticks++;
+	if (sleep_ticks > 0)
+		sleep_ticks--;
+	sec_counter++;
+
+	// Clear TF2 & EXF2 by software
+	T2CON &= ~0xC0;
+}
 
 void isr_timer0(void) __interrupt(1)
 {
@@ -137,17 +148,7 @@ void isr_serial(void) __interrupt(4)
 	}
 }
 
-// Timer2: Handle SYS_TICK
-void isr_timer2(void) __interrupt(5)
-{
-	ticks++;
-	if (sleep_ticks > 0)
-		sleep_ticks--;
-	sec_counter++;
 
-	// Clear TF2 by software
-	T2CON &= ~0x80;
-}
 
 void write_char(char c)
 {
@@ -669,6 +670,7 @@ void sds_config_mac(uint8_t sds, uint8_t mode)
 void delay(uint16_t t)
 {
 	sleep_ticks = t;
+	print_string("\nDELAY IE: ");print_byte(IE);
 	// print_string("\nDelaying: ");print_short(t);
 	while (sleep_ticks > 0) {
 		// print_string("\n\nDelay:");

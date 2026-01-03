@@ -122,6 +122,7 @@ __xdata uint8_t sfp_options[2];
 
 #define ETHERTYPE_OFFSET (12 + VLAN_TAG_SIZE + RTL_TAG_SIZE)
 
+__sbit tx_done = 1;
 
 // Timer2: Handle SYS_TICK
 void isr_timer2(void) __interrupt(5)
@@ -146,6 +147,10 @@ void isr_serial(void) __interrupt(4)
 		sbuf_ptr = (sbuf_ptr + 1) & (SBUF_SIZE - 1);
 		RI = 0;
 	}
+	if (TI == 1) {
+		TI = 0;
+		tx_done = 1;
+	}
 }
 
 
@@ -153,14 +158,14 @@ void isr_serial(void) __interrupt(4)
 void write_char(char c)
 {
 	do {
-	} while (TI == 0);
-	TI = 0;
+	} while (tx_done == 0);
 	if (c =='\n') {
+		tx_done = 0;
 		SBUF = '\r';
 		do {
-		} while (TI == 0);
-		TI = 0;
+		} while (tx_done == 0);
 	}
+	tx_done = 0;
 	SBUF = c;
 }
 
@@ -312,7 +317,10 @@ void setup_timer2(void)
 
 	T2CON |= 0x04; // Timer2: Enable
 
+	// IP |= 0x20; // TEST: Make Timer 2 interrupt as high priority.
 	ET2 = 1; // Enable Timer2 interrupt.
+
+
 }
 
 
@@ -670,13 +678,7 @@ void sds_config_mac(uint8_t sds, uint8_t mode)
 void delay(uint16_t t)
 {
 	sleep_ticks = t;
-	print_string("\nDELAY IE: ");print_byte(IE);
-	// print_string("\nDelaying: ");print_short(t);
 	while (sleep_ticks > 0) {
-		// print_string("\n\nDelay:");
-		// print_string("\nTick counter: "); print_long(ticks);
-		// print_string("\nTimer2: "); print_byte(TL2);
-		// print_string("\nsleep_ticks: "); print_short(sleep_ticks);
 		PCON |= 1;
 	}
 }
@@ -1707,7 +1709,7 @@ void setup_serial_timer1(void)
 	TCON |= 0x40;	// Start timer 1
 
 	ET1 = 0 ;// Timer1 Interrupt is NOT wanted!
-	TI = 1;
+	TI = 0;
 	RI = 0;
 	ES = 1; // Enable serial IRQ
 }
@@ -1774,13 +1776,6 @@ void bootloader(void)
 			print_string("INCORRECT MACHINE!");
 	}
 
-	print_string("\nTimer2: ");
-	print_byte(TL2);
-	print_string("\nTimer2: ");
-	print_byte(TL2);
-	print_string("  Tick counter: "); print_long(ticks);
-
-
 	// Print SW version
 	print_sw_version();
 
@@ -1801,26 +1796,13 @@ void bootloader(void)
 
 	REG_SET(RTL837X_PIN_MUX_2, 0x0); // Disable pins for ACL
 
-	print_string("\nTimer2: ");
-	print_byte(TL2);
-	print_string("\nIE: ");
-	print_byte(IE);
-	print_string("\nT2CON: ");
-	print_byte(T2CON);
 	print_string("\nTick counter: "); print_long(ticks);
-	print_string("\nBefore Delay\n");
-
-
-	sleep_ticks = 100;
-	while (sleep_ticks > 0) {
-		print_string("\nDelay:");
-		print_string("\nTick counter: "); print_long(ticks);
-		print_string("\nTimer2: "); print_byte(TL2);
-		print_string("\nsleep_ticks: "); print_short(sleep_ticks);
-		PCON |= 1;
-	}
-
-	print_string("\nAfter Delay\n");
+	print_string("\nTimer2: "); print_byte(TH2); print_byte(TL2);
+	print_string("\nRCAP2: "); print_byte(RCAP2H); print_byte(RCAP2L);
+	print_string("\nIE: "); print_byte(IE);
+	print_string("\nT2CON: "); print_byte(T2CON);
+	print_string("\nCKCON: "); print_byte(CKCON);
+	write_char('\n');
 
 	init_smi();
 	rtl8373_revision();

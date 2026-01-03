@@ -146,7 +146,7 @@ void isr_timer2(void) __interrupt(5)
 	sec_counter++;
 
 	// Clear TF2 by software
-	T2CON &= 0x7F;
+	T2CON &= ~0x80;
 }
 
 void write_char(char c)
@@ -299,16 +299,17 @@ void isr_ext3(void) __interrupt(9)
 // Timer2: handles system tick.
 void setup_timer2(void)
 {
-	T2CON = 0x00; // Timer2: Mode 16-bit timer/counter with auto-reload, disable the timer.
+	T2CON = 0x00; // Timer2: Mode 16-bit timer with auto-reload, disable the timer.
 
-	CKCON &= ~0x20; // Timer 2 clcok select F_SYS / 12;
+	// Timer 2 clock select F_SYS / 12;
+	// T2M = 0 uses clk/12;
+	CKCON &= ~0x20;
 
 	// The RCAP2 registers contain the high/low byte that is loaded into
 	// timer2 when T2 overflows to 0x10000
-	RCAP2H = (SYSTICK_TIMER2_VALUE) >> 8;
-	RCAP2L = (SYSTICK_TIMER2_VALUE) % 0xff;
+	RCAP2_U16 = SYSTICK_TIMER2_VALUE;
 
-	T2CON = 0x04; // Timer2: Enable
+	T2CON |= 0x04; // Timer2: Enable
 
 	ET2 = 1; // Enable Timer2 interrupt.
 }
@@ -668,8 +669,14 @@ void sds_config_mac(uint8_t sds, uint8_t mode)
 void delay(uint16_t t)
 {
 	sleep_ticks = t;
-	while (sleep_ticks > 0)
+	print_string("\nDelaying: ");print_short(t);
+	while (sleep_ticks > 0) {
+		print_string("\n\nDelay:");
+		print_string("\nTick counter: "); print_long(ticks);
+		print_string("\nTimer2: "); print_byte(TL2);
+		print_string("\nsleep_ticks: "); print_short(sleep_ticks);
 		PCON |= 1;
+	}
 }
 
 
@@ -1634,11 +1641,14 @@ void init_smi(void)
 	} else {
 		REG_SET(RTL837X_REG_SMI_PORT_POLLING, machine.n_sfp == 2 ? 0xf0 : 0x1f8);
 	}
+	write_char('.');
 	// Enable MDC
 	reg_read_m(RTL837X_REG_SMI_CTRL);
 	sfr_mask_data(1, 0, 0x70); 	// Set bits 12-14 to enable MDC for SMI0-SMI2
 	reg_write_m(RTL837X_REG_SMI_CTRL);
+	write_char('.');
 	delay(50);
+	write_char('.');
 
 	if (!machine.isRTL8373) {
 		// Change I2C addresses for SMI of the non-existent PHYs
@@ -1653,6 +1663,7 @@ void init_smi(void)
 		sfr_mask_data(1, 0x80, 0);
 		reg_write_m(RTL837X_REG_SMI_PORT0_5_ADDR);
 	}
+	write_char('.');
 }
 
 
@@ -1665,12 +1676,10 @@ void init_smi(void)
  */
 void setup_serial_timer1(void)
 {
-	IE = 0;
-
 	// Timer 1: Mode 2: automatic reload
 	TMOD &= 0x0F;
 	TMOD |= 0xA0; // Timer1: GATE, Mode2: Counter, 8-bit with auto-reload
-	CKCON |= 0x10; // Timer1 clock divider: F_SYS / 4;
+	CKCON |= 0x10; // Timer1 clock divider: F_SYS / 4: T2M = 1, Timer 2 uses clk/4
 
 	PCON |= 0x80; // SMOD0 = 1; Double the Baud Rate, don't divide Timer1 Overflag signal.
 
@@ -1736,15 +1745,14 @@ void bootloader(void)
 	IE = 0;
 	EIE = 0;  // SFR e8: EIE. Disable all external IRQs
 
-	// Disable all interrupts (global interrupt enable bit)
-	EA = 0; // SFR A8.7 / IE.7
-
 	idle_ready = 0;
 	// HW setup, serial, timer, external IRQs
 	setup_clock();
+	setup_timer2();
 	setup_serial_timer1();
 	setup_external_irqs();
-	EA = 1; // Enable all IRQs
+
+	EA = 1; // Enable global interrupt
 
 	// Set default for SFP pins so we can start up a module already inserted
 	sfp_pins_last = 0x33; // signal LOS and no module inserted (for both slots, even if only 1 present)
@@ -1763,6 +1771,13 @@ void bootloader(void)
 		if (machine.isRTL8373)
 			print_string("INCORRECT MACHINE!");
 	}
+
+	print_string("\nTimer2: ");
+	print_byte(TL2);
+	print_string("\nTimer2: ");
+	print_byte(TL2);
+	print_string("  Tick counter: "); print_long(ticks);
+
 
 	// Print SW version
 	print_sw_version();
@@ -1783,13 +1798,38 @@ void bootloader(void)
 	uip_ipaddr(&uip_netmask, netmask[0], netmask[1], netmask[2], netmask[3]);
 
 	REG_SET(RTL837X_PIN_MUX_2, 0x0); // Disable pins for ACL
+
+	print_string("\nTimer2: ");
+	print_byte(TL2);
+	print_string("\nIE: ");
+	print_byte(IE);
+	print_string("\nT2CON: ");
+	print_byte(T2CON);
+	print_string("\nTick counter: "); print_long(ticks);
+	print_string("\nBefore Delay\n");
+
+
+	sleep_ticks = 100;
+	while (sleep_ticks > 0) {
+		print_string("\nDelay:");
+		print_string("\nTick counter: "); print_long(ticks);
+		print_string("\nTimer2: "); print_byte(TL2);
+		print_string("\nsleep_ticks: "); print_short(sleep_ticks);
+		PCON |= 1;
+	}
+
+	print_string("\nAfter Delay\n");
+
 	init_smi();
 	rtl8373_revision();
 	if (machine.isRTL8373)
 		rtl8373_init();
 	else
 		rtl8372_init();
+
+
 	delay(1000);
+	print_string("\nAfter Delay\n");
 
 	// Check update in progress and move blocks
 	flash_region.addr = FIRMWARE_UPLOAD_START;

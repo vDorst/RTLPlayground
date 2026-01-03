@@ -1704,7 +1704,7 @@ void setup_serial_timer1(void)
 	 *     = 0x100 - 17
 	 *     = 0xEF
 	 */
-	TH1 = (0x100 - (((CLOCK_HZ / SERIAL_BAUD_RATE) + 32) / 64)) % 0xff;
+	TH1 = (0x100 - (((CLOCK_HZ / SERIAL_BAUD_RATE) + 32) / 64)) & 0xff;
 
 	TCON |= 0x40;	// Start timer 1
 

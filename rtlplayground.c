@@ -1760,169 +1760,10 @@ void bootloader(void)
 	setup_clock();
 	setup_timer2();
 	setup_serial_timer1();
-	setup_external_irqs();
 
-	EA = 1; // Enable global interrupt
+	EA = 1; // Enable all IRQs
 
-	// Set default for SFP pins so we can start up a module already inserted
-	sfp_pins_last = 0x33; // signal LOS and no module inserted (for both slots, even if only 1 present)
-	// We have not detected any link
-	linkbits_last[0] = linkbits_last[1] = linkbits_last[2] = linkbits_last[3] = linkbits_last_p89 = 0;
-
-	print_string("Detecting CPU: ");
-	reg_read_m(0x4);
-	if (sfr_data[1] == 0x73) { // Register was 0x83730000
-		print_string("RTL8373\n");
-		if (!machine.isRTL8373)
-			print_string("INCORRECT MACHINE!");
-		rtl8224_enable();  // Power on the RTL8224
-	} else {
-		print_string("RTL8372\n");
-		if (machine.isRTL8373)
-			print_string("INCORRECT MACHINE!");
-	}
-
-	// Print SW version
-	print_sw_version();
-
-	print_string("\nStarting up...\n");
-	print_string("  Flash controller\n");
-	flash_init(1);
-
-	// Reset NIC
-	reg_bit_set(RTL837X_REG_RESET, RESET_NIC_BIT);
-	do {
-		reg_read(RTL837X_REG_RESET);
-	} while (SFR_DATA_0 & (1 << RESET_NIC_BIT));
-	print_string("NIC reset\n");
-
-	uip_ipaddr(&uip_hostaddr, ownIP[0], ownIP[1], ownIP[2], ownIP[3]);
-	uip_ipaddr(&uip_draddr, gatewayIP[0], gatewayIP[1], gatewayIP[2], gatewayIP[3]);
-	uip_ipaddr(&uip_netmask, netmask[0], netmask[1], netmask[2], netmask[3]);
-
-	REG_SET(RTL837X_PIN_MUX_2, 0x0); // Disable pins for ACL
-	init_smi();
-	rtl8373_revision();
-	if (machine.isRTL8373)
-		rtl8373_init();
-	else
-		rtl8372_init();
-	delay(1000);
-
-	// Check update in progress and move blocks
-	flash_region.addr = FIRMWARE_UPLOAD_START;
-	flash_region.len = 0x100;
-	flash_read_bulk(flash_buf);
-
-	if (flash_buf[0] == 0x00 && flash_buf[1] == 0x40) {
-		__xdata uint32_t dest = 0x0;
-		__xdata uint32_t source = FIRMWARE_UPLOAD_START;
-		__xdata uint16_t i = 0;
-		__xdata uint16_t j = 0;
-		__xdata uint8_t * __xdata bptr;
-		print_string("Identified update image. Checking integrity...\n");
-
-		crc_value = 0x0000;
-		for (i = 0; i < 1024; i++) {
-			flash_region.addr = source;
-			flash_region.len = 0x200;
-			flash_read_bulk(flash_buf);
-			bptr = flash_buf;
-			for (j = 0; j < 0x200; j++) {
-				print_byte(*bptr); write_char(' ');
-				crc16(bptr++);
-				print_short(crc_value); write_char(':');
-			}
-			source += 0x200;
-			write_char('\n'); print_short(crc_value); write_char(' ');
-		}
-		if (crc_value == 0xb001) {
-			print_string("Checksum OK\n");
-			print_string("Update in progress, moving firmware to start of FLASH!\n");
-			source = FIRMWARE_UPLOAD_START;
-			// A 512kByte = 4MBit Flash has 128*8=1024 512k blocks, we copy only 120
-			for (i = 0; i < 960; i++) {
-				print_string("Writing block: ");
-				print_short(dest);
-				flash_region.addr = source;
-				flash_region.len = 0x200;
-				flash_read_bulk(flash_buf);
-				write_char('\n');
-				if (!(i & 0x7)) {
-					flash_region.addr = dest;
-					flash_sector_erase();
-				}
-				flash_region.addr = dest;
-				flash_region.len = 0x200;
-				flash_write_bytes(flash_buf);
-				dest += 0x200;
-				source += 0x200;
-			}
-			print_string("Deleting uploaded flash image\n");
-			dest = FIRMWARE_UPLOAD_START;
-			for (register uint8_t i=0; i < 128; i++) {
-				flash_region.addr = dest;			
-				flash_sector_erase();
-				dest += 0x1000;
-			}
-			print_string("Resetting now");
-			delay(200);
-			reset_chip();
-		}
-		print_string("Checksum incorrect, please upload the image again\n");
-		print_string("Erasing bad uploaded flash image\n");
-		dest = FIRMWARE_UPLOAD_START;
-		for (register uint8_t i=0; i < 128; i++) {
-			flash_region.addr = dest;
-			flash_sector_erase();
-			dest += 0x1000;
-		}
-	}
-
-#ifdef DEBUG
-	// This register seems to work on the RTL8373 only if also the SDS
-	// Is correctly configured. Therefore, we can test it, here...
-	// Reset seconds counter
-	print_string("\nTIMER-TEST: \n");
-	REG_SET(RTL837X_REG_SEC_COUNTER, 0x0);
-	delay(100);
-	print_reg(RTL837X_REG_SEC_COUNTER); write_char(' ');
-	REG_SET(RTL837X_REG_SEC_COUNTER, 0x1);
-	delay(100);
-	print_reg(RTL837X_REG_SEC_COUNTER);
-	REG_SET(RTL837X_REG_SEC_COUNTER, 0x2); write_char(' ');
-	delay(100);
-	print_reg(RTL837X_REG_SEC_COUNTER);
-	REG_SET(RTL837X_REG_SEC_COUNTER, 0x3); write_char(' ');
-	print_reg(RTL837X_REG_SEC_COUNTER);
-#endif
-	stpEnabled = 0;
-	nic_setup();
-	vlan_setup();
-	port_l2_setup();
-	igmp_setup();
-	uip_init();
-	uip_arp_init();
-	httpd_init();
-
-	was_offline = 1;
-
-	setup_i2c();
-
-	print_string(greeting);
-
-	print_string("\nClock register: ");
-	print_reg(0x6040);
-	print_string("\nRegister 0x7b20/RTL837X_REG_SDS_MODES: ");
-	print_reg(0x7b20);
-
-	print_string("\nVerifying PHY settings:\n");
-//	p031f.a610:2058 p041f.a610:2058  p051f.a610:2058  r4f3c:00000000 p061f.a610:2058 p071f.a610:2058 
-	port_stats_print();
-
-	execute_config();
-	print_string("\n> ");
-	idle_ready = 1;
+	print_string("\nBooted up\n");
 
 	// Wait for commands on serial connection
 	// sbuf_ptr is moved forward by serial interrupt, l is the position until we have already
@@ -1931,32 +1772,32 @@ void bootloader(void)
 	__xdata uint8_t line_start = sbuf_ptr; // This is where the current line starts
 	cmd_available = 0;
 	while (1) {
-		while (l != sbuf_ptr) {
-			// If the command buffer is currently in use, we cannot copy to it
-			if (cmd_available)
-				break;
-			write_char(sbuf[l]);
-			// Check whether there is a full line:
-			if (sbuf[l] == '\n' || sbuf[l] == '\r') {
+		PCON |= 1;
+		if (sec_counter >= SYS_TICK_HZ) {
+			sec_counter -= SYS_TICK_HZ;
+			for (uint8_t idx = 0; idx < 2; idx++) {
+				reg_read(RTL837X_REG_GPIO_00_31_INPUT + (idx * 4));
+				print_string("GPIO ");
+				write_char(idx + '0');
+				write_char(':');
+				write_char(' ');
+
+				print_byte(SFR_DATA_24);
+				print_byte(SFR_DATA_16);
+				print_byte(SFR_DATA_8);
+				print_byte(SFR_DATA_0);
+
+				write_char(' ');
+				print_byte( gpio_last_value[(idx *4)] ^ SFR_DATA_24);
+				gpio_last_value[(idx *4)] = SFR_DATA_24;
+				print_byte( gpio_last_value[(idx *4) + 1] ^ SFR_DATA_16);
+				gpio_last_value[(idx *4) + 1] = SFR_DATA_16;
+				print_byte( gpio_last_value[(idx *4) + 2] ^ SFR_DATA_8);
+				gpio_last_value[(idx *4) + 2] = SFR_DATA_8;
+				print_byte( gpio_last_value[(idx *4) + 3] ^ SFR_DATA_0);
+				gpio_last_value[(idx *4) + 3] = SFR_DATA_0;
 				write_char('\n');
-				register uint8_t i = 0;
-				while (line_start != l) {
-					cmd_buffer[i++] = sbuf[line_start++];
-					line_start &= (SBUF_SIZE - 1);
-				}
-				line_start++;
-				line_start &= (SBUF_SIZE - 1);
-				cmd_buffer[i] = '\0';
-				// If there is a command we print the prompt after execution
-				// otherwise immediately because there is nothing to execute
-				if (i)
-					cmd_available = 1;
-				else
-					print_string("\n> ");
 			}
-			l++;
-			l &= (SBUF_SIZE - 1);
 		}
-		idle(); // Enter Idle mode until interrupt occurs
 	}
 }

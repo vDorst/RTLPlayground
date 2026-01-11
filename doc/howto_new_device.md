@@ -2,6 +2,22 @@
 
 # Advanced Tips & Ticks
 
+## GPIO-Scanner Firmware
+
+> [!CAUTION]
+> Use at your own risk. This can damage your device and even worse your COMPUTER/LAPTOP.
+
+To find GPIO pins on the board, you can use the [gpio-scanner firmware](https://github.com/vDorst/RTLPlayground/tree/gpio_scanner). It prints every second the GPIO status to the console, similarly to the `GPIO` command.
+The firmware only initializes the UART pins, the rest is used as an input.
+
+Using a `100 Ohm` resistor in series with a wire to ground, you can carefully touch the resistors/pins you believe to be GPIO pins, one at the time. Be careful not to short multiple pins.
+Most useful places to find GPIO's is on connectors, LEDs, or buttons.
+
+> [!NOTE]
+> The SOC can also read-back the value on a pin, even when the pin is not configured as a GPIO input.
+> So sometimes your see a GPIO change without touching a pin.
+> As an example, UART-TX is one of the signals you will often see changing the pin value.
+
 ## Slave Port
 
 The RTL837x has a Slave Port, this port is normally used to controller the chip with an external CPU, as can be found for example in a router or Wifi Accesspoint configuration.
@@ -111,7 +127,6 @@ exit 0
 Output looks like this:
 
 ```
-# bash slave-port-i2c-dump-all.sh 1
 --- DUMP START ---
 0x0000=0x00000000
 0x0004=0x83737000
@@ -123,6 +138,6 @@ Output looks like this:
 0x001c=0xcad0001c
 0x0020=0xffff0000
 ...<snip>... 
-0xFFFC=0x00000000
+0xfffc=0x00000000
 --- DUMP END ---
 ```

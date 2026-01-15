@@ -10,8 +10,16 @@
 To find GPIO pins on the board, you can use the [gpio-scanner firmware](https://github.com/vDorst/RTLPlayground/tree/gpio_scanner). It prints every second the GPIO status to the console, similarly to the `GPIO` command.
 The firmware only initializes the UART pins, the rest is used as an input.
 
-Using a `100 Ohm` resistor in series with a wire to ground, you can carefully touch the resistors/pins you believe to be GPIO pins, one at the time. Be careful not to short multiple pins.
-Most useful places to find GPIO's is on connectors, LEDs, or buttons.
+### Probing Circuit
+
+![Probing Circuit](assets/probe-circuit.svg)
+
+To make probing more easy, you can make this `probing circuit` on a breadboard, using a `100 Ohm` resistor, push-button, a voltmeter, and some wires.
+
+Bottom wire have to connected to the ground of the switch. Top wire can be used to carefully probe the resistors/pins you believe to be GPIO pin, one at the time. Be careful not to short multiple pins. When you have picked a spot to probe, look at the voltmeter to see if the probed-signal is around 3.3 Volt. So you know that spot has a signal.
+When pressing the button, the voltage should drop below 0.5 Volts. When it is below 0.5 Volts, check the console to see if a GPIO has changed. Repeat button press multiple times so you are sure which GPIO it is.
+When the voltage is not dropping, you probably have a 3.3 volt supply.
+Most useful places to find GPIO's are around connectors, LEDs, or buttons.
 
 > [!NOTE]
 > The SOC can also read-back the value on a pin, even when the pin is not configured as a GPIO input.

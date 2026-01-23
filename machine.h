@@ -33,7 +33,8 @@ struct sfp_port
 
 typedef struct machine {
 	char machine_name[30];
-	uint8_t isRTL8373;
+	uint8_t isRTL8373 : 1;
+	uint8_t isN : 1;
 	uint8_t min_port;
 	uint8_t max_port;
 	uint8_t n_sfp;

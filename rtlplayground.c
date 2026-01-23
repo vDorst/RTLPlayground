@@ -1408,6 +1408,25 @@ void sds_init(void)
 	REG_WRITE(0x2f4, 0, 0, pval >> 8, pval);
 
 	phy_write_mask(0x1, 0x1e, 0xd, pval);
+
+	if (machine.isN) {
+		print_string("  N-settings");
+		sds_read(0, 0, 0);
+		uint16_t pval = SFR_DATA_U16;
+		sds_write_v(0, 0, 0, pval | 0x200);
+
+		sds_read(1, 0, 0);
+		pval = SFR_DATA_U16;
+		sds_write_v(1, 0, 0, pval | 0x200);
+
+		sds_read(0, 6, 2);
+		pval = SFR_DATA_U16;
+		sds_write_v(0, 6, 2, pval | 0x2000);
+
+		sds_read(1, 6, 2);
+		pval = SFR_DATA_U16;
+		sds_write_v(1, 6, 2, pval | 0x2000);
+	}
 }
 
 
@@ -1548,6 +1567,15 @@ void rtl8373_init(void)
 	reg_read_m(0xa90);
 	sfr_mask_data(0, 0x0f,0x0c);
 	reg_write_m(0xa90);
+
+	if (machine.isN) {
+		print_string("  TX_POLARITY_SWAP\n");
+		// FOR N-Version: #TX_POLARITY_SWAP
+		reg_read_m(0xa94);
+			sfr_data[2] = 0x59;
+			sfr_data[3] = 0x6a;
+		reg_write_m(0xa94);
+	}
 
 	rtl8224_phy_enable();
 

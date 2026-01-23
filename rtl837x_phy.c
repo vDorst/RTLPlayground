@@ -15,12 +15,13 @@
 #include "rtl837x_regs.h"
 #include "rtl837x_phy.h"
 #include "phy.h"
+#include "machine.h"
 
 #pragma codeseg BANK2
 #pragma constseg BANK2
 
 extern __code uint16_t bit_mask[16];
-
+extern __code const struct machine machine;
 
 __code uint16_t rtl8224_ca[42] = {
 	0x4480, 0xc842,
@@ -87,6 +88,12 @@ void rtl8224_phy_enable(void) __banked
 
 	phy_write(RTL8224_PHY_ID, 0x1e, 0xa90, pval);
 	delay(50);
+
+	if (machine.isN) {
+		print_string("  N-settings");
+		// TX_POLARITY_SWAP
+		phy_write(RTL8224_PHY_ID, 0x1e, 0xA94, 0x596A);
+	}
 
 	print_string("\r\nrtl8224_phy_enable done\r\n");
 }

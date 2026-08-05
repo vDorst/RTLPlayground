@@ -157,6 +157,7 @@ void memset(register __xdata uint8_t *dst, register __xdata uint8_t v, register 
 uint16_t strlen(register __code const char *s);
 uint16_t strlen_x(register __xdata const char *s);
 uint16_t strtox(register __xdata uint8_t *dst, register __code const char *s);
+uint8_t xstrtox(__xdata uint8_t *dst, __xdata const char *s, uint8_t len);
 uint16_t strcpy(register __xdata uint8_t *dst, register const char *s);
 char strcmp(register __xdata const uint8_t *a, register __code const uint8_t *b);
 void tcpip_output(void);

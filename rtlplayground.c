@@ -309,6 +309,21 @@ void memcpyc(register __xdata uint8_t *dst, register __code uint8_t *src, regist
 		*dst++ = *src++;
 }
 
+bool memcmp(__xdata uint8_t *dst, __xdata uint8_t *src, uint8_t len)
+{
+	uint8_t ret = 0;
+	while (len--)
+		ret |= *dst++ ^ *src++;
+	return ret == 0;
+}
+
+bool is_mem_zero(__xdata uint8_t *src, uint8_t len) {
+	uint8_t ret = 0;
+    for (uint8_t c = 0; c < len; c++) {
+        ret |= *src++;
+    }
+	return ret == 0;
+}
 
 void memset(register __xdata uint8_t *dst, register __xdata uint8_t v, register uint8_t len)
 {

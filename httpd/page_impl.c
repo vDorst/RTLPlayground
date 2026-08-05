@@ -291,19 +291,25 @@ void send_vlan(uint16_t vlan)
 	vlan_get(vlan);
 	sfr_data_to_html();
 	slen += strtox(outbuf + slen, "\",\"name\":\"");
-	__xdata uint16_t n = vlan_name(vlan);
-	if (n== 0xffff) {
+	uint16_t n = vlan_name(vlan);
+	if (n == 0xffff) {
 		dbg_string("VLAN has no name\n");
 	} else {
-		while(vlan_names[n] && vlan_names[n] != ' ')
-			char_to_html(vlan_names[n++]);
+		uint8_t * vn = &vlan_names[n];
+		while(1) {
+			uint8_t c = *vn++;
+			if (c == '\0' || c == ' ') {
+				break;
+			}
+			char_to_html(c);
+		}
 	}
 	slen += strtox(outbuf + slen, "\",\"pvid\":\"0x");
-	uint16_t pvid_mask = 0;
+	__xdata uint16_t pvid_mask = 0;
 	for (uint8_t i = machine.min_port; i <= machine.max_port; i++) {
 		if (port_pvid_get(i) == vlan)
 			pvid_mask |= (1 << i);
-}
+	}
 	byte_to_html(pvid_mask >> 8);
 	byte_to_html(pvid_mask);
 	slen += strtox(outbuf + slen, "\"}");

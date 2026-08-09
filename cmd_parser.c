@@ -231,22 +231,32 @@ uint8_t atoi_short(uint8_t idx)
 }
 
 
-uint8_t parse_ip(uint8_t idx)
+int8_t parse_ip(uint8_t idx)
 {
-	__xdata uint8_t b;
+	uint8_t b = 0;
+	uint8_t ret;
 
-	for (b = 0; b < 4; b++) {
-		ip[b] = 0;
-		while (isnumber(cmd_buffer[idx])) {
-			ip[b] = (ip[b] * 10) + cmd_buffer[idx] - '0';
-			idx++;
+	while(1) {
+		ret = atoi_byte(idx);
+		if (ret == 0) {
+			goto err;
 		}
-		if (b < 3 && cmd_buffer[idx++] != '.') {
-			print_string("Error in IP format, expecting '.'\n");
-			return -1;
+		idx += ret;
+		ip[b++] = atoi_results_u8;
+
+		if (b == 4) {
+			break;
+		}
+
+		if (cmd_buffer[idx++] != '.') {
+			goto err;
 		}
 	}
 	return 0;
+
+err:
+	print_string("Error in IP format\n");
+	return -1;
 }
 
 

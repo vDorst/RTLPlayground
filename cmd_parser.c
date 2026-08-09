@@ -264,6 +264,7 @@ void parse_lag(void)
 {
 	__xdata uint8_t group;
 	__xdata uint16_t members = 0;
+	uint8_t ret;
 
 	if (cmd_compare(1, "show")) {
 		print_string("LAG status:\n");
@@ -291,28 +292,29 @@ void parse_lag(void)
 		return;
 	}
 
-	if (cmd_words_len < 2 || !isnumber(cmd_buffer[cmd_words_b[1]]))
+	if (cmd_words_len < 2) 
 		goto err;
-	group = cmd_buffer[cmd_words_b[1]] - '0';
+
+	// Parse group, expect only one number 0-9.
+	ret = atoi_byte(cmd_words_b[1]);
+	if (ret != 1) {
+		goto err;
+	}
+	group = atoi_results_u8;
 
 	uint8_t w = 2;
 	while (w < cmd_words_len) {
 //		write_char('|'); print_byte(w); write_char(':'); write_char(cmd_buffer[cmd_words_b[w]]); write_char('-');
-		uint8_t port;
-		uint8_t c = cmd_buffer[cmd_words_b[w]];
-		if (isnumber(c)) {
-			port = c - '1';
-			c = cmd_buffer[cmd_words_b[w] + 1];
-			if (isnumber(c))
-				port = (port + 1) * 10 + c - '1';
-				port = machine.phys_to_log_port[port];
-		} else {
+		// Parse port.
+		ret = atoi_byte(cmd_words_b[w++]);
+		if (ret == 0) {
 			goto err;
 		}
+		uint8_t	port = atoi_results_u8;
+
 		if (port > machine.max_port)
 			goto err;
 		members |= ((uint16_t)1) << port;
-		w++;
 	}
 	port_lag_members_set(group, members);
 	return;

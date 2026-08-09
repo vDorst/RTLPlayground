@@ -22,7 +22,7 @@ extern __code struct machine machine;
 #pragma codeseg BANK2
 #pragma constseg BANK2
 
-extern __xdata uint8_t sfr_data[4];
+extern __data uint8_t sfr_data[4];
 
 void leds_dump(void) __banked
 {

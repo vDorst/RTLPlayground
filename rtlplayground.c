@@ -101,7 +101,7 @@ __xdata volatile uint8_t sbuf_ptr;
 __xdata uint8_t sbuf[SBUF_SIZE];
 
 // Registry data in sfr is in *big endian* order, so sfr_data[0] is the MSB and sfr_data[3] the LSB
-__xdata uint8_t sfr_data[4];
+__data uint8_t sfr_data[4];
 
 extern __xdata uint8_t gpio_last_value[8];
 
@@ -818,7 +818,7 @@ void print_sds_reg(uint8_t sds_id, uint8_t page, uint8_t reg)
 }
 */
 
-char cmp_4(__xdata uint8_t a[], __xdata uint8_t b[])
+char cmp_4(uint8_t a[], __xdata uint8_t b[])
 {
 	for (uint8_t i = 0; i < 4; i++) {
 		if (a[i] == b[i])
@@ -831,7 +831,13 @@ char cmp_4(__xdata uint8_t a[], __xdata uint8_t b[])
 	return 0;
 }
 
-void cpy_4(__xdata uint8_t dest[], __xdata uint8_t source[])
+void cpy_4(uint8_t dest[], __xdata uint8_t source[])
+{
+	for (uint8_t i = 0; i < 4; i++)
+		dest[i] = source[i];
+}
+
+void cpy_4_back(__xdata uint8_t dest[], uint8_t source[])
 {
 	for (uint8_t i = 0; i < 4; i++)
 		dest[i] = source[i];
@@ -1493,7 +1499,7 @@ void idle(void)
 		if (!machine_detected.isRTL8373 && machine.n_sfp != 2) {
 			uint8_t p5 = sfr_data[2] >> 4;
 			uint8_t p5_last = linkbits_last[2] >> 4;
-			cpy_4(linkbits_last, sfr_data);
+			cpy_4_back(linkbits_last, sfr_data);
 			// Handle link change of the RTL8221 PHY, adjust SDS mode, RTL8261BE always uses SDS_QXGMII
 			if (!machine.n_10g && p5_last != p5) {
 				if (p5 == 0x5)	// 2.5GBit Mode
@@ -1506,7 +1512,7 @@ void idle(void)
 			if (machine.n_10g == 2)
 				sds_config(1, SDS_QXGMII);
 		} else {
-			cpy_4(linkbits_last, sfr_data);
+			cpy_4_back(linkbits_last, sfr_data);
 		}
 	}
 

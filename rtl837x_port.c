@@ -29,16 +29,17 @@ extern __xdata struct machine_runtime machine_detected;
 __xdata	uint32_t l2_head;
 
 __xdata struct vlan_settings vlan_settings;
+__xdata struct mirror_settings mirror_settings;
 
-void port_mirror_set(register uint8_t port, __xdata uint16_t rx_pmask, __xdata uint16_t tx_pmask) __banked
+void port_mirror_set(void) __banked
 {
 	print_string("\nport_mirror_set called \n");
-	print_string("Mirroring port: "); print_byte(port); print_string(" with rx-mask: ");
-	print_short(rx_pmask); print_string(", tx mask: "); print_short(tx_pmask);
+	print_string("Mirroring port: "); print_byte(mirror_settings.port); print_string(" with rx-mask: ");
+	print_short(mirror_settings.rx_pmask); print_string(", tx mask: "); print_short(mirror_settings.tx_pmask);
 	write_char('\n');
 
-	REG_WRITE(RTL837x_MIRROR_CONF, rx_pmask >> 8, rx_pmask, tx_pmask >> 8, tx_pmask);
-	REG_WRITE(RTL837x_MIRROR_CTRL, 0, 0, 0, (port << 1) | 0x1);
+	REG_WRITE(RTL837x_MIRROR_CONF, mirror_settings.rx_pmask >> 8, mirror_settings.rx_pmask, mirror_settings.tx_pmask >> 8, mirror_settings.tx_pmask);
+	REG_WRITE(RTL837x_MIRROR_CTRL, 0, 0, 0, (mirror_settings.port << 1) | 0x1);
 }
 
 

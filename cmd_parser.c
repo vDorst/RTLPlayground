@@ -280,10 +280,12 @@ void parse_lag(void)
 	while (w < cmd_words_len) {
 //		write_char('|'); print_byte(w); write_char(':'); write_char(cmd_buffer[cmd_words_b[w]]); write_char('-');
 		uint8_t port;
-		if (isnumber(cmd_buffer[cmd_words_b[w]])) {
-			port = cmd_buffer[cmd_words_b[w]] - '1';
-			if (isnumber(cmd_buffer[cmd_words_b[w] + 1]))
-				port = (port + 1) * 10 + cmd_buffer[cmd_words_b[w] + 1] - '1';
+		uint8_t c = cmd_buffer[cmd_words_b[w]];
+		if (isnumber(c)) {
+			port = c - '1';
+			c = cmd_buffer[cmd_words_b[w] + 1];
+			if (isnumber(c))
+				port = (port + 1) * 10 + c - '1';
 				port = machine.phys_to_log_port[port];
 		} else {
 			goto err;
@@ -339,6 +341,7 @@ void parse_vlan(void)
 	vlan_settings.vlan = 0;
 	vlan_settings.members = 0;
 	vlan_settings.tagged = 0;
+
 	if (cmd_words_len < 2)
 		goto err;
 	if (!atoi_short(&vlan_settings.vlan, cmd_words_b[1])) {
@@ -375,10 +378,13 @@ void parse_vlan(void)
 		}
 		while (cmd_words_len > w) {
 			__xdata uint8_t port;
-			if (isnumber(cmd_buffer[cmd_words_b[w]])) {
-				port = cmd_buffer[cmd_words_b[w]] - '1';
-				if (isnumber(cmd_buffer[cmd_words_b[w] + 1])) {
-					port = (port + 1) * 10 + cmd_buffer[cmd_words_b[w] + 1] - '1';
+			uint8_t n = cmd_buffer[cmd_words_b[w]];
+
+			if (isnumber(n)) {
+				port = n - '0';
+				uint8_t n = cmd_buffer[cmd_words_b[w] + 1];
+				if (isnumber(n)) {
+					port = port * 10 + n - '0';
 					if (cmd_buffer[cmd_words_b[w] + 2] == 't')
 						vlan_settings.tagged |= ((uint16_t)1) << port;
 				} else {
@@ -544,9 +550,9 @@ err:
 
 void parse_mirror(void)
 {
-	__xdata uint8_t mirroring_port;
-	__xdata uint16_t rx_pmask = 0;
-	__xdata uint16_t tx_pmask = 0;
+	mirror_settings.port = 0;
+	mirror_settings.rx_pmask = 0;
+	mirror_settings.tx_pmask = 0;
 
 	if (cmd_compare(1, "status")) {
 		reg_read_m(RTL837x_MIRROR_CTRL);
@@ -559,12 +565,10 @@ void parse_mirror(void)
 		print_string("Mirroring port: ");
 		write_char('0' + machine.log_to_phys_port[mPort >> 1]);
 		reg_read_m(RTL837x_MIRROR_CONF);
-		uint16_t m = sfr_data[0];
-		m = (m << 8) | sfr_data[1];
+		uint16_t m = (uint16_t)sfr_data[0] << 8 | sfr_data[1];
 		print_string(", Port mask RX: ");
 		print_short(m);
-		m = sfr_data[2];
-		m = (m << 8) | sfr_data[3];
+		m = (uint16_t)sfr_data[2] << 8 | sfr_data[3];
 		print_string(", Port mask TX: ");
 		print_short(m);
 		write_char('\n');
@@ -574,48 +578,42 @@ void parse_mirror(void)
 		return;
 	}
 
-	if (cmd_words_len < 2 || !isnumber(cmd_buffer[cmd_words_b[1]])) {
+	__xdata uint8_t * ptr = &cmd_buffer[cmd_words_b[1]];
+	uint8_t n = *ptr++;
+
+	if (cmd_words_len < 2 || !isnumber(n)) {
 		print_string("Port/command missing: mirror [status/off/<mirroring port> [port][t/r]]...\n");
 		return;
 	}
 
-	mirroring_port = cmd_buffer[cmd_words_b[1]] - '1';
-	if (isnumber(cmd_buffer[cmd_words_b[1] + 1]))
-		mirroring_port = (mirroring_port + 1) * 10 + cmd_buffer[cmd_words_b[1] + 1] - '1';
-	mirroring_port = machine.phys_to_log_port[mirroring_port];
+	uint8_t mirroring_port = n - '0';
+
+	n = *ptr++;
+	if (isnumber(n))
+		mirroring_port = mirroring_port * 10 + n - '0';
+	mirror_settings.port = machine.phys_to_log_port[mirroring_port-1];
 	
 
 	uint8_t w = 2;
 	while (w < cmd_words_len) {
-		uint8_t port;
-		if (isnumber(cmd_buffer[cmd_words_b[w]])) {
-			port = cmd_buffer[cmd_words_b[w]] - '1';
-			if (isnumber(cmd_buffer[cmd_words_b[w] + 1])) {
-				port = (port + 1) * 10 + cmd_buffer[cmd_words_b[w] + 1] - '1';
-				port = machine.phys_to_log_port[port];
-				if (cmd_buffer[cmd_words_b[w] + 2] == 'r')
-					rx_pmask |= ((uint16_t)1) << port;
-				else if (cmd_buffer[cmd_words_b[w] + 2] == 't')
-					tx_pmask |= ((uint16_t)1) << port;
-				else {
-					rx_pmask |= ((uint16_t)1) << port;
-					tx_pmask |= ((uint16_t)1) << port;
-				}
-			} else {
-				port = machine.phys_to_log_port[port];
-				if (cmd_buffer[cmd_words_b[w] + 1] == 'r')
-					rx_pmask |= ((uint16_t)1) << port;
-				else if (cmd_buffer[cmd_words_b[w] + 1] == 't')
-					tx_pmask |= ((uint16_t)1) << port;
-				else {
-					rx_pmask |= ((uint16_t)1) << port;
-					tx_pmask |= ((uint16_t)1) << port;
-				}
+		__xdata uint8_t * __xdata ptr = &cmd_buffer[cmd_words_b[w]];
+		uint8_t n = *ptr++;
+		if (isnumber(n)) {
+			uint8_t port = n - '0';
+			n = *ptr++;
+			if (isnumber(n)) {
+				port = port * 10 + n - '0';
+				n = *ptr++;
 			}
+			port = machine.phys_to_log_port[port - 1];
+			if (n != 't')
+				mirror_settings.rx_pmask |= ((uint16_t)1) << port;
+			if (n != 'r')
+				mirror_settings.tx_pmask |= ((uint16_t)1) << port;
 		}
 		w++;
 	}
-	port_mirror_set(mirroring_port, rx_pmask, tx_pmask);
+	port_mirror_set();
 }
 
 
@@ -629,12 +627,14 @@ void parse_port(void)
 		return;
 	}
 
-	if (cmd_buffer[cmd_words_b[1]] < '1' || cmd_buffer[cmd_words_b[1]] > '9' || cmd_buffer[cmd_words_b[1] + 1] != ' ' ) {
+	uint8_t n = cmd_buffer[cmd_words_b[1]];
+
+	if (n < '1' || n > '9' || cmd_buffer[cmd_words_b[1] + 1] != ' ' ) {
 		print_string("Illegal port number\n");
 		return;
 	}
-	phy_settings.port = cmd_buffer[cmd_words_b[1]] - '1';
-	phy_settings.port = machine.phys_to_log_port[phy_settings.port];
+	n = n - '1';
+	phy_settings.port = machine.phys_to_log_port[n];
 	if (phy_settings.port > machine.max_port || phy_settings.port < machine.min_port) {
 		print_string("This machine has no port with the specified number\n");
 		return;

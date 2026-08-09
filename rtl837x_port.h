@@ -27,6 +27,12 @@ typedef enum {
 // which holds vlan_ingress_mode_e values
 typedef uint8_t vlan_ingress_mode_t;
 
+struct mirror_settings {
+	uint8_t port;
+	uint16_t rx_pmask;
+	uint16_t tx_pmask;
+};
+
 struct vlan_settings {
 	uint16_t vlan;
 	uint16_t members;
@@ -43,6 +49,7 @@ struct vlan_settings {
 #define EEE_10G		0x40
 #define EEE_NORESET	0x80
 
+extern __xdata struct mirror_settings mirror_settings;
 extern __xdata struct vlan_settings vlan_settings;
 
 uint8_t port_l2_forget(void) __banked;
@@ -57,7 +64,7 @@ uint16_t port_pvid_get(uint8_t port) __banked;
 void vlan_create(void) __banked;
 void vlan_delete(uint16_t vlan) __banked;
 void vlan_dump(void) __banked;
-void port_mirror_set(register uint8_t port, __xdata uint16_t rx_pmask, __xdata uint16_t tx_pmask) __banked;
+void port_mirror_set(void) __banked;
 void port_mirror_del(void) __banked;
 bool port_ingress_filter(__xdata uint8_t port, __xdata vlan_ingress_mode_t type) __banked;
 void port_l2_setup(void) __banked;

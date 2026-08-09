@@ -81,6 +81,7 @@ __xdata uint16_t cmd_history_ptr;
 __xdata uint8_t err_status;
 
 __xdata uint16_t atoi_results;
+__xdata uint8_t atoi_results_u8;
 
 inline uint8_t isletter(uint8_t l)
 {
@@ -186,23 +187,26 @@ uint8_t atoi_hex(uint8_t idx)
 	return ((h_idx + 1) >> 1);
 }
 
-
-uint8_t atoi_byte(__xdata uint8_t *out, uint8_t idx)
+// return 0 on error or non-zero number of number-byte taken for the conversion.
+uint8_t atoi_byte(uint8_t idx)
 {
-	uint8_t err = 1;
+	uint8_t cnt = 0;
 	uint8_t num = 0;
 
-	while (isnumber(cmd_buffer[idx])) {
-		uint8_t val = cmd_buffer[idx] - '0';
-		err = 0;
+	uint8_t * ptr = &cmd_buffer[idx];
+
+	while (1) {
+		uint8_t val = *ptr++ - '0';
+		if (val > 9)
+			break;
 		if (num > 25 || (num == 25 && val > 5))
 			return 1;
 		num = (num * 10) + val;
-		idx++;
+		cnt++;
 	}
 
-	*out = num;
-	return err;
+	atoi_results_u8 = num;
+	return cnt;
 }
 
 // return 0 on error or non-zero number of number-byte taken for the conversion.
@@ -924,9 +928,10 @@ void parse_sdsget(void)
 		goto err;
 	}
 
-	if (atoi_byte(&sds_id, cmd_words_b[1])) {
+	if (!atoi_byte(cmd_words_b[1])) {
 		goto err;
 	}
+	sds_id = atoi_results_u8;
 
 	hex_size = atoi_hex(cmd_words_b[2]);
 	if (hex_size != 1) {
@@ -968,9 +973,10 @@ void parse_sdsset(void)
 		goto err;
 	}
 
-	if (atoi_byte(&sds_id, cmd_words_b[1])) {
+	if (!atoi_byte(cmd_words_b[1])) {
 		goto err;
 	}
+	sds_id = atoi_results_u8;
 
 	hex_size = atoi_hex(cmd_words_b[2]);
 	if (hex_size != 1) {
@@ -1023,13 +1029,16 @@ void parse_phyget(void)
 		goto err;
 	}
 
-	if (atoi_byte(&phy_id, cmd_words_b[1])) {
+	if (!atoi_byte(cmd_words_b[1])) {
 		goto err;
 	}
+	phy_id = atoi_results_u8;
 
-	if (atoi_byte(&dev_id, cmd_words_b[2])) {
+
+	if (!atoi_byte(cmd_words_b[2])) {
 		goto err;
 	}
+	dev_id = atoi_results_u8;
 
 	hex_size = atoi_hex(cmd_words_b[3]);
 	if (hex_size == 0 || hex_size > 2) {
@@ -1069,13 +1078,16 @@ void parse_physet(void)
 		goto err;
 	}
 
-	if (atoi_byte(&phy_id, cmd_words_b[1])) {
+	if (!atoi_byte(cmd_words_b[1])) {
 		goto err;
 	}
+	phy_id = atoi_results_u8;
 
-	if (atoi_byte(&dev_id, cmd_words_b[2])) {
+
+	if (!atoi_byte(cmd_words_b[2])) {
 		goto err;
 	}
+	dev_id = atoi_results_u8;
 
 	hex_size = atoi_hex(cmd_words_b[3]);
 	if (hex_size == 0 || hex_size > 2) {

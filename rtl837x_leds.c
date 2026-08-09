@@ -80,27 +80,33 @@ void leds_dump(void) __banked
 	for (__xdata uint8_t set = 0; set < 4; set++) {
 		print_string("SET "); write_char('0' + set); write_char(':');
 		for (__xdata uint8_t ledid = 0; ledid < 4; ledid++) {
-			print_string("\t   ");
 			uint8_t b;
+			__bit swap = !!ledid & 1;
+			b = (set & 0x3) << 1;
 			if (set < 2) {
 				reg_read_m(RTL837X_REG_LED3_0_SET1);
-				b = sfr_data[3-((set << 1) + (ledid >> 1))];
-				print_byte(ledid & 1 ? b >> 4 : b & 0xf);
 			} else {
 				reg_read_m(RTL837X_REG_LED3_0_SET3);
-				b = sfr_data[3-(((set-2) << 1) + (ledid >> 1))];
-				print_byte(ledid & 1 ? b >> 4 : b & 0xf);
 			}
-			reg_read_m(RTL837X_REG_LED1_0_SET0 - set * 8 - ((ledid >> 1) * 4));
-			if (! (ledid & 1)) { // LEDID 0, 2
-				print_byte(sfr_data[2]); print_byte(sfr_data[3]);
-			} else {
+			b = sfr_data[3 - b + (ledid >> 1)];
+			if (swap) {
+				b = (b >> 4) | (b << 4);
+			}
+			print_string("\t   ");
+			print_byte(b & 0xf);
+
+			uint8_t reg = ((ledid >> 1) << 2);
+			reg = set * 8 - reg;
+			reg_read_m(RTL837X_REG_LED1_0_SET0 - (uint16_t)reg);
+			if (swap) { // LEDID 0, 2
 				print_byte(sfr_data[0]); print_byte(sfr_data[1]);
+			} else {
+				print_byte(sfr_data[2]); print_byte(sfr_data[3]);
 			}
 		}
 		write_char('\n');
 	}
-	for (uint8_t i = machine.min_port; i <= machine.max_port; i++) {
+	for (__xdata uint8_t i = machine.min_port; i <= machine.max_port; i++) {
 		reg_read_m(RTL837X_LED_PORT_SET_SEL);
 		__xdata uint8_t set = sfr_data[3 - (i >> 2)];
 		set = (set >> ((i & 3) << 1));
@@ -108,9 +114,13 @@ void leds_dump(void) __banked
 		write_char('0' + set);
 		print_string(": ");
 		for (__xdata uint8_t ledid = 0; ledid < 4; ledid++) {
+			__bit swap = !!ledid & 1;
 			write_char('(');
-			reg_read_m(RTL837X_REG_LED1_0_SET0 - set * 8 - ((ledid >> 1) * 4));
-			if (ledid & 1) {  // LEDID 1, 3
+			uint8_t reg = ((ledid >> 1) << 2);
+			reg = set * 8 - reg;
+			reg_read_m(RTL837X_REG_LED1_0_SET0 - (uint16_t)reg);
+			// reg_read_m(RTL837X_REG_LED1_0_SET0 - set * 8 - ((ledid >> 1) * 4));
+			if (swap) {  // LEDID 1, 3
 				sfr_data[2] = sfr_data[0];
 				sfr_data[3] = sfr_data[1];
 			}
@@ -144,15 +154,14 @@ void leds_dump(void) __banked
 				print_string(" TRAINING");
 			if (sfr_data[2] & 0x40)
 				print_string(" MASTER");
-			__xdata uint8_t b;
 			if (set < 2) {
 				reg_read_m(RTL837X_REG_LED3_0_SET1);
-				b = sfr_data[3-((set << 1) + (ledid >> 1))];
 			} else {
 				reg_read_m(RTL837X_REG_LED3_0_SET3);
-				b = sfr_data[3-(((set-2) << 1) + (ledid >> 1))];
 			}
-			b = ledid & 1 ? b >> 4 : b & 0xf;
+			uint8_t b = sfr_data[3-(((set & 0x03) << 1) + (ledid >> 1))];
+			if (swap)
+				b = (b >> 4) | (b << 4);
 			if (b & 0x1)
 				print_string(" 10G");
 			if (b & 0x2)

@@ -388,7 +388,7 @@ void parse_vlan(void)
 			goto err;
 		uint8_t w = 2;
 		if (cmd_words_len > w && isletter(cmd_buffer[cmd_words_b[w]])) {
-			register uint8_t i = 0;
+			uint8_t i = 0;
 			vlan_name_remove(vlan_settings.vlan);
 			vlan_names[vlan_ptr++] = hex[(vlan_settings.vlan >> 8) & 0xf];
 			vlan_names[vlan_ptr++] = hex[(vlan_settings.vlan >> 4) & 0xf] ;
@@ -401,27 +401,30 @@ void parse_vlan(void)
 			w++;
 			print_string("<\n");
 		}
-		while (cmd_words_len > w) {
-			__xdata uint8_t port;
-			uint8_t n = cmd_buffer[cmd_words_b[w]];
 
-			if (isnumber(n)) {
-				port = n - '0';
-				uint8_t n = cmd_buffer[cmd_words_b[w] + 1];
-				if (isnumber(n)) {
-					port = port * 10 + n - '0';
-					if (cmd_buffer[cmd_words_b[w] + 2] == 't')
-						vlan_settings.tagged |= ((uint16_t)1) << port;
-				} else {
-						port = machine.phys_to_log_port[port];
-					if (cmd_buffer[cmd_words_b[w] + 1] == 't')
-						vlan_settings.tagged |= ((uint16_t)1) << port;
-				}
-				if (port > machine.max_port)
+		uint8_t port;
+		uint8_t ret;
+		uint8_t idx;
+		while (cmd_words_len > w) {
+			idx = cmd_words_b[w++];
+
+			// Parse port
+			ret = atoi_byte(idx);
+			if (ret != 0) {
+				port = atoi_results_u8;
+
+				if (port < machine.min_port || port > machine.max_port)
 					goto err;
+
+				port = machine.phys_to_log_port[port - 1];
+
+				idx += ret;
+
+				if (cmd_buffer[idx] == 't')
+					vlan_settings.tagged |= ((uint16_t)1) << port;
+
 				vlan_settings.members |= ((uint16_t)1) << port;
 			}
-			w++;
 		}
 		vlan_create();
 	} else if (cmd_compare(1, "show")) {

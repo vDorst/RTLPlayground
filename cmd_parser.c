@@ -443,22 +443,56 @@ err:
 }
 
 
+/* Parse, validate and phys_to_log_port port arguments
+ * cpu_is_valid tells the parser that port 10 is valid.
+ * returns 0 when on parser error or invalid value.
+ * return non-zero number of bytes consumed.
+ * Store the value in atoi_results_u8.
+ */
+uint8_t cmd_parse_port(uint8_t idx, __bit cpu_is_valid) {
+	uint8_t ret = atoi_byte(idx);
+	uint8_t port = 0;
+	if (ret != 0) {
+		port = atoi_results_u8 - 1;
+
+		if (cpu_is_valid && port == 9) {
+			// CPU port is valid
+		} else if (port < 9) {
+			port = machine.phys_to_log_port[port];
+			if (port < machine.min_port || port > machine.max_port) {
+				ret = 0;
+			}
+		} else {
+			ret = 0;
+		}
+	}
+
+	atoi_results_u8 = port;
+	return ret;
+}
+
+// return if the idx is a space.
+__bit cmd_is_space(uint8_t idx) {
+	return cmd_buffer[idx] == ' ';
+}
+
 void parse_isolate(void)
 {
 	__xdata uint16_t members = 0;
+	uint8_t ret;
 
 	if (cmd_words_len < 3)
 		goto err;
 
 	print_string("\nISOLATE ");
 
-	__xdata int8_t port_configured = cmd_buffer[cmd_words_b[1]] - '1';
-	port_configured = machine.phys_to_log_port[port_configured];
-	if (isnumber(cmd_buffer[cmd_words_b[1] + 1]))  // CPU-port, logical port 9
-		port_configured = (port_configured + 1) * 10 + cmd_buffer[cmd_words_b[1] + 1] - '1';
-	if (port_configured < 0 || port_configured > 9)
+	uint8_t idx = cmd_words_b[1];
+	ret = cmd_parse_port(idx, false);
+	idx += ret;
+	if (ret == 0 || !(cmd_is_space(idx))) {
 		goto err;
-
+	}
+	uint8_t port_configured = atoi_results_u8;
 	print_byte(port_configured); write_char('\n');
 
 	if (cmd_compare(2, "show")) {
@@ -486,22 +520,14 @@ void parse_isolate(void)
 
 	uint8_t w = 2;
 	while (w < cmd_words_len) {
-		__xdata uint8_t port;
-		if (isnumber(cmd_buffer[cmd_words_b[w]])) {
-			port = cmd_buffer[cmd_words_b[w]] - '1';
-			if (isnumber(cmd_buffer[cmd_words_b[w] + 1])) {
-				port = (port + 1) * 10 + cmd_buffer[cmd_words_b[w] + 1] - '1'; // logical port
-				if (port != 9) // CPU port is logical port 9
-					goto err;
-			} else {
-				port = machine.phys_to_log_port[port];
-				if (port < machine.min_port || port > machine.max_port)
-					goto err;
-			}
-			members |= ((uint16_t)1) << port;
+		ret = cmd_parse_port(cmd_words_b[w++], false);
+		if (ret == 0) {
+			goto err;
 		}
-		w++;
+		uint8_t port = atoi_results_u8;
+		members |= ((uint16_t)1) << port;
 	}
+
 	port_isolate(port_configured, members);
 	return;
 
@@ -549,16 +575,18 @@ void parse_ingress(void)
 		return;
 	} else {
 		for(uint8_t w = 1; w < cmd_words_len; w++) {
-			uint8_t p = cmd_buffer[cmd_words_b[w]];
-			if (!isnumber(p)) {
+			uint8_t idx = cmd_words_b[w];
+			char p = cmd_buffer[idx];
+			uint8_t ret = cmd_parse_port(idx, false);
+			idx += ret;
+			if (ret == 0 || !cmd_is_space(idx)) {
+				print_string("Invalid physical port number\n");
 				continue;
 			}
-			if (p - '1' > 9) {
-				print_string("Invalid physical port number: "); write_char(p); write_char('\n');
-				continue;
-			}
-			log_port = machine.phys_to_log_port[p - '1'];
-			if (!vlan_ingress_mode_parse(cmd_buffer[cmd_words_b[w] + 1], &mode)) {
+			log_port = atoi_results_u8;
+			idx += ret;
+
+			if (!vlan_ingress_mode_parse(cmd_buffer[idx], &mode)) {
 				print_string("Invalid ingress mode for port "); write_char(p); print_string(" in ingress command\n");
 				goto err;
 			}
@@ -606,42 +634,38 @@ void parse_mirror(void)
 		return;
 	}
 
-	__xdata uint8_t * ptr = &cmd_buffer[cmd_words_b[1]];
-	uint8_t n = *ptr++;
-
-	if (cmd_words_len < 2 || !isnumber(n)) {
-		print_string("Port/command missing: mirror [status/off/<mirroring port> [port][t/r]]...\n");
-		return;
+	if (cmd_words_len < 2) {
+		goto err;
 	}
-
-	uint8_t mirroring_port = n - '0';
-
-	n = *ptr++;
-	if (isnumber(n))
-		mirroring_port = mirroring_port * 10 + n - '0';
-	mirror_settings.port = machine.phys_to_log_port[mirroring_port-1];
-	
 
 	uint8_t w = 2;
+	uint8_t port;
+	uint8_t ret;
 	while (w < cmd_words_len) {
-		__xdata uint8_t * __xdata ptr = &cmd_buffer[cmd_words_b[w]];
-		uint8_t n = *ptr++;
-		if (isnumber(n)) {
-			uint8_t port = n - '0';
-			n = *ptr++;
-			if (isnumber(n)) {
-				port = port * 10 + n - '0';
-				n = *ptr++;
-			}
-			port = machine.phys_to_log_port[port - 1];
-			if (n != 't')
-				mirror_settings.rx_pmask |= ((uint16_t)1) << port;
-			if (n != 'r')
-				mirror_settings.tx_pmask |= ((uint16_t)1) << port;
+		uint8_t idx = cmd_words_b[w++];
+		ret = cmd_parse_port(idx, false);
+		if (ret == 0) {
+			goto err;
 		}
-		w++;
+		idx += ret;
+		port = atoi_results_u8;
+		if (w == 2) {
+			mirror_settings.port = port;
+		}
+
+		ret = cmd_buffer[idx];
+		uint16_t pmask = ((uint16_t)1) << port;
+		if (ret != 't')
+			mirror_settings.rx_pmask |= pmask;
+		if (ret != 'r')
+			mirror_settings.tx_pmask |= pmask;
 	}
 	port_mirror_set();
+	return;
+
+err:
+	print_string("Port/command missing: mirror [status/off/<mirroring port> [port][t/r]]...\n");
+	return;
 }
 
 
@@ -655,18 +679,14 @@ void parse_port(void)
 		return;
 	}
 
-	uint8_t n = cmd_buffer[cmd_words_b[1]];
-
-	if (n < '1' || n > '9' || cmd_buffer[cmd_words_b[1] + 1] != ' ' ) {
-		print_string("Illegal port number\n");
+	uint8_t idx = cmd_words_b[1];
+	uint8_t ret = cmd_parse_port(idx, false);
+	idx += ret;
+	if (ret == 0 || !cmd_is_space(idx)) {
+		print_string("Invalid port number\n");
 		return;
 	}
-	n = n - '1';
-	phy_settings.port = machine.phys_to_log_port[n];
-	if (phy_settings.port > machine.max_port || phy_settings.port < machine.min_port) {
-		print_string("This machine has no port with the specified number\n");
-		return;
-	}
+	phy_settings.port = atoi_results_u8;
 
 	print_string("Logical Port: "); print_byte(phy_settings.port); write_char('\n');
 	phy_settings.duplex = PHY_DUPLEX_BOTH;
@@ -748,35 +768,44 @@ void parse_port(void)
 
 void parse_mtu(void)
 {
-	uint8_t p;
+	uint8_t port;
+	uint8_t ret;
 
 	if (cmd_compare(1, "show")) {
-		for (p = machine.min_port; p <= machine.max_port; p++) {
-			reg_read_m(RTL8373_REG_MAC_L2_PORT_MAX_LEN + ((uint16_t) p << 8));
+		for (port = machine.min_port; port <= machine.max_port; port++) {
+			reg_read_m(RTL8373_REG_MAC_L2_PORT_MAX_LEN + ((uint16_t) port << 8));
 			uint16_t mtu = SFR_DATA_U16 & 0x3fff;
-			print_string("Port "); print_byte(machine.log_to_phys_port[p]);
+			print_string("Port "); print_byte(machine.log_to_phys_port[port]);
 			write_char(' '); print_short(mtu); write_char('\n');
 		}
 		return;
 	}
-	if (cmd_words_len != 3 || cmd_buffer[cmd_words_b[1]] < '1'
-	    || cmd_buffer[cmd_words_b[1]] > '9'
-	    || cmd_buffer[cmd_words_b[1] + 1] > ' ') {
-		print_string("mtu [port] [size]\n");
-		return;
-	}
-	p = machine.phys_to_log_port[cmd_buffer[cmd_words_b[1]] - '1'];
-	print_byte(p);
+	if (cmd_words_len != 3)
+		goto err;
 
-	uint8_t ret = atoi_short(cmd_words_b[2]);
+	uint8_t idx = cmd_words_b[1];
+	ret = cmd_parse_port(idx, false);
+	idx += ret;
+	if (ret == 0 || !cmd_is_space(idx)) {
+		goto err;
+	}
+	port = atoi_results_u8;
+	print_byte(port);
+
+	ret = atoi_short(cmd_words_b[2]);
 
 	if (!ret || atoi_results < 64 || atoi_results > 0x3fff) {
 		print_string("MTU must be 64..16383\n");
 		return;
 	}
-	REG_WRITE(RTL8373_REG_MAC_L2_PORT_MAX_LEN + ((uint16_t) p << 8), (atoi_results >> 10) & 0xf, (atoi_results >> 2) & 0xff,
+	REG_WRITE(RTL8373_REG_MAC_L2_PORT_MAX_LEN + ((uint16_t) port << 8), (atoi_results >> 10) & 0xf, (atoi_results >> 2) & 0xff,
 		  ((atoi_results & 0x3) << 6) | ((atoi_results >> 8) & 0x3f), atoi_results & 0xff);
 	write_char('\n');
+	return;
+
+err:
+	print_string("mtu [port] [size]\n");
+	return;
 }
 
 void sfp_print_measurements(uint8_t sfp)
@@ -816,11 +845,14 @@ void parse_sfp(void)
 		}
 		return;
 	}
-	if (cmd_buffer[cmd_words_b[1]] < '1' || cmd_buffer[cmd_words_b[1]] > '2' || cmd_buffer[cmd_words_b[1] + 1] != ' ' ) {
+	uint8_t idx = cmd_words_b[1];
+	uint8_t ret = atoi_byte(idx);
+	idx += ret;
+	slot = atoi_results_u8 - 1;
+	if (ret == 0 || !cmd_is_space(idx) || (slot | 0x01) != 0x01) {
 		print_string("Illegal SFP slot number\n");
 		return;
 	}
-	slot = cmd_buffer[cmd_words_b[1]] - '1';
 	if (slot >= machine.n_sfp) {
 		print_string("SFP slot not present\n");
 		return;
@@ -1197,8 +1229,12 @@ void parse_eee(void)
 			speed_word = 2;
 		} else if (cmd_buffer[idx] == ' ' || cmd_buffer[idx] == '\0') {
 			// Word 2 is a port number
-			port = cmd_buffer[cmd_words_b[2]] - '1';
-			port = machine.phys_to_log_port[port];
+			port = cmd_parse_port(idx, false);
+			if (port == 0) {
+				print_string("Speed word invalid, use: [100m|1g|2g5]\n");
+				return;
+			}
+			port = atoi_results_u8;
 			// Check if word 3 is a speed
 			if (cmd_words_len >= 4)
 				speed_word = 3;
@@ -1241,17 +1277,17 @@ void parse_eee(void)
 
 void parse_bw(void)
 {
-	__xdata uint8_t port;
+	uint8_t port;
+	uint8_t ret;
 	__xdata uint32_t bw = 0;
 
 	if (cmd_words_len < 2) // Check for at least 2 arguments
 		goto err;
 
-	port = cmd_buffer[cmd_words_b[2]] - '1';
-	if (port > 9)
+	ret = cmd_parse_port(cmd_words_b[2], false);
+	if (ret == 0)
 		goto err;
-
-	port = machine.phys_to_log_port[port];
+	port = atoi_results_u8;
 
 	if (cmd_compare(1, "status")) {
 		bandwidth_status(port);
@@ -1606,11 +1642,13 @@ void cmd_parser(void) __banked
 				stpEnabled = 0;
 			}
 		} else if (cmd_compare(0, "pvid") && cmd_words_len == 3) {
-			if (cmd_buffer[cmd_words_b[1]] >= '1'
-			    && cmd_buffer[cmd_words_b[1]] <= '9'
-			    && cmd_buffer[cmd_words_b[1] + 1] <= ' '
+			uint8_t idx = cmd_words_b[1];
+			uint8_t ret = cmd_parse_port(cmd_words_b[1], false);
+			uint8_t port = atoi_results_u8;
+			idx += ret;
+			if (ret != 0 && cmd_is_space(idx)
 			    && atoi_short(cmd_words_b[2]) && atoi_results && atoi_results <= 4094)
-				port_pvid_set(machine.phys_to_log_port[cmd_buffer[cmd_words_b[1]] - '1'], atoi_results);
+				port_pvid_set(port, atoi_results);
 			else
 				print_string("Error: pvid <port> <1-4094>\n");
 		} else if (cmd_compare(0, "vlan")) {

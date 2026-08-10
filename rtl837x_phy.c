@@ -86,7 +86,7 @@ void rtl8224_phy_enable(void) __banked
 }
 
 
-void phy_config_8261(uint8_t phy, uint8_t sds) __banked
+void phy_config_8261(uint8_t phy, uint8_t __xdata sds) __banked
 {
 	print_string("phy_config_8261: phy "); print_byte(phy);
 	print_string(" sds "); print_byte(sds); write_char('\n');
@@ -423,13 +423,14 @@ void phy_set_duplex(void) __banked
 
 void phy_show(uint8_t port) __banked
 {
-	uint16_t v;
+	uint8_t link;
 
 	// The actual PHY speed is in a Realtek propriatary register
 	print_string("\nLink speed: ");
 	phy_read(port, PHY_MMD31, PHY_MMD31_PHYSR);
-	v = SFR_DATA_U16;
-	switch(((v & 0x0600) >> 7) | ((v & 0x0030) >> 4)) {
+	link = SFR_DATA_8 & 0x06 << 1;
+	link |= (SFR_DATA_0 >> 4) & 0x03; 
+	switch(link) {
 	case 0:
 		print_string("10M");
 		break;
@@ -455,15 +456,15 @@ void phy_show(uint8_t port) __banked
 		print_string("Down");
 	}
 
-	if ( (((v & 0x0600) >> 7) | ((v & 0x0030) >> 4)) <= 6) { // Link is up
-		if (v & 0x8)
+	if (link <= 6) { // Link is up
+		if (SFR_DATA_0 & 0x8)
 			print_string(" full duplex");
 		else
 			print_string(" half duplex");
 	}
 
-	phy_read(port,  PHY_MMD_AN, PHY_ANEG_CTRL);
-	v = SFR_DATA_U16;
+	phy_read(port, PHY_MMD_AN, PHY_ANEG_CTRL);
+	uint16_t v = SFR_DATA_U16;
 	if (!(v & 0x1000)) { // AN disabled, we are in forced mode
 		phy_read(port, PHY_MMD_PMAPMD, 0);
 		v = SFR_DATA_U16;

@@ -325,6 +325,13 @@ err:
 	return true;
 }
 
+// Wait until the `TBL_EXECUTE` is cleared.
+// So SOC is ready to accept new table opperations.
+void wait_for_table_ready(void) {
+	do {
+		reg_read(RTL837X_TBL_CTRL);
+	} while (SFR_DATA_0 & TBL_EXECUTE);
+}
 
 void send_l2(uint16_t idx)
 {
@@ -333,9 +340,7 @@ void send_l2(uint16_t idx)
 	dbg_short(idx);
 	__xdata uint8_t entries_left = L2_MAX_TRANSFER;
 
-	do {
-		reg_read(RTL837X_TBL_CTRL);
-	} while (SFR_DATA_0 & TBL_EXECUTE);
+	wait_for_table_ready();
 
 	/* The L2 table in the ASIC can hold up to 4096 (0x1000) entries, which
 	 * are accessed using an index. The index is the hash of the MAC address
@@ -362,9 +367,7 @@ void send_l2(uint16_t idx)
 		reg_write_m(RTL837x_TBL_DATA_0);
 
 		REG_WRITE(RTL837X_TBL_CTRL, entry >> 8, entry, TBL_L2_UNICAST, TBL_EXECUTE);
-		do {
-			reg_read(RTL837X_TBL_CTRL);
-		} while (SFR_DATA_0 & TBL_EXECUTE);
+		wait_for_table_ready();
 
 		reg_read(RTL837x_L2_DATA_OUT_B);
 		__bit valid = (SFR_DATA_24 & 0x20) != 0;
@@ -431,18 +434,18 @@ void l2_delete(uint16_t idx)
 	dbg_short(idx);
 	__xdata uint8_t entries_left = L2_MAX_TRANSFER;
 
-	do {
-		reg_read_m(RTL837X_TBL_CTRL);
-	} while (sfr_data[3] & TBL_EXECUTE);
+	wait_for_table_ready();
 	slen += strtox(outbuf + slen, "{\"result\":");
+
 	// First, search for the entry based on the index
 	reg_read_m(RTL837x_TBL_DATA_0);
-	REG_WRITE(RTL837x_TBL_DATA_0, sfr_data[0], sfr_data[1] & 0xfc, sfr_data[2] | (TBL_LUTREAD_NEXT_L2UC << 6), sfr_data[3]);
+	sfr_data[1] &= 0xfc;
+	sfr_data[2] |= (TBL_LUTREAD_NEXT_L2UC << 6);
+	reg_write_m(RTL837x_TBL_DATA_0);
 
 	REG_WRITE(RTL837X_TBL_CTRL, (idx >> 8) & 0xf, idx, TBL_L2_UNICAST, TBL_EXECUTE);
-	do {
-		reg_read_m(RTL837X_TBL_CTRL);
-	} while (sfr_data[3] & 0x1);
+	wait_for_table_ready();
+
 	reg_read_m(RTL837x_L2_DATA_OUT_B);
 	if (!(sfr_data[0] & 0x20)) {
 		char_to_html('0');
@@ -460,12 +463,11 @@ void l2_delete(uint16_t idx)
 		reg_write_m(RTL837x_TBL_DATA_IN_C);
 
 		reg_read_m(RTL837x_TBL_DATA_0);
-		REG_WRITE(RTL837x_TBL_DATA_0, sfr_data[0], sfr_data[1], TBL_L2_UNICAST, sfr_data[3]);
+		sfr_data[2] = TBL_L2_UNICAST;
+		reg_write_m(RTL837x_TBL_DATA_0);
 
 		REG_WRITE(RTL837X_TBL_CTRL, idx >> 8, idx, TBL_L2_UNICAST, TBL_WRITE | TBL_EXECUTE);
-		do {
-			reg_read_m(RTL837X_TBL_CTRL);
-		} while (sfr_data[3] & TBL_EXECUTE);
+		wait_for_table_ready();
 
 		char_to_html('1');
 	}

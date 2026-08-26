@@ -7,6 +7,7 @@
 #include "rtl837x_flash.h"
 #include "uip.h"
 #include "html_data.h"
+#include "rtl837x_sfr.h"
 
 // #define DEBUG
 #include "debug.h"
@@ -803,9 +804,9 @@ void httpd_appcall(void)
 				goto do_send;
 			}
 			// A web-page is actively accessed, we can reset session time-out
-			reg_read_m(RTL837X_REG_SEC_COUNTER);
+			reg_read(RTL837X_REG_SEC_COUNTER);
 			timeptr = (uint8_t*)&last_session_use; // last_session_use is Little endian
-			timeptr[0] = sfr_data[3]; timeptr[1] = sfr_data[2]; timeptr[2] = sfr_data[1]; timeptr[3] = sfr_data[0];
+			timeptr[0] = SFR_DATA_0; timeptr[1] = SFR_DATA_8; timeptr[2] = SFR_DATA_16; timeptr[3] = SFR_DATA_24;
 
 			slen = strtox(outbuf, "HTTP/1.1 200 OK\r\nContent-Type: ");
 			slen += strtox(outbuf + slen, mime_strings[f_data[entry].mime]);

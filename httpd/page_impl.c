@@ -333,6 +333,18 @@ void wait_for_table_ready(void) {
 	} while (SFR_DATA_0 & TBL_EXECUTE);
 }
 
+// Search for the entry based on the index
+void table_get_entry_by_index(uint16_t idx)
+{
+	reg_read_m(RTL837x_TBL_DATA_0);
+	sfr_data[1] &= 0xfc;
+	sfr_data[2] |= (TBL_LUTREAD_NEXT_L2UC << 6);
+	reg_write_m(RTL837x_TBL_DATA_0);
+
+	REG_WRITE(RTL837X_TBL_CTRL, (idx >> 8) & 0xf, idx, TBL_L2_UNICAST, TBL_EXECUTE);
+	wait_for_table_ready();
+}
+
 void send_l2(uint16_t idx)
 {
 	slen = strtox(outbuf, HTTP_RESPONCE_JSON);
@@ -354,30 +366,32 @@ void send_l2(uint16_t idx)
 	 * entry. The indices are sorted, so if an entry has a smaller index than
 	 * the previous one, we know that we have wrapped around the entire table.
 	 */
-	__xdata uint16_t entry = idx & 0xfff;
-	__xdata uint16_t first_entry = 0xffff; // An illegal entry index
+
+	// Make both entry indexs a signed value so any negative index is invalid.
+	// So the compiler only need to look at the signbit to see the validity of the entry.
+	__xdata int16_t entry_idx = idx & 0xfff;
+	__xdata int16_t first_entry_idx = -1;
 	__bit first = true;
+
 	char_to_html('[');
 	while (1) {
-		entries_left--;
 		uint8_t port = 0;
-		reg_read_m(RTL837x_TBL_DATA_0);
-		sfr_data[1] &= 0xfc;
-		sfr_data[2] |=  (TBL_LUTREAD_NEXT_L2UC << 6);
-		reg_write_m(RTL837x_TBL_DATA_0);
-
-		REG_WRITE(RTL837X_TBL_CTRL, entry >> 8, entry, TBL_L2_UNICAST, TBL_EXECUTE);
-		wait_for_table_ready();
+		// First, search for the entry based on the index
+		table_get_entry_by_index(entry_idx);
 
 		reg_read(RTL837x_L2_DATA_OUT_B);
 		__bit valid = (SFR_DATA_24 & 0x20) != 0;
 		if (valid) {
 			/* separator + 74-byte worst-case entry + closing "]" */
-			if (slen + 76 > TCP_OUTBUF_SIZE)
+			if (slen > (TCP_OUTBUF_SIZE - 76))
 				break;
-			if (!first)
+
+			// Make use of the 'jbc'-instruction
+			if (first) {
+				first = false;
+			} else {
 				char_to_html(',');
-			first = false;
+			}
 
 			// VLAN, taken from the read above instead of reading the register twice
 			slen += strtox(outbuf + slen, "{\"vlan\":\"");
@@ -408,43 +422,37 @@ void send_l2(uint16_t idx)
 
 		// Index
 		reg_read(RTL837x_TBL_DATA_0);
-		entry = (((uint16_t)SFR_DATA_8 & 0x0f) << 8) | SFR_DATA_0;
+		entry_idx = (((int16_t)SFR_DATA_8 & 0x0f) << 8) | SFR_DATA_0;
 		if (valid) {
 			slen += strtox(outbuf + slen, ",\"idx\":\"");
-			byte_to_html(entry >> 8);
-			byte_to_html(entry);
+			byte_to_html(entry_idx >> 8);
+			byte_to_html(entry_idx);
 			char_to_html('"');
 			char_to_html('}');
 		}
-		entry += 1; // We want the next entry following after the current entry
+		entry_idx += 1; // We want the next entry following after the current entry
 
-		if (first_entry == 0xffff)
-			first_entry = entry;
-		else if (first_entry == entry || !entries_left)
+		if (first_entry_idx < 0)
+			first_entry_idx = entry_idx;
+		else if (first_entry_idx == entry_idx || !--entries_left)
 			break;
 	}
 	char_to_html(']');
 }
 
 
-void l2_delete(uint16_t idx)
+void l2_delete(uint16_t entry_idx)
 {
 	slen = strtox(outbuf, HTTP_RESPONCE_JSON);
 	dbg_string("L2 DELETE\n");
-	dbg_short(idx);
+	dbg_short(entry_idx);
 	__xdata uint8_t entries_left = L2_MAX_TRANSFER;
 
 	wait_for_table_ready();
 	slen += strtox(outbuf + slen, "{\"result\":");
 
 	// First, search for the entry based on the index
-	reg_read_m(RTL837x_TBL_DATA_0);
-	sfr_data[1] &= 0xfc;
-	sfr_data[2] |= (TBL_LUTREAD_NEXT_L2UC << 6);
-	reg_write_m(RTL837x_TBL_DATA_0);
-
-	REG_WRITE(RTL837X_TBL_CTRL, (idx >> 8) & 0xf, idx, TBL_L2_UNICAST, TBL_EXECUTE);
-	wait_for_table_ready();
+	table_get_entry_by_index(entry_idx);
 
 	reg_read_m(RTL837x_L2_DATA_OUT_B);
 	if (!(sfr_data[0] & 0x20)) {
@@ -466,7 +474,7 @@ void l2_delete(uint16_t idx)
 		sfr_data[2] = TBL_L2_UNICAST;
 		reg_write_m(RTL837x_TBL_DATA_0);
 
-		REG_WRITE(RTL837X_TBL_CTRL, idx >> 8, idx, TBL_L2_UNICAST, TBL_WRITE | TBL_EXECUTE);
+		REG_WRITE(RTL837X_TBL_CTRL, entry_idx >> 8, entry_idx, TBL_L2_UNICAST, TBL_WRITE | TBL_EXECUTE);
 		wait_for_table_ready();
 
 		char_to_html('1');

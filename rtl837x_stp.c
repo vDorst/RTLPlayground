@@ -210,7 +210,8 @@ void stp_timers(void) __banked
 void stp_setup(void) __banked
 {
 	print_string("Enabling STP: ");
-	sfr_data[0] = sfr_data[1] = sfr_data[2] = sfr_data[3] = 0;
+	sfr_data[0] = sfr_data[2] = sfr_data[3] = 0;
+	sfr_data[1] = 0x0f; // Do not block CPU-Port
 	for (uint8_t i = machine.min_port; i <= machine.max_port; i++) {
 		// Set STP port state to blocking
 		// States are: 00 disable, 01 blocking, 10 learning, 11 forwarding
@@ -219,7 +220,6 @@ void stp_setup(void) __banked
 		port_hello[i] = TIME_HELLO;
 		port_timers[i] = 0xa00;	// 10 sec in blocking state
 	}
-	sfr_data[1] |= 0x0f; // Do not block CPU-Port
 	reg_write_m(RTL837X_MSTP_STATES); // R5310-000d555f 
 
 	print_reg(RTL837X_MSTP_STATES); write_char('\n');
@@ -232,13 +232,13 @@ void stp_setup(void) __banked
 
 void stp_off(void) __banked
 {
-	sfr_data[0] = sfr_data[1] = sfr_data[2] = sfr_data[3] = 0;
+	sfr_data[0] = sfr_data[2] = sfr_data[3] = 0;
+	sfr_data[1] = 0x0f; // Do not block CPU-Port
 	for (uint8_t i = machine.min_port; i <= machine.max_port; i++) {
 		// Set STP port state to forwarding
 		// States are: 00 disable, 01 blocking, 10 learning, 11 forwarding
 		uint8_t bit_mask = 0b11 << ( (i << 1) & 0x7);
 		sfr_data[3 - (i >> 2)] |= bit_mask;
 	}
-	sfr_data[1] |= 0x0f; // Do not block CPU-Port
 	reg_write_m(RTL837X_MSTP_STATES);
 }

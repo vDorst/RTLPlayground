@@ -496,6 +496,7 @@ void parse_vlan(void)
 		if (cmd_words_len > w && isletter(cmd_buffer[cmd_words_b[w]])) {
 			uint8_t i = 0;
 			vlan_name_remove(vlan_settings.vlan);
+			
 			vlan_names[vlan_ptr++] = hex[(vlan_settings.vlan >> 8) & 0xf];
 			vlan_names[vlan_ptr++] = hex[(vlan_settings.vlan >> 4) & 0xf] ;
 			vlan_names[vlan_ptr++] = hex[vlan_settings.vlan & 0xf];

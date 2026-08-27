@@ -10,8 +10,6 @@
 #pragma codeseg BANK2
 #pragma constseg BANK2
 
-extern __xdata uint8_t sfr_data[4];
-
 void bandwidth_setup(void) __banked
 {
 	print_string("bandwidth_setup called\n");
@@ -36,11 +34,11 @@ void bandwidth_ingress_set(uint8_t port, __xdata uint32_t bw) __banked
 	__xdata uint8_t * __xdata bwptr = &bw;
 
 	print_string("bandwidth_ingress_set called, port "); print_byte(port); write_char('\n');
-	sfr_data[0] = 0;
-	sfr_data[1] = 0x10 | (*(bwptr + 2) >> 4);  // Set bit 20 to enable ingress bandwidth control
-	sfr_data[2] = (*(bwptr + 2) << 4) | (*(bwptr + 1) >> 4);
-	sfr_data[3] = (*(bwptr) >> 4) | (*(bwptr + 1) << 4);
-	reg_write_m(RTL837X_IGBW_PORT_CTRL + port * 4);
+	SFR_DATA_24 = 0;
+	SFR_DATA_16 = 0x10 | (*(bwptr + 2) >> 4);  // Set bit 20 to enable ingress bandwidth control
+	SFR_DATA_8 = (*(bwptr + 2) << 4) | (*(bwptr + 1) >> 4);
+	SFR_DATA_0 = (*(bwptr) >> 4) | (*(bwptr + 1) << 4);
+	reg_write(RTL837X_IGBW_PORT_CTRL + port * 4);
 
 	// We enable Flow Control instead of just dropping packets
 	reg_bit_set(RTL837X_IGBW_PORT_FC_CTRL, port);
@@ -73,11 +71,11 @@ void bandwidth_egress_set(uint8_t port, __xdata uint32_t bw) __banked
 	__xdata uint8_t * __xdata bwptr = &bw;
 
 	print_string("bandwidth_egress_set called, port "); print_byte(port); write_char('\n');
-	sfr_data[0] = 0;
-	sfr_data[1] = 0x10 | (*(bwptr + 2) >> 4);  // Set bit 20 to enable egress bandwidth control
-	sfr_data[2] = (*(bwptr + 2) << 4) | (*(bwptr + 1) >> 4);
-	sfr_data[3] = (*(bwptr) >> 4) | (*(bwptr + 1) << 4);
-	reg_write_m(RTL837X_EGBW_PORT_CTRL + port * 1024);
+	SFR_DATA_24 = 0;
+	SFR_DATA_16 = 0x10 | (*(bwptr + 2) >> 4);  // Set bit 20 to enable egress bandwidth control
+	SFR_DATA_8 = (*(bwptr + 2) << 4) | (*(bwptr + 1) >> 4);
+	SFR_DATA_0 = (*(bwptr) >> 4) | (*(bwptr + 1) << 4);
+	reg_write(RTL837X_EGBW_PORT_CTRL + port * 1024);
 }
 
 
@@ -91,14 +89,13 @@ void bandwidth_egress_disable(uint8_t port) __banked
 void bandwidth_status(uint8_t port) __banked
 {
 	print_string("ingress: ");
-	reg_read_m(RTL837X_IGBW_PORT_CTRL + port * 4);
-	if (sfr_data[1] & 0x10) {
+	reg_read(RTL837X_IGBW_PORT_CTRL + port * 4);
+	if (SFR_DATA_16 & 0x10) {
 		print_string("enabled: ");
-		sfr_data[1] &= 0xef;
 		print_string("0x");
-		print_byte(sfr_data[1]);
-		print_byte(sfr_data[2]);
-		print_byte(sfr_data[3]);
+		print_byte(SFR_DATA_16);
+		print_byte(SFR_DATA_8);
+		print_byte(SFR_DATA_0);
 		write_char('0');
 		write_char('\n');
 	} else {
@@ -106,14 +103,13 @@ void bandwidth_status(uint8_t port) __banked
 	}
 
 	print_string("egress: ");
-	reg_read_m(RTL837X_EGBW_PORT_CTRL + port * 1024);
-	if (sfr_data[1] & 0x10) {
+	reg_read(RTL837X_EGBW_PORT_CTRL + port * 1024);
+	if (SFR_DATA_16 & 0x10) {
 		print_string("enabled: ");
-		sfr_data[1] &= 0xef;
 		print_string("0x");
-		print_byte(sfr_data[1]);
-		print_byte(sfr_data[2]);
-		print_byte(sfr_data[3]);
+		print_byte(SFR_DATA_16 & 0xef);
+		print_byte(SFR_DATA_8);
+		print_byte(SFR_DATA_0);
 		write_char('0');
 		write_char('\n');
 	} else {

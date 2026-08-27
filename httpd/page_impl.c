@@ -72,12 +72,15 @@ void char_to_html(char c)
 //  Convert uint8_t to ascii HEX char.
 void byte_to_html(uint8_t val)
 {
-	uint8_t cnt = 2;
-	do {
+	__bit again = true;
+	while(1) {
 		val = (val >> 4) | (val << 4);
 		charhex_to_html(val);
-		cnt -= 1;
-	} while(cnt);
+		if (again) 
+			again = false;
+		else
+			break;
+	}
 }
 
 /* Converts a uint8_t to raw string.
@@ -100,7 +103,7 @@ void itoa_html(uint8_t v)
 
 void itoa16_html(uint16_t v) /* sufficient for VLAN IDs (max 4094) */
 {
-	uint8_t print_zeros = 0;
+	uint8_t print_zeros = false;
 	uint8_t d;
 	d = v / 1000;
 	if (d) { char_to_html('0' + d); print_zeros = 1; }
@@ -115,6 +118,37 @@ void string_to_html(__code char *s)
 {
 	while (*s) char_to_html(*s++);
 }
+
+// Prints an IPv4 address.
+void ip_to_html(__xdata uint8_t *ptr) {
+	uint8_t idx = 0;
+	uint8_t num;
+
+	while(1) {
+		num = *ptr++;
+		itoa_html(num);
+		if (++idx == 4)
+			break;
+
+		char_to_html('.');
+	}
+}
+
+// Prints an MAC address.
+void mac_to_html(__xdata uint8_t *ptr) {
+	uint8_t idx = 0;
+	uint8_t num;
+
+	while(1) {
+		num = *ptr++;
+		byte_to_html(num);
+		if (++idx == 6)
+			break;
+
+		char_to_html(':');
+	}
+}
+
 
 uint16_t stat_content(void)
 {
@@ -136,20 +170,27 @@ uint16_t port_status(void)
 void sfr_data_to_html(void)
 {
  	uint8_t print_zeros = 0;
-	uint8_t val = 0;
 
-	for (uint8_t nibble = 0; nibble < 8; nibble++) {
-	  	if (!(nibble & 1))
-	        val = sfr_data[nibble>>1];
-		// force the swap instruction, itohex() ignores the upper nibble.
-		val = (val << 4) | (val >> 4);
-		// when print_zeros is not zero, we know that a non-zero number has printed.
-		// That have to print all the next numbers.
-		print_zeros |= val;
-		// only care about lower nibble, that is what is printed.
-		print_zeros &= 0x0f;
-		if (print_zeros)
-			charhex_to_html(val);
+	for (uint8_t nibble = 0; nibble < 4; nibble++) {
+		__bit again = true;
+		uint8_t val = sfr_data[nibble];
+		while (1) {
+			// force the swap instruction, itohex() ignores the upper nibble.
+			val = (val << 4) | (val >> 4);
+			// when print_zeros is not zero, we know that a non-zero number has printed.
+			// That have to print all the next numbers.
+			print_zeros |= val;
+			// only care about lower nibble, that is what is printed.
+			print_zeros &= 0x0f;
+			if (print_zeros)
+				charhex_to_html(val);
+
+			if (again) 
+				again = false;
+			else
+				break;
+		}
+
 	}
 	if (print_zeros == 0) {
 	    char_to_html('0');
@@ -166,11 +207,11 @@ void reg_to_html(uint16_t reg)
 
 void reg_to_html_long(uint16_t reg)
 {
-	reg_read_m(reg);
-	byte_to_html(sfr_data[0]);
-	byte_to_html(sfr_data[1]);
-	byte_to_html(sfr_data[2]);
-	byte_to_html(sfr_data[3]);
+	reg_read(reg);
+	byte_to_html(SFR_DATA_24);
+	byte_to_html(SFR_DATA_16);
+	byte_to_html(SFR_DATA_8);
+	byte_to_html(SFR_DATA_0);
 }
 
 
@@ -207,32 +248,15 @@ void send_basic_info(void)
 	slen = strtox(outbuf, HTTP_RESPONCE_JSON);
 	dbg_string("send_basic_info called\n");
 	slen += strtox(outbuf + slen, "{\"ip_address\":\"");
-	itoa_html(uip_hostaddr[0]); char_to_html('.');
-	itoa_html(uip_hostaddr[0] >> 8); char_to_html('.');
-	itoa_html(uip_hostaddr[1]); char_to_html('.');
-	itoa_html(uip_hostaddr[1] >> 8);
+	ip_to_html(uip_hostaddr);
 	slen += strtox(outbuf + slen, "\",\"ip_gateway\":\"");
-	itoa_html(uip_draddr[0]); char_to_html('.');
-	itoa_html(uip_draddr[0] >> 8); char_to_html('.');
-	itoa_html(uip_draddr[1]); char_to_html('.');
-	itoa_html(uip_draddr[1] >> 8);
+	ip_to_html(uip_draddr);
 	slen += strtox(outbuf + slen, "\",\"ip_netmask\":\"");
-	itoa_html(uip_netmask[0]); char_to_html('.');
-	itoa_html(uip_netmask[0] >> 8); char_to_html('.');
-	itoa_html(uip_netmask[1]); char_to_html('.');
-	itoa_html(uip_netmask[1] >> 8);
+	ip_to_html(uip_netmask);
 	slen += strtox(outbuf + slen, "\",\"syslog_server_ip\":\"");
-	itoa_html(syslog_state.server_ip[0]); char_to_html('.');
-	itoa_html(syslog_state.server_ip[1]); char_to_html('.');
-	itoa_html(syslog_state.server_ip[2]); char_to_html('.');
-	itoa_html(syslog_state.server_ip[3]);
+	ip_to_html(syslog_state.server_ip);
 	slen += strtox(outbuf + slen, "\",\"mac_address\":\"");
-	byte_to_html(uip_ethaddr.addr[0]); char_to_html(':');
-	byte_to_html(uip_ethaddr.addr[1]); char_to_html(':');
-	byte_to_html(uip_ethaddr.addr[2]); char_to_html(':');
-	byte_to_html(uip_ethaddr.addr[3]); char_to_html(':');
-	byte_to_html(uip_ethaddr.addr[4]); char_to_html(':');
-	byte_to_html(uip_ethaddr.addr[5]);
+	mac_to_html(uip_ethaddr.addr);
 	slen += strtox(outbuf + slen, "\",\"hostname\":\"");
 	{
 		__xdata char *hp = hostname;	/* sanitized on ingest, emit verbatim */
@@ -271,12 +295,17 @@ void send_vlan(uint16_t vlan)
 	vlan_get(vlan);
 	sfr_data_to_html();
 	slen += strtox(outbuf + slen, "\",\"name\":\"");
-	__xdata uint16_t n = vlan_name(vlan);
-	if (n== 0xffff) {
+	int16_t n = vlan_name(vlan);
+	if (n < 0) {
 		dbg_string("VLAN has no name\n");
 	} else {
-		while(vlan_names[n] && vlan_names[n] != ' ')
-			char_to_html(vlan_names[n++]);
+		__xdata uint8_t *ptr = &vlan_names[n];
+		while(1) {
+			uint8_t c = *ptr++;
+			if (c == ' ' || c == NUL)
+				break;
+			char_to_html(c);
+		}
 	}
 	slen += strtox(outbuf + slen, "\",\"pvid\":\"0x");
 	uint16_t pvid_mask = 0;
@@ -533,8 +562,7 @@ void send_lag(void)
 			ports <<= 1;
 		}
 		slen += strtox(outbuf + slen, "\",\"hash\":\"");
-		reg_read_m(RTL837X_TRK_HASH_CTRL_BASE + (l << 2));
-		sfr_data_to_html();
+		reg_to_html(RTL837X_TRK_HASH_CTRL_BASE + (l << 2));
 		slen += strtox(outbuf + slen, "\"},");
 	}
 	slen -=1; // remove comma
@@ -596,41 +624,37 @@ void send_bandwidth(void)
 	dbg_string("send_bandwidth called\n");
 	slen = strtox(outbuf, HTTP_RESPONCE_JSON);
 	char_to_html('[');
-	for (uint8_t i = machine.min_port; i <= machine.max_port; i++) {
+	
+	uint8_t i = machine.min_port;
+	while(1) {
 		slen += strtox(outbuf + slen, "{\"portNum\":");
 		itoa_html(machine.log_to_phys_port[i]);
 		slen += strtox(outbuf + slen, ",\"iLimited\":");
-		reg_read_m(RTL837X_IGBW_PORT_CTRL + i * 4);
-		if (sfr_data[1] & 0x10)
-			char_to_html('1');
-		else
-			char_to_html('0');
+		reg_read(RTL837X_IGBW_PORT_CTRL + i * 4);
+		bool_to_html(SFR_DATA_16 & 0x10);
 		slen += strtox(outbuf + slen, ",\"iBW\":\"");
-		byte_to_html(sfr_data[1] & 0x0f);
-		byte_to_html(sfr_data[2]);
-		byte_to_html(sfr_data[3]);
+		byte_to_html(SFR_DATA_16 & 0x0f);
+		byte_to_html(SFR_DATA_8);
+		byte_to_html(SFR_DATA_0);
+
 		slen += strtox(outbuf + slen, "\",\"iFC\":");
-		if (reg_bit_test(RTL837X_IGBW_PORT_FC_CTRL, i))
-			char_to_html('1');
-		else
-			char_to_html('0');
-		reg_read_m(RTL837X_EGBW_PORT_CTRL + i * 1024);
+		bool_to_html(reg_bit_test(RTL837X_IGBW_PORT_FC_CTRL, i));
+
+		reg_read(RTL837X_EGBW_PORT_CTRL + i * 1024);
 		slen += strtox(outbuf + slen, ",\"eLimited\":");
-		if (sfr_data[1] & 0x10)
-			char_to_html('1');
-		else
-			char_to_html('0');
+		bool_to_html(SFR_DATA_16 & 0x10);
+
 		slen += strtox(outbuf + slen, ",\"eBW\":\"");
-		byte_to_html(sfr_data[1] & 0x0f);
-		byte_to_html(sfr_data[2]);
-		byte_to_html(sfr_data[3]);
+		byte_to_html(SFR_DATA_16 & 0x0f);
+		byte_to_html(SFR_DATA_8);
+		byte_to_html(SFR_DATA_0);
 		char_to_html('"');
 		char_to_html('}');
-		if (i < machine.max_port)
-			char_to_html(',');
-		else
-			char_to_html(']');
+		if (i++ >= machine.max_port)
+			break;
+		char_to_html(',');
 	}
+	char_to_html(']');
 }
 
 
@@ -643,17 +667,15 @@ void send_mtu(void)
 		slen += strtox(outbuf + slen, "{\"portNum\":");
 		itoa_html(machine.log_to_phys_port[i]);
 		slen += strtox(outbuf + slen, ",\"mtu\":\"0x");
-		reg_read_m(RTL8373_REG_MAC_L2_PORT_MAX_LEN + ((uint16_t) i << 8));
-		uint16_t mtu = SFR_DATA_U16 & 0x3fff;
-		byte_to_html(mtu >> 8);
-		byte_to_html(mtu & 0xff);
+		reg_read(RTL8373_REG_MAC_L2_PORT_MAX_LEN + ((uint16_t) i << 8));
+		byte_to_html(SFR_DATA_8 & 0x3f);
+		byte_to_html(SFR_DATA_0);
 		char_to_html('"');
 		char_to_html('}');
 		if (i < machine.max_port)
 			char_to_html(',');
-		else
-			char_to_html(']');
 	}
+	char_to_html(']');
 }
 
 

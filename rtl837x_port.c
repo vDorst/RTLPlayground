@@ -346,8 +346,13 @@ uint8_t port_l2_forget(void) __banked
 	// port-based (bits 0-1 are 0 and dynamic entries, bit 2 specifies dynamic entries
 	REG_SET(RTL837x_L2_TBL_FLUSH_CNF, 0x0);
 
+	uint16_t mask = PMASK_6;
+	if (machine_detected.isRTL8373) {
+		mask = PMASK_9;
+	}
+
 	// Flush L2 table for all ports by setting the ports and the flush-exec bit (bit 16)
-	REG_SET(RTL837x_L2_TBL_FLUSH_CTRL, L2_TBL_FLUSH_EXEC | (machine_detected.isRTL8373 ? PMASK_9 : PMASK_6));
+	REG_SET(RTL837x_L2_TBL_FLUSH_CTRL, L2_TBL_FLUSH_EXEC | mask);
 
 	// Wait for flush completed
 	do {

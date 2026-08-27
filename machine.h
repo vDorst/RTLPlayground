@@ -2,6 +2,7 @@
 #define _MACHINE_H_
 
 #include <stdint.h>
+#include <stdbool.h>
 
 /*
  * Select your machine type below
@@ -63,7 +64,7 @@ struct sfp_port
 
 typedef struct machine {
 	char machine_name[30];
-	uint8_t isRTL8373;
+	bool isRTL8373;
 	// Lowest logical port number
 	uint8_t min_port;
 	// Highest logical port number

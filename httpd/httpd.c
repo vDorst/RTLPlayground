@@ -600,7 +600,7 @@ void handle_post(void)
 			return;
 		}
 		// We skip the intial parts as part of the header
-		do {
+		while(1) {
 			p = skip_boundary(p);
 			if (!*p) {
 				s->tstate = TSTATE_MULTIPART;
@@ -609,9 +609,11 @@ void handle_post(void)
 			p = scan_header(p);
 			if (!*p)
 				goto bad_request;
-			if (!content_type) // We are waiting for the part with the octet stream
+			if (content_type == 0) // We are waiting for the part with the octet stream
 				continue;
-		} while (!is_word(content_type, "application/octet-stream"));
+			if (is_word(content_type, "application/octet-stream"))
+				break;
+		} 
 		dbg_string("Have content octets\n");
 		p += 4; // Skip \r\n\r\n sequence at end of preamble of part
 
@@ -730,8 +732,9 @@ void httpd_appcall(void)
 			goto do_send;
 		}
 
-		if (is_word(p, "GET"))
-			dbg_string("GET request ");
+		// if (is_word(p, "GET") || 0) {
+		// 	dbg_string("GET request ");
+		// }
 		p += 4;
 		scan_header(p);
 		__xdata uint8_t *q = p;

@@ -373,8 +373,8 @@ void port_l2_learned(void) __banked
 {
 	// Whait for any table action to be finished
 	do {
-		reg_read_m(RTL837X_TBL_CTRL);
-	} while (sfr_data[3] & 0x01);
+		reg_read(RTL837X_TBL_CTRL);
+	} while (SFR_DATA_0 & TBL_EXECUTE);
 	print_string("\n\tMAC\t\tVLAN\ttype\tport\n");
 	__xdata uint16_t entry = 0x0000;
 	__xdata uint16_t first_entry = 0xffff; // Table does not have that many entries
@@ -382,15 +382,16 @@ void port_l2_learned(void) __banked
 	while (1) {
 		uint8_t port = 0;
 		reg_read_m(RTL837x_TBL_DATA_0);
-		REG_WRITE(RTL837x_TBL_DATA_0, sfr_data[0], sfr_data[1],sfr_data[2] | 0xc0, sfr_data[3]);
+		sfr_data[2] |= 0xc0;
+		reg_write_m(RTL837x_TBL_DATA_0);
 
 		REG_WRITE(RTL837X_TBL_CTRL, (entry >> 8) & 0xf, entry, TBL_L2_UNICAST, TBL_EXECUTE);
 		do {
-			reg_read_m(RTL837X_TBL_CTRL);
-		} while (sfr_data[3] & TBL_EXECUTE);
+			reg_read(RTL837X_TBL_CTRL);
+		} while (SFR_DATA_0 & TBL_EXECUTE);
 
-		reg_read_m(RTL837x_TBL_DATA_0);
-		entry = (((uint16_t)sfr_data[2] & 0x0f) << 8) | sfr_data[3];
+		reg_read(RTL837x_TBL_DATA_0);
+		entry = SFR_DATA_U16 & 0xFFF;
 		if (first_entry == 0xffff) {
 			first_entry = entry;
 		} else {
@@ -399,29 +400,30 @@ void port_l2_learned(void) __banked
 		}
 
 		// MAC
-		reg_read_m(RTL837x_L2_DATA_OUT_B);
-		if ((sfr_data[0] & 0x20)) {	// Check entry is valid
-			print_byte(sfr_data[2]); write_char(':');
-			print_byte(sfr_data[3]); write_char(':');
-			port = (sfr_data[0] >> 6) & 0x3;
-			reg_read_m(RTL837x_L2_DATA_OUT_A);
-			print_byte(sfr_data[0]); write_char(':');
-			print_byte(sfr_data[1]); write_char(':');
-			print_byte(sfr_data[2]); write_char(':');
-			print_byte(sfr_data[3]); write_char('\t');
+		reg_read(RTL837x_L2_DATA_OUT_B);
+		if ((SFR_DATA_24 & 0x20)) {	// Check entry is valid
+			print_byte(SFR_DATA_8); write_char(':');
+			print_byte(SFR_DATA_0); write_char(':');
+			port = (SFR_DATA_24 >> 6) & 0x3;
+			reg_read(RTL837x_L2_DATA_OUT_A);
+			print_byte(SFR_DATA_24); write_char(':');
+			print_byte(SFR_DATA_16); write_char(':');
+			print_byte(SFR_DATA_8); write_char(':');
+			print_byte(SFR_DATA_0); write_char('\t');
 
 			// VLAN
-			reg_read_m(RTL837x_L2_DATA_OUT_B);
-			print_short( (((uint16_t) (sfr_data[0] & 0x0f)) << 8) | sfr_data[1]); // VLAN
+			reg_read(RTL837x_L2_DATA_OUT_B);
+			uint16_t vlan = SFR_DATA_U16_UPPER & 0xFFF;
+			print_short(vlan); // VLAN
 
 			// type
-			reg_read_m(RTL837x_L2_DATA_OUT_C);
-			if (sfr_data[1] & 0x1)
+			reg_read(RTL837x_L2_DATA_OUT_C);
+			if (SFR_DATA_16 & 0x1)
 				print_string("\tstatic\t");
 			else
 				print_string("\tlearned\t");
 
-			port |= (sfr_data[3] & 0x3) << 2;
+			port |= (SFR_DATA_0 & 0x3) << 2;
 			print_phys_port(port);
 		}
 

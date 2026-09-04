@@ -37,6 +37,7 @@ extern __code uint8_t * __code hex;
 
 extern __xdata uint8_t flash_buf[FLASH_BUF_SIZE];
 extern __xdata struct flash_region_t flash_region;
+extern __xdata struct l2_mac_iterator;
 
 extern __xdata char passwd[21];
 
@@ -361,6 +362,22 @@ void print_ip(__xdata uint8_t * ptr)
 			break;
 
 		write_char('.');
+	}
+}
+
+// Prints an mac address.
+void print_mac(__xdata uint8_t * ptr)
+{
+	uint8_t idx = 0;
+	uint8_t num;
+
+	while(1) {
+		num = *ptr++;
+		print_byte(num);
+		if (++idx == 6)
+			break;
+
+		write_char(':');
 	}
 }
 
@@ -1678,10 +1695,34 @@ void cmd_parser(void) __banked
 			}
 			write_char('\n');
 		} else if (cmd_compare(0, "l2")) {
-			if (cmd_compare(1, "forget"))
+			if (cmd_compare(1, "forget")) {
 				port_l2_forget();
-			else
-				port_l2_learned();
+			} else {
+				// port_l2_learned();
+				port_l2_init_iterator();
+				print_string("\n\tMAC\t\tVLAN\ttype\tport\n");
+
+				while (1) {
+					if (!port_l2_interator_next())
+						break;
+					print_mac(l2_mac_iterator.mac);
+					write_char('\t');
+					print_short(l2_mac_iterator.vlan);
+					if (l2_mac_iterator.is_static)
+						print_string("\tstatic\t");
+					else
+						print_string("\tlearned\t");
+					uint8_t port = l2_mac_iterator.port;
+					if (port & 0x80) {
+						port &= ~0x80;
+						print_string("LAG ");
+						print_byte(port + '0');
+					} else {
+						print_phys_port(port);
+					}
+					write_char('\n');
+				}
+			}
 		} else if (cmd_compare(0, "igmp")) {
 			if (cmd_compare(1, "on"))
 				igmp_enable();

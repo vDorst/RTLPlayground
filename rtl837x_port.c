@@ -374,74 +374,144 @@ uint8_t port_l2_forget(void) __banked
 	return 0;
 }
 
+__xdata struct l2_mac_iterator l2_mac_iterator;
 
-void port_l2_learned(void) __banked
+// Call this first be
+void port_l2_init_iterator(void) __banked
+{
+	l2_mac_iterator.entry = 0xFFFF;
+	l2_mac_iterator.first_entry = 0xFFFF;
+}
+
+// Call port_l2_init_iterator() first to init the iterator.
+// Return true when have valid new data.
+// The state is the `l2_mac_iterator.entry`.
+bool port_l2_interator_next(void) __banked
 {
 	// Whait for any table action to be finished
 	wait_table_ready();
 
-	print_string("\n\tMAC\t\tVLAN\ttype\tport\n");
-	__xdata uint16_t entry = 0x0000;
-	__xdata uint16_t first_entry = 0xffff; // Table does not have that many entries
+	uint16_t entry = l2_mac_iterator.entry + 1;
 
 	while (1) {
-		uint8_t port = 0;
-		uint8_t lag;
 		reg_read_m(RTL837x_TBL_DATA_0);
 		sfr_data[2] |= 0xc0;
 		reg_write_m(RTL837x_TBL_DATA_0);
 
-		REG_WRITE(RTL837X_TBL_CTRL, (entry >> 8) & 0xf, entry, TBL_L2_UNICAST, TBL_EXECUTE);
+		REG_WRITE(RTL837X_TBL_CTRL, entry >> 8, entry, TBL_L2_UNICAST, TBL_EXECUTE);
 
 		wait_table_ready();
 
 		reg_read(RTL837x_TBL_DATA_0);
 		entry = SFR_DATA_U16 & 0xFFF;
-		if (first_entry == 0xffff) {
-			first_entry = entry;
-		} else {
-			if (first_entry == entry)
-				break;
-		}
 
-		// MAC
+		if (l2_mac_iterator.first_entry == 0xFFFF)
+			l2_mac_iterator.first_entry = entry;
+		else if (l2_mac_iterator.first_entry == entry)
+			// Same entry, so no new data.
+			return false;
+
+		l2_mac_iterator.entry = entry;
+
+		// MAC + VLAN
 		reg_read(RTL837x_L2_DATA_OUT_B);
-		if ((SFR_DATA_24 & 0x20)) {	// Check entry is valid
-			print_byte(SFR_DATA_8); write_char(':');
-			print_byte(SFR_DATA_0); write_char(':');
-			port = (SFR_DATA_24 >> 6) & 0x3;
-			reg_read(RTL837x_L2_DATA_OUT_A);
-			print_byte(SFR_DATA_24); write_char(':');
-			print_byte(SFR_DATA_16); write_char(':');
-			print_byte(SFR_DATA_8); write_char(':');
-			print_byte(SFR_DATA_0); write_char('\t');
+		if (SFR_DATA_24 & 0x20) {	// Check entry is valid
+			l2_mac_iterator.vlan = SFR_DATA_U16_UPPER & 0xFFF;
+			__xdata uint8_t *mac = l2_mac_iterator.mac;
 
-			// VLAN
-			reg_read(RTL837x_L2_DATA_OUT_B);
-			uint16_t vlan = SFR_DATA_U16_UPPER & 0xFFF;
-			print_short(vlan); // VLAN
+			*mac++ = SFR_DATA_8;
+			*mac++ = SFR_DATA_0;
+
+			uint8_t port = (SFR_DATA_24 >> 6) & 0x3;
+
+			reg_read(RTL837x_L2_DATA_OUT_A);
+			*mac++ = SFR_DATA_24;
+			*mac++ = SFR_DATA_16;
+			*mac++ = SFR_DATA_8;
+			*mac = SFR_DATA_0;
 
 			// type
 			reg_read(RTL837x_L2_DATA_OUT_C);
-			if (SFR_DATA_16 & 0x1)
-				print_string("\tstatic\t");
-			else
-				print_string("\tlearned\t");
 
-			port |= (sfr_data[3] & 0x3) << 2;
-			lag = port_lag_of(port);
-			if (lag == PORT_LAG_NONE) {
-				print_phys_port(port);
-			} else {
-				print_string("LAG");
-				itoa(lag + 1);
-			}
+			port |= (SFR_DATA_0 & 0x3) << 2;
+
+			// Use the highest bit the mark it is a LAG number.
+			uint8_t lag = port_lag_of(port);
+			if (lag != PORT_LAG_NONE)
+				port = 0x80 | (lag + 1);
+
+			l2_mac_iterator.port = port;
+
+			l2_mac_iterator.is_static = SFR_DATA_16 & 0x1 ? true : false;
+
+			return true;
 		}
 
-		entry++;
-		print_string("\n");
+		entry += 1;
 	}
 }
+
+
+// void port_l2_learned(void) __banked
+// {
+// 	// Whait for any table action to be finished
+// 	wait_table_ready();
+
+// 	print_string("\n\tMAC\t\tVLAN\ttype\tport\n");
+// 	__xdata uint16_t entry = 0x0000;
+// 	__xdata uint16_t first_entry = 0xffff; // Table does not have that many entries
+
+// 	while (1) {
+// 		uint8_t port = 0;
+// 		reg_read_m(RTL837x_TBL_DATA_0);
+// 		sfr_data[2] |= 0xc0;
+// 		reg_write_m(RTL837x_TBL_DATA_0);
+
+// 		REG_WRITE(RTL837X_TBL_CTRL, (entry >> 8) & 0xf, entry, TBL_L2_UNICAST, TBL_EXECUTE);
+
+// 		wait_table_ready();
+
+// 		reg_read(RTL837x_TBL_DATA_0);
+// 		entry = SFR_DATA_U16 & 0xFFF;
+// 		if (first_entry == 0xffff) {
+// 			first_entry = entry;
+// 		} else {
+// 			if (first_entry == entry)
+// 				break;
+// 		}
+
+// 		// MAC
+// 		reg_read(RTL837x_L2_DATA_OUT_B);
+// 		if ((SFR_DATA_24 & 0x20)) {	// Check entry is valid
+// 			print_byte(SFR_DATA_8); write_char(':');
+// 			print_byte(SFR_DATA_0); write_char(':');
+// 			port = (SFR_DATA_24 >> 6) & 0x3;
+// 			reg_read(RTL837x_L2_DATA_OUT_A);
+// 			print_byte(SFR_DATA_24); write_char(':');
+// 			print_byte(SFR_DATA_16); write_char(':');
+// 			print_byte(SFR_DATA_8); write_char(':');
+// 			print_byte(SFR_DATA_0); write_char('\t');
+
+// 			// VLAN
+// 			reg_read(RTL837x_L2_DATA_OUT_B);
+// 			uint16_t vlan = SFR_DATA_U16_UPPER & 0xFFF;
+// 			print_short(vlan); // VLAN
+
+// 			// type
+// 			reg_read(RTL837x_L2_DATA_OUT_C);
+// 			if (SFR_DATA_16 & 0x1)
+// 				print_string("\tstatic\t");
+// 			else
+// 				print_string("\tlearned\t");
+
+// 			port |= (SFR_DATA_0 & 0x3) << 2;
+// 			print_phys_port(port);
+// 		}
+
+// 		entry++;
+// 		print_string("\n");
+// 	}
+// }
 
 
 /*

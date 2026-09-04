@@ -34,6 +34,16 @@ struct vlan_settings {
 	uint16_t tagged;
 };
 
+struct l2_mac_iterator {
+	uint16_t entry;
+	uint16_t first_entry;
+	uint8_t port;
+	uint16_t vlan;
+	uint8_t mac[6];
+	// Entry is static of learned.
+	bool is_static;
+};
+
 /* 
  * Port EEE settings
  */
@@ -45,6 +55,7 @@ struct vlan_settings {
 #define EEE_NORESET	0x80
 
 extern __xdata struct vlan_settings vlan_settings;
+extern __xdata struct l2_mac_iterator l2_mac_iterator;
 
 uint8_t port_l2_forget(void) __banked;
 void port_l2_learned(void) __banked;
@@ -82,5 +93,8 @@ vlan_ingress_mode_t port_ingress_filter_get(__xdata uint8_t port) __banked;
 void port_isolate(uint8_t port, __xdata uint16_t pmask) __banked;
 uint16_t port_isolation_get(uint8_t port) __banked;
 void port_l2_static_mgmt(__xdata uint8_t *mac, __xdata uint16_t vlan, __xdata bool remove_entry) __banked;
+
+bool port_l2_interator_next(void) __banked;
+void port_l2_init_iterator(void) __banked;
 
 #endif

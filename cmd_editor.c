@@ -43,7 +43,7 @@ void cmd_edit(void) __banked
 			// Reserve one byte for the terminating NUL written on Enter. When the
 			// line is full, drop the character but still fall through to advance the
 			// serial-ring read pointer below; a 'continue' here would spin forever.
-			if (cmd_line_len < CMD_BUF_SIZE - 1) {
+			if (cmd_line_len < CMD_BUF_SIZE - 2) {
 				write_char(sbuf[l]);
 				// Shift buffer to right
 				for (uint8_t i = cmd_line_len; i > cursor; i--)

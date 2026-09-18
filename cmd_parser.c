@@ -897,7 +897,7 @@ void parse_port(void)
 	if (cmd_compare(2, "show")) {
 		print_string("Name: ");
 		print_string_x(port_names[phy_settings.port]);
-		if (!machine.is_sfp[phy_settings.port]) {
+		if ((machine.log_to_phys_port[phy_settings.port] & IS_SFP) == 0) {
 			phy_show(phy_settings.port);
 		} else {
 			write_char('\n');
@@ -921,7 +921,7 @@ void parse_port(void)
 		} else {
 			print_string ("Unknown port <port> lldp [block|permit] command\n");
 		}
-	} else if (machine.is_sfp[phy_settings.port]) {
+	} else if (machine.log_to_phys_port[phy_settings.port] & IS_SFP) {
 		print_string(" is SFP no PHY information available.\n");
 	} else if (cmd_compare(2, "10m")) {
 		print_string(" 10M\n");

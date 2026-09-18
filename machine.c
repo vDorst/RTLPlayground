@@ -50,7 +50,6 @@ __code const struct machine machine = {
 	.max_port = 8,
 	.n_sfp = 2,
 	.log_to_phys_port = {0, 0, 0, 5, 1, 2, 3, 4, 6},
-	.phys_to_log_port = {4, 5, 6, 7, 3, 8, 0, 0, 0},
 	.is_sfp = {0, 0, 0, 1, 0, 0, 0, 0, 2},
 	// Left SFP port (5)
 	.sfp_port[0].pin_detect = GPIO50_I2C_SCL2_UART1_TX,
@@ -87,7 +86,6 @@ __code const struct machine machine = {
 	.max_port = 8,
 	.n_sfp = 1,
 	.log_to_phys_port = {0, 0, 0, 5, 1, 2, 3, 4, 6},
-	.phys_to_log_port = {4, 5, 6, 7, 3, 8, 0, 0, 0},
 	.is_sfp = {0, 0, 0, 0, 0, 0, 0, 0, 1},
 	.sfp_port[0].pin_detect = GPIO30_ACL_BIT3_EN,
 	.sfp_port[0].pin_los = GPIO37,
@@ -121,7 +119,6 @@ __code const struct machine machine = {
 	.max_port = 8,
 	.n_sfp = 2,
 	.log_to_phys_port = {0, 0, 0, 6, 1, 2, 3, 4, 5},
-	.phys_to_log_port = {4, 5, 6, 7, 8, 3, 0, 0, 0},
 	.is_sfp = {0, 0, 0, 2, 0, 0, 0, 0, 1},
 
 	// Left SFP port
@@ -169,7 +166,6 @@ __code const struct machine machine = {
 	.max_port = 8,
 	.n_sfp = 1,
 	.log_to_phys_port = {1, 2, 3, 4, 5, 6, 7, 8, 9},
-	.phys_to_log_port = {0, 1, 2, 3, 4, 5, 6, 7, 8},
 	.is_sfp = {0, 0, 0, 0, 0, 0, 0, 0, 1},
 	.sfp_port[0].pin_detect = GPIO30_ACL_BIT3_EN,
 	.sfp_port[0].pin_los = GPIO37,
@@ -194,7 +190,6 @@ __code const struct machine machine = {
 	.max_port = 8,
 	.n_sfp = 1,
 	.log_to_phys_port = { 1, 2, 3, 4, 5, 6, 7, 8, 9 },
-	.phys_to_log_port = { 0, 1, 2, 3, 4, 5, 6, 7, 8 },
 	.is_sfp = { 0, 0, 0, 0, 0, 0, 0, 0, 1 },
 	.sfp_port[0].pin_detect = GPIO30_ACL_BIT3_EN,
 	.sfp_port[0].pin_los = GPIO37,
@@ -245,7 +240,6 @@ __code const struct machine machine = {
 	.max_port = 8,
 	.n_sfp = 1,
 	.log_to_phys_port = {1, 2, 3, 4, 5, 6, 7, 8, 9},
-	.phys_to_log_port = {0, 1, 2, 3, 4, 5, 6, 7, 8},
 	.is_sfp = {0, 0, 0, 0, 0, 0, 0, 0, 1},
 	.sfp_port[0].pin_detect = GPIO38,
 	.sfp_port[0].pin_los = GPIO_NA,
@@ -281,7 +275,6 @@ __code const struct machine machine = {
 	.max_port = 8,
 	.n_sfp = 2,
 	.log_to_phys_port = {0, 0, 0, 6, 1, 2, 3, 4, 5},
-	.phys_to_log_port = {4, 5, 6, 7, 8, 3, 0, 0, 0},
 	.is_sfp= {0, 0, 0, 2, 0, 0, 0, 0, 1},
 	// Left SFP port (J4)
 	.sfp_port[0].pin_detect = GPIO30_ACL_BIT3_EN,
@@ -322,7 +315,6 @@ __code const struct machine machine = {
 	.max_port = 8,
 	.n_sfp = 2,
 	.log_to_phys_port = {0, 0, 0, 6, 1, 2, 3, 4, 5},
-	.phys_to_log_port = {4, 5, 6, 7, 8, 3, 0, 0, 0},
 	.is_sfp= {0, 0, 0, 2, 0, 0, 0, 0, 1},
 	// Left SFP port (J4)
 	.sfp_port[0].pin_detect = GPIO30_ACL_BIT3_EN,
@@ -363,7 +355,6 @@ __code const struct machine machine = {
 	.max_port = 8,
 	.n_sfp = 1,
 	.log_to_phys_port = {1, 2, 3, 4, 5, 6, 7, 8, 9},
-	.phys_to_log_port = {0, 1, 2, 3, 4, 5, 6, 7, 8},
 	.is_sfp = {0, 0, 0, 0, 0, 0, 0, 0, 1},
 	.sfp_port[0].pin_detect = GPIO38,
 	.sfp_port[0].pin_los = GPIO_NA,
@@ -402,7 +393,6 @@ __code const struct machine machine = {
 	.max_port = 8,
 	.n_sfp = 2,
 	.log_to_phys_port = {0, 0, 0, 5, 1, 2, 3, 4, 6},
-	.phys_to_log_port = {4, 5, 6, 7, 3, 8, 0, 0, 0},
 	.is_sfp = {0, 0, 0, 2, 0, 0, 0, 0, 1},
 	.sfp_port[0].pin_detect = 50,
 	.sfp_port[0].pin_los = 10,
@@ -442,7 +432,6 @@ __code const struct machine machine = {
 	.max_port = 8,
 	.n_sfp = 1,
 	.log_to_phys_port = {1, 2, 3, 4, 5, 6, 7, 8, 9},
-	.phys_to_log_port = {0, 1, 2, 3, 4, 5, 6, 7, 8},
 	.is_sfp = {0, 0, 0, 0, 0, 0, 0, 0, 1},
 	.sfp_port[0].pin_detect = GPIO30_ACL_BIT3_EN,
 	.sfp_port[0].pin_los = GPIO37,
@@ -475,7 +464,6 @@ __code const struct machine machine = {
 	.max_port = 8,
 	.n_sfp = 1,
 	.log_to_phys_port = {1, 2, 3, 4, 5, 6, 7, 8, 9},
-	.phys_to_log_port = {0, 1, 2, 3, 4, 5, 6, 7, 8},
 	.is_sfp = {0, 0, 0, 0, 0, 0, 0, 0, 1},
 	.sfp_port[0].pin_detect = GPIO38,   // pulled low on module insert
 	.sfp_port[0].pin_los = GPIO_NA,     // no LOS pin wired
@@ -516,7 +504,6 @@ __code const struct machine machine = {
 	.max_port = 8,
 	.n_sfp = 1,
 	.log_to_phys_port = {0, 0, 0, 5, 1, 2, 3, 4, 6},
-	.phys_to_log_port = {4, 5, 6, 7, 3, 8, 0, 0, 0},
 	.is_sfp = {0, 0, 0, 0, 0, 0, 0, 0, 1},
 	.sfp_port[0].pin_detect = GPIO30_ACL_BIT3_EN,
 	.sfp_port[0].pin_los = GPIO37,
@@ -548,7 +535,6 @@ __code const struct machine machine = {
 	.max_port = 8,
 	.n_sfp = 1,
 	.log_to_phys_port = {1, 2, 3, 4, 5, 6, 7, 8, 9},
-	.phys_to_log_port = {0, 1, 2, 3, 4, 5, 6, 7, 8},
 	.is_sfp = {0, 0, 0, 0, 0, 0, 0, 0, 1},
 	.sfp_port[0].pin_detect = GPIO30_ACL_BIT3_EN,
 	.sfp_port[0].pin_los = GPIO37,
@@ -573,7 +559,6 @@ __code const struct machine machine = {
 	.max_port = 8,
 	.n_sfp = 2,
 	.log_to_phys_port = {0, 0, 0, 6, 1, 2, 3, 4, 5},
-	.phys_to_log_port = {4, 5, 6, 7, 8, 3, 0, 0, 0},
 	.is_sfp = {0, 0, 0, 1, 0, 0, 0, 0, 2},
 	.sfp_port[0].pin_detect = GPIO38,
 	.sfp_port[0].pin_los = GPIO50_I2C_SCL2_UART1_TX,
@@ -612,7 +597,6 @@ __code const struct machine machine = {
 	.max_port = 8,
 	.n_sfp = 2,
 	.log_to_phys_port = {0, 0, 0, 6, 1, 2, 3, 4, 5},
-	.phys_to_log_port = {4, 5, 6, 7, 8, 3, 0, 0, 0},
 	.is_sfp = {0, 0, 0, 2, 0, 0, 0, 0, 1},
 	
 	// Left SFP port
@@ -658,7 +642,6 @@ __code const struct machine machine = {
 	.max_port = 8,
 	.n_sfp = 1,
 	.log_to_phys_port = {0, 0, 0, 5, 1, 2, 3, 4, 6},
-	.phys_to_log_port = {4, 5, 6, 7, 3, 8, 0, 0, 0},
 	.is_sfp = {0, 0, 0, 0, 0, 0, 0, 0, 1},
 	.sfp_port[0].pin_detect = GPIO30_ACL_BIT3_EN,
 	.sfp_port[0].pin_los = GPIO37,
@@ -693,7 +676,6 @@ __code const struct machine machine = {
 	.n_sfp = 1,
 	.n_10g = 1,
 	.log_to_phys_port = {0, 0, 0, 5, 1, 2, 3, 4, 6},
-	.phys_to_log_port = {4, 5, 6, 7, 3, 8, 0, 0, 0},
 	.is_sfp = {0, 0, 0, 0, 0, 0, 0, 0, 1},
 	.sfp_port[0].pin_detect = GPIO38,
 	.sfp_port[0].pin_los = GPIO_NA,
@@ -735,7 +717,6 @@ __code const struct machine machine = {
 	.max_port = 8,
 	.n_sfp = 2,
 	.log_to_phys_port = {0, 0, 0, 6, 1, 2, 3, 4, 5},
-	.phys_to_log_port = {4, 5, 6, 7, 8, 3, 0, 0, 0},
 	.is_sfp = {0, 0, 0, 2, 0, 0, 0, 0, 1},
 	// Left SFP port (5)
 	// LED pin 9
@@ -785,7 +766,6 @@ __code const struct machine machine = {
     .max_port = 8,
     .n_sfp = 1,
     .log_to_phys_port = {1, 2, 3, 4, 5, 6, 7, 8, 9},
-    .phys_to_log_port = {0, 1, 2, 3, 4, 5, 6, 7, 8},
     .is_sfp = {0, 0, 0, 0, 0, 0, 0, 0, 1},
 
     .sfp_port[0].pin_detect = GPIO30_ACL_BIT3_EN,
@@ -834,7 +814,6 @@ __code const struct machine machine = {
     .max_port = 8,
     .n_sfp = 2,
     .log_to_phys_port = {0, 0, 0, 6, 1, 2, 3, 4, 5},
-    .phys_to_log_port = {4, 5, 6, 7, 8, 3, 0, 0, 0},
     .is_sfp = {0, 0, 0, 2, 0, 0, 0, 0, 1},
 
     /* Left SFP (logical 8, SDS1): GPIO30=ModAbs, GPIO37=RX_LOS */
@@ -890,7 +869,6 @@ __code const struct machine machine = {
     .max_port = 8,
     .n_sfp = 2,
     .log_to_phys_port = {0, 0, 0, 5, 1, 2, 3, 4, 6},
-    .phys_to_log_port = {4, 5, 6, 7, 3, 8, 0, 0, 0},
     .is_sfp = {0, 0, 0, 1, 0, 0, 0, 0, 2},
 
     // SFP port on SDS0 / logical port 3
@@ -938,7 +916,6 @@ __code const struct machine machine = {
     .max_port = 8,
     .n_sfp = 1,
     .log_to_phys_port = {0, 0, 0, 5, 1, 2, 3, 4, 6},
-    .phys_to_log_port = {4, 5, 6, 7, 3, 8, 0, 0, 0},
     .is_sfp = {0, 0, 0, 0, 0, 0, 0, 0, 1},
 	.sfp_port[0].pin_detect = GPIO38,
     .sfp_port[0].pin_los = GPIO_NA,
@@ -981,7 +958,6 @@ __code const struct machine machine = {
     .max_port = 8,
     .n_sfp = 1,
     .log_to_phys_port = {0, 0, 0, 5, 1, 2, 3, 4, 6},
-    .phys_to_log_port = {4, 5, 6, 7, 3, 8, 0, 0, 0},
     .is_sfp = {0, 0, 0, 0, 0, 0, 0, 0, 1},
 	.sfp_port[0].pin_detect = GPIO30_ACL_BIT3_EN,
     .sfp_port[0].pin_los = GPIO37,
@@ -1025,7 +1001,6 @@ __code const struct machine machine = {
 	.n_sfp = 0,
 	.n_10g = 2,
 	.log_to_phys_port = {0, 0, 0, 5, 1, 2, 3, 4, 6},
-	.phys_to_log_port = {4, 5, 6, 7, 3, 8, 0, 0, 0},
 	.is_sfp = {0, 0, 0, 0, 0, 0, 0, 0, 0},
 	.reset_pin = GPIO48_I2C_SCL1,
 	.high_leds = { .mux = LED_28_SYS | LED_29, .enable = LED_27 | LED_28_SYS | LED_29 },
@@ -1061,7 +1036,6 @@ __code const struct machine machine = {
 	.max_port = 8,
 	.n_sfp = 2,
 	.log_to_phys_port = {0, 0, 0, 6, 1, 2, 3, 4, 5},
-	.phys_to_log_port = {4, 5, 6, 7, 8, 3, 0, 0, 0},
 	.is_sfp = {0, 0, 0, 2, 0, 0, 0, 0, 1},
 	
 	// Left SFP port
@@ -1127,7 +1101,6 @@ __code const struct machine machine = {
 	.max_port = 8,
 	.n_sfp = 1,
 	.log_to_phys_port = {1, 2, 3, 4, 5, 6, 7, 8, 9},
-	.phys_to_log_port = {0, 1, 2, 3, 4, 5, 6, 7, 8},
 	.is_sfp = {0, 0, 0, 0, 0, 0, 0, 0, 1},
 	.sfp_port[0].pin_detect = GPIO38,
 	.sfp_port[0].pin_los = GPIO_NA,
@@ -1172,7 +1145,6 @@ __code const struct machine machine = {
     .max_port = 8,
     .n_sfp = 1,
     .log_to_phys_port = {2, 1, 4, 3, 5, 6, 7, 8, 9},
-    .phys_to_log_port = {1, 0, 3, 2, 4, 5, 6, 7, 8},
     .is_sfp = {0, 0, 0, 0, 0, 0, 0, 0, 1},
 
     .sfp_port[0].pin_detect = GPIO30_ACL_BIT3_EN,
@@ -1207,7 +1179,6 @@ __code const struct machine machine = {
 	.max_port = 8,
 	.n_sfp = 1,
 	.log_to_phys_port = {1, 2, 3, 4, 5, 6, 7, 8, 9},
-	.phys_to_log_port = {0, 1, 2, 3, 4, 5, 6, 7, 8},
 	.is_sfp = {0, 0, 0, 0, 0, 0, 0, 0, 1},
 	.sfp_port[0].pin_detect = GPIO30_ACL_BIT3_EN,
 	.sfp_port[0].pin_los = GPIO37,
@@ -1250,7 +1221,6 @@ __code const struct machine machine = {
 	.max_port = 8,
 	.n_sfp = 1,
 	.log_to_phys_port = {1, 2, 3, 4, 5, 6, 7, 8, 9},
-	.phys_to_log_port = {0, 1, 2, 3, 4, 5, 6, 7, 8},
 	.is_sfp = {0, 0, 0, 0, 0, 0, 0, 0, 1},
 
 	.sfp_port[0].pin_detect = GPIO30_ACL_BIT3_EN,
@@ -1400,3 +1370,22 @@ __code const struct machine machine = {
 #else
 	#error "Please select a machine type in machine.h"
 #endif
+
+
+/* Looks-up the physical port.
+ * The index into machine.log_to_phys_port = {0, 0, 0, 5, 1, 2, 3, 4, 6}, is equal the logical port.
+ * Returns the positive number when found
+ * Returns -1 when not found
+ */
+int8_t phys_to_log_port(uint8_t phys_port) {
+	uint8_t port = machine.min_port;
+	uint8_t port_max = machine.max_port;
+
+	do {
+		if (machine.log_to_phys_port[port] == phys_port)
+			return (int8_t)port;
+		port++;
+	} while(port <= port_max);
+
+	return -1;
+}

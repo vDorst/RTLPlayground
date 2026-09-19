@@ -61,10 +61,13 @@
 #define MAC_SDS1 (8)
 
 enum sds_type {
-	SDS_UNUSED,
+	SDS_UNUSED = 0, 
 	SDS_SFP,
 	SDS_EPHY,
-	SDS_FIXED_LINK
+	SDS_FIXED_LINK,
+
+	// Used as error code
+	SDS_NOT_A_SDS_PORT = -1
 };
 
 struct sfp_port
@@ -141,6 +144,7 @@ void machine_custom_init(void) __banked;
 int8_t phys_to_log_port(uint8_t phys_port);
 bool is_slot_sfp(uint8_t slot);
 int8_t port_to_sds(uint8_t log_port);
+enum sds_type port_to_sds_usage(uint8_t log_port);
 
 #endif
 

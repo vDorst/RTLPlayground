@@ -1306,11 +1306,26 @@ bool is_slot_sfp(uint8_t slot) {
 	return machine.sds_settings[slot].usage == SDS_SFP;
 }
 
-/* Check if the */
+/* Check if the port is a SDS port
+ * Returns sds-number when port has SDS
+ * Returns -1 on error
+*/
 int8_t port_to_sds(uint8_t log_port) {
 	bool sds = log_port == MAC_SDS1;
 	if (sds || log_port == MAC_SDS0)
 		return sds;
 	// return -1, subtracking is cheaper.
 	return sds - 1;
+}
+
+/* Check if the port is a SDS port
+ * Returns sds-usage when port has SDS
+ * Returns -1 / SDS_NOT_A_SDS_PORT on error
+*/
+enum sds_type port_to_sds_usage(uint8_t log_port) {
+	bool sds = log_port == MAC_SDS1;
+	if (sds || log_port == MAC_SDS0)
+		return machine.sds_settings[sds].usage;
+	// return -1, subtracking is cheaper.
+	return SDS_NOT_A_SDS_PORT;
 }

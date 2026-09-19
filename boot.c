@@ -404,7 +404,7 @@ void setup_i2c(void) __banked
 	for (uint8_t sfp = 0; sfp < 2; sfp++) {
 		if (!is_slot_sfp(sfp))
 			continue;
-		uint8_t i2c = machine.sfp_port[sfp].i2c;
+		uint8_t i2c = machine.sds_settings[sfp].sds_settings_t.sfp.i2c;
 		uint8_t scl_bus = (i2c >> RTL837X_REG_I2C_SCL_SHIFT) & RTL837X_REG_I2C_SCL_MASK;
 		uint8_t sda_bus = (i2c >> RTL837X_REG_I2C_SDA_SHIFT) & RTL837X_REG_I2C_SDA_MASK;
 		print_string("Configuring I2C for SFP idx="); print_byte(sfp); print_string(" SCL="); print_byte(scl_bus); print_string(", SDA="); print_byte(sda_bus); write_char('\n');

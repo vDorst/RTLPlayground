@@ -64,7 +64,7 @@ const struct machine machine = {
 };
 struct machine_runtime machine_detected = { .isRTL8373 = 1 };
 
-/* Looks-up the logical port. The index into machine.log_to_phys_port = {0, 0, 0, 5, 1, 2, 3, 4, 6}, is equal the logical port.
+/* Looks-up the logical port. The index into machine.log_to_phys_port, is equal the logical port.
  * Returns the positive number when found
  * Returns -1 when not found
  */
@@ -88,6 +88,14 @@ bool is_slot_sfp(uint8_t slot) {
 	return (port & IS_SFP) != 0;
 }
 
+/* Check if the */
+int8_t port_to_sds(uint8_t log_port) {
+	bool sds = log_port == MAC_SDS1;
+	if (sds || log_port == MAC_SDS0)
+		return sds;
+	// return -1, subtracking is cheaper.
+	return sds - 1;
+}
 
 /* ---- firmware state the modules read or write ---- */
 uint8_t  outbuf[TCP_OUTBUF_SIZE];

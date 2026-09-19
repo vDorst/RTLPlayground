@@ -329,6 +329,10 @@ void init_smi(void) __banked
 	 * which are at port 8 and additionally at port 3 for a dual SFP device
 	 */
 
+	bool sds0_is_sfp = is_slot_sfp(0);
+	bool sds1_is_sfp = is_slot_sfp(1);
+	bool two_sfp = sds0_is_sfp && sds1_is_sfp;
+
 	// Default: 0x00005555
 	// Workaround for SDCC BUG 4070: SFR_DATA_U32 = 0x00005555;
 	SFR_DATA_U16_UPPER = 0x0000;
@@ -336,7 +340,7 @@ void init_smi(void) __banked
 	if (machine.n_10g == 2) {
 		// 0x00015555, only change the bytes that differs from the default.
 		SFR_DATA_16 = 0x01;
-	} else if (machine.n_sfp == 2)
+	} else if (two_sfp)
 		// 0x00005515
 		SFR_DATA_0 = 0x15;
 	reg_write(RTL837X_REG_SMI_MAC_TYPE);
@@ -347,7 +351,7 @@ void init_smi(void) __banked
 	SFR_DATA_U16_UPPER = 0x0000;
 	SFR_DATA_U16 = 0x00ff;
 	if (!machine_detected.isRTL8373) {
-		if (machine.n_sfp == 2) {
+		if (two_sfp) {
 			// 0x000000f0, only change the bytes that differs from the default.
 			SFR_DATA_0 = 0xf0;
 		} else {
@@ -397,7 +401,9 @@ void setup_i2c(void) __banked
 
 	// HW Control register, enable I2C depending on PIN configuration
 	reg_read_m(RTL837X_PIN_MUX_1);
-	for (uint8_t sfp = 0; sfp < machine.n_sfp; sfp++) {
+	for (uint8_t sfp = 0; sfp < 2; sfp++) {
+		if (!is_slot_sfp(sfp))
+			continue;
 		uint8_t i2c = machine.sfp_port[sfp].i2c;
 		uint8_t scl_bus = (i2c >> RTL837X_REG_I2C_SCL_SHIFT) & RTL837X_REG_I2C_SCL_MASK;
 		uint8_t sda_bus = (i2c >> RTL837X_REG_I2C_SDA_SHIFT) & RTL837X_REG_I2C_SDA_MASK;

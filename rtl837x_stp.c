@@ -232,7 +232,7 @@ static void stp_status(void)
 			write_char('L');
 			write_char('1' + stp_root_port - STP_LAG_BASE);
 		} else {
-			print_byte(machine.log_to_phys_port[stp_root_port] & MAC_MASK);
+			print_byte(machine.log_to_phys_port[stp_root_port]);
 		}
 		print_string(" cost ");
 		print_long(root_bridge_cost);
@@ -251,7 +251,7 @@ static void stp_status(void)
 			write_char('L');
 			write_char('1' + stp_i - STP_LAG_BASE);
 		} else {
-			print_byte(machine.log_to_phys_port[stp_i] & MAC_MASK);
+			print_byte(machine.log_to_phys_port[stp_i]);
 		}
 		print_string("  ");
 		stp_st_of = stp_i;

@@ -848,9 +848,9 @@ void send_status(void)
 		}
 		slen += strtox(outbuf + slen, "\"");
 
-		uint8_t port_data = machine.log_to_phys_port[i];
-		if (port_data & IS_SFP) {
-			uint8_t sfp = port_data & SFP_PORT_SETTINGS ? 1 : 0;
+		int8_t sds = port_to_sds(i);
+		if (sds >= 0 && machine.sds_settings[sds].usage == SDS_SFP) {
+			uint8_t sfp = (uint8_t)sds;
 			slen += strtox(outbuf + slen, ",\"isSFP\":1,\"enabled\":");
 			if (!(sfp_pins_last & (0x1 << (sfp << 2)))) {
 				bool_to_html(1);
@@ -890,7 +890,7 @@ void send_status(void)
 				slen += strtox(outbuf + slen,"\",\"sfp_serial\":\"");
 				str_x_to_html(sfp_module_serial[sfp]);
 				slen += strtox(outbuf + slen,"\",\"sfp_los\":");
-				if (machine.sfp_port[sfp].pin_los == GPIO_NA) {
+				if (machine.sds_settings[sfp].sds_settings_t.sfp.pin_los == GPIO_NA) {
 					slen += strtox(outbuf + slen,"null");
 				} else {
 					bool_to_html(sfp_pins_last & (0x2 << (sfp << 2)));

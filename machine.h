@@ -80,6 +80,36 @@ typedef union {
     } bits;
 } log_port_value_t;
 
+
+enum sds_type {
+	SDS_UNUSED,
+	SDS_SFP,
+	SDS_EPHY,
+	SDS_FIXED_LINK
+};
+
+struct sfp_port
+{
+	uint8_t pin_detect; // gpio number 0-63, 0xFF = don't have it?
+	uint8_t pin_los; // gpio number 0-63, 0xFF = don't have it?
+	uint8_t pin_tx_disable; // gpio number 0-63, 0xFF = not present
+	uint8_t i2c;
+};
+
+struct ext_phy
+{
+	uint8_t type;
+	uint8_t addr;
+};
+
+struct sds_settings {
+	enum sds_type usage;
+	union {
+		struct sfp_port sfp;
+		struct ext_phy  ephy;
+	} sds_settings_t;
+};
+
 #define LED_27 1
 // SYSTEM LED
 #define LED_28_SYS 2
@@ -90,14 +120,6 @@ struct high_leds {
 	uint8_t mux : 3;
 	uint8_t enable : 3;
 	uint8_t reserved : 2;
-};
-
-struct sfp_port
-{
-	uint8_t pin_detect; // gpio number 0-63, 0xFF = don't have it?
-	uint8_t pin_los; // gpio number 0-63, 0xFF = don't have it?
-	uint8_t pin_tx_disable; // gpio number 0-63, 0xFF = not present
-	uint8_t i2c;
 };
 
 struct machine {
@@ -119,7 +141,7 @@ struct machine {
 	// - In case of SFP-CAGE, i2c-setting, gpio to detect the device etc.
 	// - In case of external PHY, MDIO-address, max-linkspeed etc.
 	// - In case of fixed-link, linkspeed.
-	struct sfp_port sfp_port[2];
+	struct sds_settings sds_settings[2];
 	uint8_t reset_pin;
 	struct high_leds high_leds;
 	// Defines which led-set (0-3) will be used for given logical port
@@ -143,6 +165,7 @@ struct machine_runtime
 void machine_custom_init(void) __banked;
 int8_t phys_to_log_port(uint8_t phys_port);
 bool is_slot_sfp(uint8_t slot);
+int8_t port_to_sds(uint8_t log_port);
 
 #endif
 

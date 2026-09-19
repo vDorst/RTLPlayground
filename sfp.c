@@ -147,11 +147,11 @@ void sfp_apply_quirks(uint8_t sfp) __banked __reentrant
 void setup_sfp_gpio(void) __banked
 {
 	for (uint8_t sfp = 0; sfp < 2; sfp++) {
-		if (!is_slot_sfp(sfp))
+		if (machine.sds_settings[sfp].usage != SDS_SFP)
 			continue;
-		gpio_input_setup(machine.sfp_port[sfp].pin_detect);
-		gpio_input_setup(machine.sfp_port[sfp].pin_los);
-		gpio_output_setup(machine.sfp_port[sfp].pin_tx_disable, 0);
+		gpio_input_setup(machine.sds_settings[sfp].sds_settings_t.sfp.pin_detect);
+		gpio_input_setup(machine.sds_settings[sfp].sds_settings_t.sfp.pin_los);
+		gpio_output_setup(machine.sds_settings[sfp].sds_settings_t.sfp.pin_tx_disable, 0);
 	}
 }
 
@@ -200,10 +200,10 @@ static bool sfp_module_read(uint8_t sfp)
 void handle_sfp(void) __banked
 {
 	for (uint8_t sfp = 0; sfp < 2; sfp++) {
-		if (!is_slot_sfp(sfp))
+		if (machine.sds_settings[sfp].usage != SDS_SFP)
 			continue;
 
-		if (!gpio_pin_test(machine.sfp_port[sfp].pin_detect)) {
+		if (!gpio_pin_test(machine.sds_settings[sfp].sds_settings_t.sfp.pin_detect)) {
 			if (sfp_pins_last & (0x1 << (sfp << 2))) {
 				sfp_pins_last &= ~(0x01 << (sfp << 2));
 				print_string("\n<MODULE INSERTED>  Slot: "); write_char('1' + sfp);
@@ -225,7 +225,7 @@ void handle_sfp(void) __banked
 			}
 		}
 
-		if (!gpio_pin_test(machine.sfp_port[sfp].pin_los)) {
+		if (!gpio_pin_test(machine.sds_settings[sfp].sds_settings_t.sfp.pin_los)) {
 			if (sfp_pins_last & (0x2 << (sfp << 2))) { // 0x2 0x08
 				sfp_pins_last &= ~(0x02 << (sfp << 2));
 				print_string("\n<SFP-RX OK>  Slot: "); write_char('1' + sfp); write_char('\n');

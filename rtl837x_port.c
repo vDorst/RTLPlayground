@@ -525,17 +525,18 @@ void port_stats_print(void) __banked
 	for (uint8_t i = machine.min_port; i <= machine.max_port; i++) {
 		print_phys_port(i); write_char('\t');
 
-		uint8_t port_data = machine.log_to_phys_port[i];
+		int8_t sds = port_to_sds(i);
+		if (sds >= 0 && machine.sds_settings[sds].usage != SDS_SFP)
+			sds = -1;
 
-		if ((port_data & (IS_SFP | IS_EPHY)) == 0x00) {
+		if (sds < 0) {
 			phy_read(i, PHY_MMD31, 0xa610);
 			if (SFR_DATA_8 == 0x20)
 				print_string("On\t");
 			else
 				print_string("Off\t");
 		} else {  // An SFP Module
-			uint8_t sfp_settings_idx = port_data & SFP_PORT_SETTINGS ? 1 : 0;
-			if (!gpio_pin_test(machine.sfp_port[sfp_settings_idx].pin_detect)) {
+			if (!gpio_pin_test(machine.sds_settings[sds].sds_settings_t.sfp.pin_detect)) {
 				print_string("SFP IN\t");
 			} else {
 				print_string("NO SFP\t");

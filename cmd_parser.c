@@ -1026,21 +1026,18 @@ void parse_sfp(void)
 {
 	uint8_t slot;
 	uint8_t port;
-	uint8_t port_data;
 
 	if (cmd_words_len != 1 && cmd_words_len != 3)
 		goto err;
 
 	if (cmd_words_len == 1) {
 		for (slot = 0; slot < 2; slot++) {
-			uint8_t port = slot ? MAC_SDS1 : MAC_SDS0;
-
-			uint8_t port_data = machine.log_to_phys_port[port];
-			if ((port_data & IS_SFP) == 0)
+			if (machine.sds_settings[slot].usage != SDS_SFP)
 				continue;
 
+			port = slot ? MAC_SDS1 : MAC_SDS0;
 			print_string("\nPort "); print_phys_port(port);
-			if (gpio_pin_test(machine.sfp_port[slot].pin_detect)) {
+			if (gpio_pin_test(machine.sds_settings[slot].sds_settings_t.sfp.pin_detect)) {
 				print_string(" - empty\n");
 				continue;
 			}
@@ -1063,14 +1060,13 @@ void parse_sfp(void)
 		return;
 	}
 
-	port_data = machine.log_to_phys_port[port];
-	if ((port_data & IS_SFP) == 0) {
+	int8_t sds = port_to_sds(port);
+	if (sds < 0 || machine.sds_settings[sds].usage != SDS_SFP) {
 		cmd_error("This is not SFP port\n");
 		return;
 	}
 
-	slot = (port == MAC_SDS1);
-
+	slot = (uint8_t)sds;
 	if (cmd_compare(2, "10g")) {
 		print_string(" 10G\n");
 		sfp_speed[slot] = SFP_SPEED_10G;

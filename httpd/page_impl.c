@@ -729,8 +729,7 @@ void send_eee(void)
 		uint8_t phys_port = machine.log_to_phys_port[i];
 		itoa_html(phys_port);
 
-		int8_t sds = port_to_sds(i);
-		if (sds >= 0 && machine.sds_settings[sds].usage == SDS_SFP) {
+		if (port_to_sds_usage(i) == SDS_SFP) {
 			slen += strtox(outbuf + slen, ",\"isSFP\":1");
 		} else {
 			slen += strtox(outbuf + slen, ",\"isSFP\":0,\"eee\":\"");

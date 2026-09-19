@@ -64,7 +64,7 @@ const struct machine machine = {
 };
 struct machine_runtime machine_detected = { .isRTL8373 = 1 };
 
-/* Looks-up the logical port. The index into machine.log_to_phys_port, is equal the logical port.
+/* Looks-up the logical port. The index into machine.log_to_phys_port[] is equal to the logical port.
  * Returns the positive number when found
  * Returns -1 when not found
  */
@@ -73,7 +73,8 @@ int8_t phys_to_log_port(uint8_t phys_port) {
 	uint8_t port_max = machine.max_port;
 
 	do {
-		if (machine.log_to_phys_port[port] == phys_port)
+		uint8_t phys_port_val = machine.log_to_phys_port[port];
+		if (phys_port_val == phys_port && phys_port_val != NOP)
 			return (int8_t)port;
 		port++;
 	} while(port <= port_max);
@@ -83,18 +84,31 @@ int8_t phys_to_log_port(uint8_t phys_port) {
 
 /* return a bool is a slot is a marked as SFP-port. */
 bool is_slot_sfp(uint8_t slot) {
-	uint8_t mac = slot ? MAC_SDS1 : MAC_SDS0;
-	uint8_t port = machine.log_to_phys_port[mac];
-	return (port & IS_SFP) != 0;
+	return machine.sds_settings[slot].usage == SDS_SFP;
 }
 
-/* Check if the */
+/* Check if the port is a SDS port
+ * Returns sds-number when port has SDS
+ * Returns -1 on error
+*/
 int8_t port_to_sds(uint8_t log_port) {
 	bool sds = log_port == MAC_SDS1;
 	if (sds || log_port == MAC_SDS0)
 		return sds;
 	// return -1, subtracking is cheaper.
 	return sds - 1;
+}
+
+/* Check if the port is a SDS port
+ * Returns sds-usage when port has SDS
+ * Returns -1 / SDS_NOT_A_SDS_PORT on error
+*/
+enum sds_type port_to_sds_usage(uint8_t log_port) {
+	bool sds = log_port == MAC_SDS1;
+	if (sds || log_port == MAC_SDS0)
+		return machine.sds_settings[sds].usage;
+	// return -1, subtracking is cheaper.
+	return SDS_NOT_A_SDS_PORT;
 }
 
 /* ---- firmware state the modules read or write ---- */

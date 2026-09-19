@@ -526,21 +526,18 @@ void port_stats_print(void) __banked
 		print_phys_port(i); write_char('\t');
 
 		int8_t sds = port_to_sds(i);
-		if (sds >= 0 && machine.sds_settings[sds].usage != SDS_SFP)
-			sds = -1;
-
-		if (sds < 0) {
+		if (sds >= 0 && machine.sds_settings[sds].usage == SDS_SFP) {
+			// An SFP Module
+			if (!gpio_pin_test(machine.sds_settings[sds].sds_settings_t.sfp.pin_detect))
+				print_string("SFP IN\t");
+			else
+				print_string("NO SFP\t");
+		} else {
 			phy_read(i, PHY_MMD31, 0xa610);
 			if (SFR_DATA_8 == 0x20)
 				print_string("On\t");
 			else
 				print_string("Off\t");
-		} else {  // An SFP Module
-			if (!gpio_pin_test(machine.sds_settings[sds].sds_settings_t.sfp.pin_detect)) {
-				print_string("SFP IN\t");
-			} else {
-				print_string("NO SFP\t");
-			}
 		}
 
 		uint8_t b = 0;
@@ -623,8 +620,7 @@ uint16_t port_isolation_get(uint8_t port) __banked
 
 void port_eee_enable(__xdata uint8_t port,__xdata uint8_t speed) __banked
 {
-	int8_t sds = port_to_sds(port);
-	if (sds >= 0 && machine.sds_settings[sds].usage == SDS_SFP) {
+	if (port_to_sds_usage(port) == SDS_SFP) {
 		print_string("EEE can't be enabled for SFP port "); print_phys_port(port); print_string("\n");
 		return;
 	}
@@ -686,10 +682,8 @@ void port_eee_enable(__xdata uint8_t port,__xdata uint8_t speed) __banked
 
 void port_eee_disable(uint8_t port) __banked
 {
-	int8_t sds = port_to_sds(port);
-	if (sds >= 0 && machine.sds_settings[sds].usage == SDS_SFP) {
+	if (port_to_sds_usage(port) == SDS_SFP)
 		return;
-	}
 
 	print_string("EEE off for "); print_phys_port(port); write_char('\n');
 	REG_SET(RTL837X_EEE_CTRL_BASE + (port << 8), 0);
@@ -706,8 +700,7 @@ void port_eee_status(uint8_t port) __banked
 	print_string("Port: "); print_phys_port(port);
 	print_string(": ");
 
-	int8_t sds = port_to_sds(port);
-	if (sds >= 0 && machine.sds_settings[sds].usage == SDS_SFP) {
+	if (port_to_sds_usage(port) == SDS_SFP) {
 		print_string("SFP\n");
 		return;
 	}

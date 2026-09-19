@@ -886,10 +886,13 @@ void parse_port(void)
 	print_string("Logical Port: "); print_byte(phy_settings.port); write_char('\n');
 	phy_settings.duplex = PHY_DUPLEX_BOTH;
 
+	int8_t sds = port_to_sds(phy_settings.port);
+
 	if (cmd_compare(2, "show")) {
 		print_string("Name: ");
 		print_string_x(port_names[phy_settings.port]);
-		if ((machine.log_to_phys_port[phy_settings.port] & IS_SFP) == 0) {
+		int8_t sds = port_to_sds(phy_settings.port);
+		if (sds >= 0 && machine.sds_settings[sds].usage == SDS_SFP) {
 			phy_show(phy_settings.port);
 		} else {
 			write_char('\n');
@@ -905,7 +908,7 @@ void parse_port(void)
 		print_string("\nName set to: \"");
 		print_string_x(port_names[phy_settings.port]);
 		print_string("\"\n");
-	} else if (machine.log_to_phys_port[phy_settings.port] & IS_SFP) {
+	} else if (sds >= 0 && machine.sds_settings[sds].usage == SDS_SFP) {
 		print_string(" is SFP no PHY information available.\n");
 	} else if (cmd_compare(2, "10m")) {
 		print_string(" 10M\n");

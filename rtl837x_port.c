@@ -623,9 +623,8 @@ uint16_t port_isolation_get(uint8_t port) __banked
 
 void port_eee_enable(__xdata uint8_t port,__xdata uint8_t speed) __banked
 {
-
-	if (machine.log_to_phys_port[port] & (IS_SFP | IS_EPHY))
-	{
+	int8_t sds = port_to_sds(port);
+	if (sds >= 0 && machine.sds_settings[sds].usage == SDS_SFP) {
 		print_string("EEE can't be enabled for SFP port "); print_phys_port(port); print_string("\n");
 		return;
 	}
@@ -687,8 +686,10 @@ void port_eee_enable(__xdata uint8_t port,__xdata uint8_t speed) __banked
 
 void port_eee_disable(uint8_t port) __banked
 {
-	if (machine.log_to_phys_port[port] & (IS_SFP | IS_EPHY))
+	int8_t sds = port_to_sds(port);
+	if (sds >= 0 && machine.sds_settings[sds].usage == SDS_SFP) {
 		return;
+	}
 
 	print_string("EEE off for "); print_phys_port(port); write_char('\n');
 	REG_SET(RTL837X_EEE_CTRL_BASE + (port << 8), 0);
@@ -704,7 +705,9 @@ void port_eee_status(uint8_t port) __banked
 {
 	print_string("Port: "); print_phys_port(port);
 	print_string(": ");
-	if (machine.log_to_phys_port[port] & IS_SFP) {
+
+	int8_t sds = port_to_sds(port);
+	if (sds >= 0 && machine.sds_settings[sds].usage == SDS_SFP) {
 		print_string("SFP\n");
 		return;
 	}

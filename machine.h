@@ -52,34 +52,13 @@
 // #define MACHINE_HASIVO_S1100WP_8GT_1SX_SE
 // #define MACHINE_F7008_2_5
 
-// Port/Mac not used/connected, MAC value = 0x0f and flags are zero.
-#define NOP (0x0F)
+// Port/Mac not used/connected,
+#define NOP (0x00)
 #define IS_PHYS_PORT_INVALID(port) (port == NOP)
-// Port/MAC/SDS is a SFP cage
-#define IS_SFP (0x80)
-// Port/MAC/SDS is wired to a external phy.
-#define IS_EPHY (0x40)
-// Port/MAC/SDS to a other SOC, only need a fixed like setting
-#define IS_FIXED_LINK (0x20)
-#define SFP_PORT_SETTINGS (0x10)
-#define MAC_MASK (0x0F)
 
 // SDSx in on PORT/MACx
 #define MAC_SDS0 (3)
 #define MAC_SDS1 (8)
-
-typedef union {
-    uint8_t value;
-    struct {
-		// LSB
-        uint8_t mac             : 4;
-        uint8_t reserved 		: 1;
-        uint8_t is_sfp_cage     : 1;
-        uint8_t attached_to_phy : 1;
-        uint8_t is_fixed_link   : 1;
-    } bits;
-} log_port_value_t;
-
 
 enum sds_type {
 	SDS_UNUSED,
@@ -130,10 +109,6 @@ struct machine {
 	// Highest logical port number
 	uint8_t max_port;
 	uint8_t n_10g;
-	// See struct log_port
-	// - UPPER NIBBLE are the flags
-	// - LOWER NIBBLE is the phy port, port number 15 is unused, but also the FLAGS must be zero!
-	//   So use the `NOP` define!
 	uint8_t log_to_phys_port[9];
 	// sfp_port[0] is directly linked to MAC 3 / SDS0 (MAC_SDS0)
 	// sfp_port[1] is directly linked to MAC 8 / SDS1 (MAC_SDS1)

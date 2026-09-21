@@ -689,15 +689,34 @@ void port_eee_status(uint8_t port) __banked
 	print_string("Port: "); print_phys_port(port);
 	print_string(": ");
 
-	if (port_to_sds_usage(port) == SDS_SFP) {
-		print_string("SFP\n");
-		return;
+	bool phy_support_10g = false;
+
+	int8_t sds = port_to_sds(port);
+	if (sds >= 0) {
+		enum sds_type usage = machine.sds_settings[sds].usage;
+		switch (usage) {
+			case SDS_SFP:
+				print_string("SFP\n");
+				return;
+				break;
+			case SDS_FIXED_LINK:
+				print_string("FIXED-LINK\n");
+				return;
+				break;
+			case SDS_EPHY:
+				phy_support_10g = get_phy_max_speed(machine.sds_settings[sds].sds_settings_t.ephy.type);
+				break;
+			default:
+				print_string("Unused\n");
+				return;
+				break;
+		}
 	}
 
 	uint16_t v;
 	print_string("Advertising: ");
 
-	if (machine.n_10g) {
+	if (phy_support_10g) {
 		phy_read(port, PHY_MMD_AN, PHY_EEE_ADV);
 		v = SFR_DATA_U16;
 		if (v & PHY_EEE_BIT_10G)
@@ -707,7 +726,7 @@ void port_eee_status(uint8_t port) __banked
 	}
 	phy_read(port, PHY_MMD_AN, PHY_EEE_ADV2);
 	v = SFR_DATA_U16;
-	if (machine.n_10g) {
+	if (phy_support_10g) {
 		if (v & PHY_EEE_BIT_5G)
 			print_string(" 5G");
 		else
@@ -730,7 +749,7 @@ void port_eee_status(uint8_t port) __banked
 		print_string("     ");
 
 	print_string("   Link Partner: ");
-	if (machine.n_10g) {
+	if (phy_support_10g) {
 		phy_read(port, PHY_MMD_AN, PHY_EEE_LP_ABILITY);
 		v = SFR_DATA_U16;
 		if (v & PHY_EEE_BIT_10G)
@@ -740,7 +759,7 @@ void port_eee_status(uint8_t port) __banked
 	}
 	phy_read(port, PHY_MMD_AN, PHY_EEE_LP_ABILITY2);
 	v = SFR_DATA_U16;
-	if (machine.n_10g) {
+	if (phy_support_10g) {
 		if (v & PHY_EEE_BIT_5G)
 			print_string(" 5G");
 		else
@@ -773,9 +792,7 @@ void port_eee_status(uint8_t port) __banked
 void port_eee_enable_all(__xdata uint8_t speed) __banked
 {
 	for (uint8_t i = machine.min_port; i <= machine.max_port; i++) {
-		if (i == 3 && machine.n_10g) {
-			port_eee_enable(i, speed);
-		} else if (i == 8 && machine.n_10g == 2) {
+		if (port_to_sds_usage(i) == SDS_EPHY) {
 			port_eee_enable(i, speed);
 		} else {
 			if (speed & EEE_10G)

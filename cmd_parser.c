@@ -1421,8 +1421,6 @@ void parse_eee(void)
 	__xdata uint8_t speed = EEE_2G5;
 	__xdata uint8_t speed_word = 0;
 
-	if (machine.n_10g)
-		speed = EEE_10G;
 	// Check if word 2 is a speed (contains 'g' or 'm') or a port number
 	if (cmd_words_len >= 3) {
 		uint8_t idx = cmd_words_b[2];
@@ -1444,6 +1442,19 @@ void parse_eee(void)
 				speed_word = 3;
 		}
 	}
+
+	if (port_to_sds_usage(port) == SDS_EPHY) {
+		uint8_t sds = port_to_sds(port);
+		uint8_t phy_type = machine.sds_settings[sds].sds_settings_t.ephy.type;
+		switch (get_phy_max_speed(phy_type)) {
+			case PHY_SPEED_10G:
+				speed = EEE_10G;
+				break;
+			default:
+				break;
+		}
+	}
+
 	// Parse speed if found
 	if (speed_word > 0) {
 		if (cmd_compare(speed_word, "100m"))

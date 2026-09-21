@@ -672,3 +672,15 @@ void rtl8224_sds_write(uint16_t sds_cmd, __xdata uint16_t value) __banked
 		rtl8224_read_reg_u16(RTL837X_SDS_INDACS_CMD);
 	} while (SFR_DATA_8 & 0x80);
 }
+
+// Return the max PHY speed.
+void get_phy_max_speed(enum phy_type type) __banked
+{
+	switch(type) {
+		case RTL8224:
+		case RTL8221B:
+			return PHY_EEE_BIT_2G5;
+		case RTL8261BE
+			return PHY_EEE_BIT_10G;
+	}
+}

@@ -119,7 +119,6 @@ struct machine {
 	uint8_t min_port;
 	// Highest logical port number
 	uint8_t max_port;
-	uint8_t n_10g;
 	uint8_t log_to_phys_port[9];
 	// sfp_port[0] is directly linked to MAC 3 / SDS0 (MAC_SDS0)
 	// sfp_port[1] is directly linked to MAC 8 / SDS1 (MAC_SDS1)

@@ -70,6 +70,13 @@ enum sds_type {
 	SDS_NOT_A_SDS_PORT = -1
 };
 
+// External PHY types.
+enum phy_type {
+	RTL8224,   // Default 4-port 2.5Gbit PHY which normaly used with a RTL8382
+	RTL8221B,  // 1-port 2.5Gbit PHY
+	RTL8261BE, // 1-port  10gbit PHY
+};
+
 struct sfp_port
 {
 	uint8_t pin_detect; // gpio number 0-63, 0xFF = don't have it?
@@ -80,8 +87,9 @@ struct sfp_port
 
 struct ext_phy
 {
-	uint8_t type;
-	uint8_t addr;
+	enum phy_type type;
+	uint8_t phy_id;
+	uint8_t reset_pin;
 };
 
 struct sds_settings {

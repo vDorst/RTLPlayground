@@ -383,27 +383,34 @@ void init_smi(void) __banked
 	reg_write_m(RTL837X_REG_SMI_CTRL);
 	delay(50);
 
-	if (!machine_detected.isRTL8373) {
-		// Change I2C addresses for SMI of the non-existent PHYs
-		// r6450:000020e6 R6450-000000e6
-		reg_read_m(RTL837X_REG_SMI_PORT6_9_ADDR);
-		sfr_mask_data(1, 0x7c, 0);
-		reg_write_m(RTL837X_REG_SMI_PORT6_9_ADDR);
+	// Program the PHY addresses for MAC 0-5.
+	if (machine_detected.isRTL8373) {
+		// RTL8373, we assume that all the PHY_ADDR are start from 0 are counting up to 5.
+		SFR_DATA_0 = 0x20;
+		SFR_DATA_8 = 0x88;
+		SFR_DATA_16 = 0x41;
+	} else {
+		// RTL8372, we assume that all the PHY_ADDR are start from 4 are counting up to 5.
+		// Other unused macs are are set to zero.
+		// When a external phy is connected to MAC 3 / SDS 0, the external PHY_ADDR is also programmed.
+		uint8_t phy_addr_mac3 = 0x00;
 
-		// r644c:0a418820 R644c-0a400820
-		reg_read_m(RTL837X_REG_SMI_PORT0_5_ADDR);
-		sfr_mask_data(2, 0x0f, 0);
-		sfr_mask_data(1, 0x80, 0);
-		reg_write_m(RTL837X_REG_SMI_PORT0_5_ADDR);
+		SFR_DATA_0 = 0x00;
+		if (machine.sds_settings[0].usage == SDS_EPHY)
+			phy_addr_mac3 = machine.sds_settings[0].sds_settings_t.ephy.phy_id;
+		SFR_DATA_8 = (phy_addr_mac3 << 7);
+		SFR_DATA_16 = 0x40 | (phy_addr_mac3 >> 1);
 	}
+	SFR_DATA_24 = 0x0a;
+	reg_write(RTL837X_REG_SMI_PORT0_5_ADDR);
 
-	if (machine.sds_settings[1].usage == SDS_EPHY) {
-		uint8_t phy_id = machine.sds_settings[1].sds_settings_t.ephy.phy_id;
-		phy_id <<= 2;
-		// Set address of second external PHY on port 8
-		//  [ 100 00 ] | 00 111 | 0 0110, port 8 = 0b10000 = 0x10
-		REG_WRITE(RTL837X_REG_SMI_PORT6_9_ADDR, 0x00, 0x00, phy_id, 0xe6);
-	}
+	// Program the PHY addresses for MAC 6-8.
+	uint8_t phy_addr_mac8 = 0;
+	if (machine.sds_settings[1].usage == (uint8_t)SDS_EPHY)
+		phy_addr_mac8 = machine.sds_settings[1].sds_settings_t.ephy.phy_id;
+	// Set address of external PHY connected MAC 8 / SDS 1
+	//  [ 100 00 ] | 00 111 | 0 0110, port 8 = 0b10000 = 0x10
+	REG_WRITE(RTL837X_REG_SMI_PORT6_9_ADDR, 0x00, 0x00, phy_addr_mac8 << 2, 0xe6);
 }
 
 

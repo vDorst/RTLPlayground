@@ -397,7 +397,7 @@ void init_smi(void) __banked
 
 		SFR_DATA_0 = 0x00;
 		if (machine.sds_settings[0].usage == SDS_EPHY)
-			phy_addr_mac3 = machine.sds_settings[0].sds_settings_t.ephy.phy_id;
+			phy_addr_mac3 = machine.sds_settings[0].sds_settings_t.ephy.phy_addr;
 		SFR_DATA_8 = (phy_addr_mac3 << 7);
 		SFR_DATA_16 = 0x40 | (phy_addr_mac3 >> 1);
 	}
@@ -407,7 +407,7 @@ void init_smi(void) __banked
 	// Program the PHY addresses for MAC 6-8.
 	uint8_t phy_addr_mac8 = 0;
 	if (machine.sds_settings[1].usage == (uint8_t)SDS_EPHY)
-		phy_addr_mac8 = machine.sds_settings[1].sds_settings_t.ephy.phy_id;
+		phy_addr_mac8 = machine.sds_settings[1].sds_settings_t.ephy.phy_addr;
 	// Set address of external PHY connected MAC 8 / SDS 1
 	//  [ 100 00 ] | 00 111 | 0 0110, port 8 = 0b10000 = 0x10
 	REG_WRITE(RTL837X_REG_SMI_PORT6_9_ADDR, 0x00, 0x00, phy_addr_mac8 << 2, 0xe6);

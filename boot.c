@@ -334,23 +334,23 @@ void init_smi(void) __banked
 	// Default: 0x00005555
 	// Workaround for SDCC BUG 4070: SFR_DATA_U32 = 0x00005555;
 	SFR_DATA_U16_UPPER = 0x0000;
-	SFR_DATA_U16 = 0x5515;
+	// Default value for every internal PHY port is 0b01.
+	SFR_DATA_U16 = 0x5555;
 	for (uint8_t sds = 0; sds < 2; sds++) {
 		enum sds_type usage = machine.sds_settings[sds].usage;
-		if (usage == SDS_EPHY) {
-			if (sds == 0) {
+		if (sds == 0) {
+			if (usage == SDS_EPHY) {
+				// Set bit 6,7 to 0b01
 				SFR_DATA_0 = 0x55;
-			} else {
-				// Set bit 16,17 to 0b01
-				SFR_DATA_16 = 0x01;
-			}
-		} else if (usage == SDS_SFP) {
-			if (sds == 0) {
+			} else if (usage == SDS_SFP) {
 				// Set bit 6,7 to 0b00
 				SFR_DATA_0 = 0x15;
-			} else {
-				// Set bit 16,17 to 0b00
-				SFR_DATA_16 = 0x00;
+
+			}
+		} else { // sds == 1
+			if (usage == SDS_EPHY) {
+				// Set bit 16,17 to 0b01
+				SFR_DATA_16 = 0x01;
 			}
 		}
 	}

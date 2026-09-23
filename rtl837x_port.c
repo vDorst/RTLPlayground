@@ -491,7 +491,7 @@ void port_media_show(uint8_t port) __banked
 {
 	uint8_t pause;
 
-	if (!machine.is_sfp[port]) {
+	if (port_to_sds_usage(port) != SDS_SFP) {
 		reg_read_m(RTL837X_REG_LINKS_STS);
 		if (sfr_data[(port / 8) + 1] >> (port % 8) & 1) {
 			print_string("Link role: ");

@@ -1179,8 +1179,8 @@ void handle_button(void)
 
 void check_links(void)
 {
-	reg_read_m(RTL837X_REG_LINKS_89);
-	__xdata uint8_t linkbits_p89 = sfr_data[3];
+	reg_read(RTL837X_REG_LINKS_89);
+	__xdata uint8_t linkbits_p89 = SFR_DATA_0;
 
 	reg_read_m(RTL837X_REG_LINKS);
 	if (cmp_4(sfr_data, linkbits_last) || (linkbits_p89 != linkbits_last_p89)) {
@@ -1191,14 +1191,18 @@ void check_links(void)
 		print_byte(linkbits_last_p89); print_byte(linkbits_last[0]); print_byte(linkbits_last[1]);
 		print_byte(linkbits_last[2]); print_byte(linkbits_last[3]);
 		print_string(">\n");
-		linkbits_last_p89 = linkbits_p89;
-
-		uint8_t p5 = sfr_data[2] >> 4;
-		uint8_t p5_last = linkbits_last[2] >> 4;
-		cpy_4(linkbits_last, sfr_data);
 
 		uint8_t max_speed = PHY_SPEED_10G;
 		for (uint8_t sds = 0; sds < 2; sds++) {
+			if (sds == 0) {
+				uint8_t p5 = sfr_data[2] >> 4;
+				uint8_t p5_last = linkbits_last[2] >> 4;
+
+				if (p5 == p5_last)
+					continue;
+			} else if (((linkbits_p89 ^ linkbits_last_p89) & 0xf) == 0)
+				continue;
+
 			switch (machine.sds_settings[sds].usage) {
 				case SDS_EPHY:
 				case SDS_SFP:
@@ -1225,6 +1229,9 @@ void check_links(void)
 					sds_config(sds, SDS_SGMII);
 			}
 		}
+
+		linkbits_last_p89 = linkbits_p89;
+		cpy_4(linkbits_last, sfr_data);
 	}
 }
 

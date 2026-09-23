@@ -889,7 +889,7 @@ void parse_port(void)
 	if (cmd_compare(2, "show")) {
 		print_string("Name: ");
 		print_string_x(port_names[phy_settings.port]);
-		if (port_to_sds_usage(phy_settings.port) != SDS_SFP)
+		if (port_to_sds_usage(phy_settings.port) != SDS_SFP) {
 			phy_show(phy_settings.port);
 		} else {
 			write_char('\n');

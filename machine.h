@@ -88,7 +88,7 @@ struct sfp_port
 struct ext_phy
 {
 	enum phy_type type;
-	uint8_t phy_id;
+	uint8_t phy_addr;
 	uint8_t reset_pin;
 };
 

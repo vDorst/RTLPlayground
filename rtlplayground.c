@@ -1219,42 +1219,11 @@ void check_links(void)
 
 			if (change) {
 				print_phys_port(port);
-				write_char(' ');
+				write_char(':');
 				print_byte(old);
 				write_char('>');
 				print_byte(new);
 				write_char('\n');
-			}
-
-			if (port == MAC_SDS0 || port == MAC_SDS1) {
-				uint8_t max_speed = PHY_SPEED_10G;
-				uint8_t sds = port == MAC_SDS1;
-
-				switch (machine.sds_settings[sds].usage) {
-					case SDS_EPHY:
-					case SDS_SFP:
-						// uint8_t phy_type = machine.sds_settings[sds].sds_settings_t.ephy.type;
-						// max_speed = get_phy_max_speed(phy_type);
-						max_speed = sfp_speed[sds];
-						break;
-					case SDS_FIXED_LINK:
-						// TODO;
-						max_speed = PHY_SPEED_10G;
-						break;
-					default:
-						continue;
-				}
-
-				switch (max_speed) {
-					case PHY_SPEED_10G:
-						sds_config(sds, SDS_QXGMII);
-						break;
-					case PHY_SPEED_2G5:
-						sds_config(sds, SDS_HISGMII);
-						break;
-					default:
-						sds_config(sds, SDS_SGMII);
-				}
 			}
 		}
 

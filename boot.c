@@ -124,8 +124,10 @@ void early_boot_handle_button(void) __banked
  */
 void sds_config(uint8_t sds, uint8_t mode) __banked
 {
-	print_string("sds_config sds: "); print_byte(sds); print_string(", mode: "); print_byte(mode); write_char('\n');
 	sds_config_mac(sds, mode);
+	print_string("sds_config port: "); print_phys_port(sds == 1 ? MAC_SDS1 : MAC_SDS0);
+	print_string(" sds: "); print_byte(sds);
+	print_string(", mode: ");
 
 	uint16_t v = 0x6480; // Q002110:6480
 	if (mode == SDS_10GR || mode == SDS_QXGMII)
@@ -138,6 +140,35 @@ void sds_config(uint8_t sds, uint8_t mode) __banked
 	sds_write_v(sds, 0x21, 0x1d, 0x0002); // Q00211d:0002
 	sds_write_v(sds, 0x36, 0x1c, 0x1390); // Q00361c:1390
 	sds_write_v(sds, 0x36, 0x14, 0x003f); // Q003614:003f
+
+	__code uint8_t * msg = "UNKNOWN\n";
+	switch (mode) {
+	case SDS_OFF:
+		msg = "OFF\n";
+		break;
+	case SDS_SGMII:
+		msg = "SGMII\n";
+		break;
+	case SDS_1000BX_FIBER:
+		msg = "1000BX\n";
+		break;
+	case SDS_HISGMII:
+		msg = "HISGMII\n";
+		break;
+	case SDS_HSG:
+		msg = "HSG\n";
+		break;
+	case SDS_10GR:
+		msg = "10GR\n";
+		break;
+	case SDS_QXGMII:
+		msg = "QXGMII\n";
+		break;
+	case SDS_100FX:
+		msg = "100FX\n";
+		break;
+	}
+	print_string(msg);
 
 	uint8_t page = 0;
 	v = 0;

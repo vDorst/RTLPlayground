@@ -188,13 +188,11 @@ void rtl8373_init(void) __banked
 	print_string("\nrtl8373_init done\n");
 }
 
-
 void rtl8372_init(void) __banked
 {
 	print_string("\nrtl8372_init called\n");
 
 	sds_init();
-
 
 	for (uint8_t sds = 0; sds < 2; sds++) {
 		enum sds_type usage = machine.sds_settings[sds].usage;
@@ -202,7 +200,7 @@ void rtl8372_init(void) __banked
 			case SDS_EPHY:
 				uint8_t port = sds == 1 ? MAC_SDS1 : MAC_SDS0;
 				uint8_t phy_type = machine.sds_settings[sds].sds_settings_t.ephy.type;
-				uint8_t speed = get_phy_max_speed(phy_type);
+				// uint8_t speed = get_phy_max_speed(phy_type);
 				switch (phy_type) {
 					case RTL8224:
 						sds_config_mac(sds, SDS_SGMII);
@@ -217,9 +215,9 @@ void rtl8372_init(void) __banked
 						break;
 				}
 			case SDS_FIXED_LINK:
-			case SDS_SFP:
-				sds_config_mac(sds, SDS_HISGMII);
+				sds_config_mac(sds, SDS_QXGMII);
 				break;
+			case SDS_SFP:
 			default:
 				sds_config_mac(sds, SDS_OFF);
 				break;

@@ -1192,41 +1192,69 @@ void check_links(void)
 		print_byte(linkbits_last[2]); print_byte(linkbits_last[3]);
 		print_string(">\n");
 
-		uint8_t max_speed = PHY_SPEED_10G;
-		for (uint8_t sds = 0; sds < 2; sds++) {
-			if (sds == 0) {
-				uint8_t p5 = sfr_data[2] >> 4;
-				uint8_t p5_last = linkbits_last[2] >> 4;
-
-				if (p5 == p5_last)
-					continue;
-			} else if (((linkbits_p89 ^ linkbits_last_p89) & 0xf) == 0)
+		for (uint8_t port = 0; port < CPU_PORT; port++) {
+			// Skip unused ports
+			if (machine.log_to_phys_port[port] == NOP)
 				continue;
 
-			switch (machine.sds_settings[sds].usage) {
-				case SDS_EPHY:
-				case SDS_SFP:
-					// uint8_t phy_type = machine.sds_settings[sds].sds_settings_t.ephy.type;
-					// max_speed = get_phy_max_speed(phy_type);
-					max_speed = sfp_speed[sds];
-					break;
-				case SDS_FIXED_LINK:
-					// TODO;
-					max_speed = PHY_SPEED_10G;
-					break;
-				default:
-					continue;
+			uint8_t new;
+			uint8_t old;
+			if (port < 8) {
+				uint8_t idx = port >> 1;
+				new = sfr_data[idx];
+				old = linkbits_last[idx];
+			} else {
+				new = linkbits_p89;
+				old = linkbits_last_p89;
+			}
+			if (port & 1) {
+				new = (new << 4) | (new >> 4);
+				old = (old << 4) | (old >> 4);
+			}
+			new &= 0x0F;
+			old &= 0x0F;
+				
+			uint8_t diff = new ^ old;
+			bool change = diff != 0;
+
+			if (change) {
+				print_phys_port(port);
+				write_char(' ');
+				print_byte(old);
+				write_char('>');
+				print_byte(new);
+				write_char('\n');
 			}
 
-			switch (max_speed) {
-				case PHY_SPEED_10G:
-					sds_config(sds, SDS_QXGMII);
-					break;
-				case PHY_SPEED_2G5:
-					sds_config(sds, SDS_HISGMII);
-					break;
-				default:
-					sds_config(sds, SDS_SGMII);
+			if (port == MAC_SDS0 || port == MAC_SDS1) {
+				uint8_t max_speed = PHY_SPEED_10G;
+				uint8_t sds = port == MAC_SDS1;
+
+				switch (machine.sds_settings[sds].usage) {
+					case SDS_EPHY:
+					case SDS_SFP:
+						// uint8_t phy_type = machine.sds_settings[sds].sds_settings_t.ephy.type;
+						// max_speed = get_phy_max_speed(phy_type);
+						max_speed = sfp_speed[sds];
+						break;
+					case SDS_FIXED_LINK:
+						// TODO;
+						max_speed = PHY_SPEED_10G;
+						break;
+					default:
+						continue;
+				}
+
+				switch (max_speed) {
+					case PHY_SPEED_10G:
+						sds_config(sds, SDS_QXGMII);
+						break;
+					case PHY_SPEED_2G5:
+						sds_config(sds, SDS_HISGMII);
+						break;
+					default:
+						sds_config(sds, SDS_SGMII);
+				}
 			}
 		}
 

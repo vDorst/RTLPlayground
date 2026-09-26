@@ -9,8 +9,11 @@ extern __code const struct machine machine;
 #pragma codeseg BANK2
 #pragma constseg BANK2
 
+
+__xdata uint8_t i2c_buf[16];	/* scratch for one I2C transaction, the controller reads at most 16 bytes */
+
 /*
- * Read up to 16 consecutive registers of the EEPROM via I2C into sfp_buf
+ * Read up to 16 consecutive registers of the EEPROM via I2C into i2c_buf
  */
 bool i2c_read(uint8_t slot, uint8_t dev, uint8_t reg, uint8_t len) __banked __reentrant
 {
@@ -50,7 +53,7 @@ bool i2c_read(uint8_t slot, uint8_t dev, uint8_t reg, uint8_t len) __banked __re
 			val = SFR_DATA_24;
 			break;
 		}
-		sfp_buf[i] = val;
+		i2c_buf[i] = val;
 	}
 
 	return true;

@@ -98,7 +98,7 @@ void gpio_output_setup(uint8_t pin, __xdata uint8_t initial_val) __banked{
 
 
 /*
- * Read up to 16 consecutive registers of the EEPROM via I2C into sfp_buf
+ * Read up to 16 consecutive registers of the EEPROM via I2C into i2c_buf
  */
 bool sfp_read_block(uint8_t slot, uint8_t reg, uint8_t len) __banked __reentrant
 {

@@ -35,6 +35,7 @@
 #include "machine.h"
 
 uint8_t sfr_data[4];
+uint8_t i2c_buf[16];
 unsigned long hw_reads, hw_writes;
 
 static uint32_t      regfile[0x10000];

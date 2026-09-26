@@ -11,6 +11,7 @@
 #include "rtl837x_pins.h"
 #include "rtl837x_phy.h"
 #include "rtl837x_port.h"
+#include "rtl837x_i2c.h"
 #include "machine.h"
 #include "phy.h"
 #include "boot.h"
@@ -27,7 +28,6 @@ __xdata char sfp_module_vendor[2][17];
 __xdata char sfp_module_model[2][17];
 __xdata char sfp_module_serial[2][17];
 __xdata uint8_t sfp_options[2];
-__xdata uint8_t sfp_buf[16];	/* scratch for one I2C transaction, the controller reads at most 16 bytes */
 __xdata uint8_t sfp_speed[2];
 __xdata uint8_t sfp_quirks[2];
 __xdata uint8_t sfp_wake_at[2];
@@ -75,7 +75,7 @@ bool sfp_print_info(uint8_t sfp) __banked
 			return false;
 		if (i < 20 || i >= 60 || (i >= 36 && i < 40)) // Skip Non-ASCII codes
 			continue;
-		uint8_t c = sfp_buf[i & 0xf];
+		uint8_t c = i2c_buf[i & 0xf];
 		if (c)
 			write_char(c);
 	}
@@ -93,7 +93,7 @@ bool sfp_read_field(__xdata char *dst, uint8_t sfp, uint8_t start, uint8_t lengt
 
 	dst[length] = NUL;
 	for (uint8_t i = 0; i < length; i++) {
-		uint8_t c = sfp_buf[i];
+		uint8_t c = i2c_buf[i];
 		if (c && (c < 0x20 || c > 0x7e || c == '"' || c == '\\'))
 			c = '.';
 		dst[i] = c;
@@ -135,7 +135,7 @@ void sfp_apply_quirks(uint8_t sfp) __banked __reentrant
 		if (!(sfp_options[sfp] & 0x40)) {
 			// The module reports that DDM is not implemented, but try a dummy read to confirm
 			// 0xff would mean a failed I2C read or an impossible (per spec) voltage greater than 6.5V
-			if (sfp_read_block(sfp, 226, 1) && sfp_buf[0] != 0xff) {
+			if (sfp_read_block(sfp, 226, 1) && i2c_buf[0] != 0xff) {
 				sfp_options[sfp] |= 0x40;
 			}
 		}
@@ -166,7 +166,7 @@ static bool sfp_module_read(uint8_t sfp)
 	if (!sfp_read_block(sfp, 11, 2))
 		return false;
 
-	rate = sfp_buf[1];
+	rate = i2c_buf[1];
 	if (sfp_speed[sfp] == SFP_SPEED_100M)
 		rate = 0x1;
 	else if (sfp_speed[sfp] == SFP_SPEED_1G)
@@ -176,7 +176,7 @@ static bool sfp_module_read(uint8_t sfp)
 	else if (sfp_speed[sfp] == SFP_SPEED_10G)
 		rate = 0x69;
 	print_string("  Rate: "); print_byte(rate);  // Normally 1, but 0 for DAC, can be ignored?
-	print_string("  Encoding: "); print_byte(sfp_buf[0]);
+	print_string("  Encoding: "); print_byte(i2c_buf[0]);
 	print_string("  Module: ");
 	if (!sfp_print_info(sfp))
 		return false;
@@ -184,7 +184,7 @@ static bool sfp_module_read(uint8_t sfp)
 
 	if (!sfp_read_block(sfp, 92, 1))
 		return false;
-	sfp_options[sfp] = sfp_buf[0];
+	sfp_options[sfp] = i2c_buf[0];
 	if (!sfp_get_info(sfp))
 		return false;
 

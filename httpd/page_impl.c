@@ -215,7 +215,7 @@ void send_sfp_info(uint8_t sfp)
 			return;
 		if (i < 20 || i >= 60 || (i >= 36 && i < 40)) // Skip Non-ASCII codes
 			continue;
-		uint8_t c = sfp_buf[i & 0xf];
+		uint8_t c = i2c_buf[i & 0xf];
 		if (c)
 			json_char_to_html(c);
 	}
@@ -232,7 +232,7 @@ void sfp_send_data(uint8_t slot, uint8_t reg, uint8_t len)
 		return;
 
 	for (uint8_t i = 0; i < len; i++)
-		byte_to_html(sfp_buf[i]);
+		byte_to_html(i2c_buf[i]);
 }
 
 

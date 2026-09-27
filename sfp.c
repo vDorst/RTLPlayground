@@ -48,6 +48,22 @@ static __code const struct sfp_quirk_entry sfp_quirk_table[] = {
 	{ "QSFPTEK", "QT-SFP+-T", SFP_QUIRK_DDM },
 };
 
+enum ephy_mode {
+	MDIO_NONE,
+	MDIO_DIRECT,
+	MDIO_I2C_C22,
+	MDIO_I2C_C45,
+	MDIO_ROLLBALL,
+};
+
+enum sm_sds {
+	SM_WAIT,
+};
+
+struct sds_rt {
+	enum sm_sds status;
+	enum ephy_mode phy_mode;
+};
 
 
 
@@ -197,6 +213,7 @@ static bool sfp_module_read(uint8_t sfp)
 {
 	uint8_t rate;
 	int8_t sfp_status;
+	bool may_has_phy = false;
 
 	// Validate EEPROM MEMORY: BASIC ID
 	sfp_status = sfp_check(sfp, false);
@@ -229,6 +246,7 @@ static bool sfp_module_read(uint8_t sfp)
 	print_string("  Rate: "); print_byte(rate);  // Normally 1, but 0 for DAC, can be ignored?
 	print_string("  Encoding: "); print_byte(i2c_buf[11]);
 	print_string("  Connector: "); print_byte(i2c_buf[2]);
+	may_has_phy = i2c_buf[2] == SFF_CONN_REF_RJ45;
 	print_string("  Module: ");
 	if (!sfp_print_info(sfp))
 		return false;
@@ -251,7 +269,32 @@ static bool sfp_module_read(uint8_t sfp)
 		return false;
 
 	sfp_apply_quirks(sfp);
-	sds_config(sfp, sfp_rate_to_sds_config(rate));
+
+	uint8_t sfp_rate = sfp_rate_to_sds_config(rate);
+
+	// Detect SFP PHY
+	if (may_has_phy) {
+		if (i2c_read(sfp, I2C_SFP_ADDR, SFP_PHY_ADDR, 16)) {
+			print_string("EPHY FOUND\n");
+			// translate fiber SDS settings to xSGMII variant
+			// So we have in-band handling with the phy.
+			switch(sfp_rate) {
+				case SDS_1000BX_FIBER:
+					sfp_rate = SDS_SGMII;
+					break;
+				case SDS_HSG:
+					sfp_rate = SDS_HISGMII;
+					break;
+				case SDS_10GR:
+					sfp_rate = SDS_QXGMII;
+					break;
+				default:
+					break;
+			}
+		}
+	}
+
+	sds_config(sfp, sfp_rate);
 
 	return true;
 }

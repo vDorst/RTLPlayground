@@ -119,11 +119,12 @@ void rtl8373_init(void) __banked
 
 	sds_config_mac(1, SDS_OFF);    // Off for now until SFP+ port used
 
-	bool is_rtl8224 = machine.sds_settings[0].usage == SDS_EPHY && machine.sds_settings[0].sds_settings_t.ephy.type == RTL8224;
+	bool is_rtl8224 = machine.sds_settings[0].usage == SDS_EPHY && \
+					  machine.sds_settings[0].sds_settings_t.ephy.type == RTL8224;
 	if (is_rtl8224) {
 		phy_config_8224();
 		sds_config_mac(2, SDS_SGMII);  // For RTL8224
-		sds_config(0, SDS_QXGMII);     // For RTL8224
+		sds_config(0, SDS_10G_QXGMII);     // For RTL8224
 	}
 
 	// SDS 1 setup
@@ -219,15 +220,15 @@ void rtl8372_init(void) __banked
 						break;
 					case RTL8261BE:
 						phy_config_8261(port, sds);
-						sds_config_mac(sds, SDS_QXGMII);
+						sds_config_mac(sds, SDS_10G_QXGMII);
 						break;
 					case RTL8221B:
 						phy_config(port);	// PHY configuration: External 8221B?
-						sds_config_mac(sds, SDS_HISGMII);
+						sds_config_mac(sds, SDS_2G5_SGMII);
 						break;
 				}
 			case SDS_FIXED_LINK:
-				sds_config_mac(sds, SDS_QXGMII);
+				sds_config_mac(sds, SDS_10G_QXGMII);
 				break;
 			case SDS_SFP:
 			default:

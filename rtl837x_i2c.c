@@ -2,6 +2,7 @@
 #include "rtl837x_common.h"
 #include "rtl837x_sfr.h"
 #include "rtl837x_regs.h"
+#include "rtl837x_i2c.h"
 #include "machine.h"
 
 extern __code const struct machine machine;
@@ -28,13 +29,13 @@ bool i2c_read(uint8_t slot, uint8_t dev, uint8_t reg, uint8_t len) __banked __re
 	REG_WRITE(RTL837X_REG_I2C_CTRL, 0x00,
 		  0x1 << (I2C_MEM_ADDR_WIDTH - 16) | len,
 		  (dev >> 5) | machine.sds_settings[slot].sds_settings_t.sfp.i2c,
-		  ((dev << 3) & 0xff) | 0x1);
+		  ((dev << 3) & 0xff) | FLAG_I2C_TRIGGER);
 
 	do {
 		reg_read(RTL837X_REG_I2C_CTRL);
-	} while (SFR_DATA_0 & 0x1);
+	} while (SFR_DATA_0 & FLAG_I2C_TRIGGER);
 
-	if (SFR_DATA_0 & 0x2)
+	if (SFR_DATA_0 & FLAG_I2C_FAIL)
 		return false;
 
 	for (uint8_t i = 0; i <= len; i++) {

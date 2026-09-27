@@ -65,7 +65,43 @@ static inline uint8_t sfp_rate_to_sds_config(uint8_t rate)
 }
 
 
+#define I2C_READ_CNT 16
+/* Validates the SFP-EEPROM data checksum
+ * Input:
+ * - sds, sds port which the SFP is connected to.
+ * - mem_range:
+ *   - false = BASE ID FIELDS: 0..65
+ *   - true  = EXTENDED ID FIELDS: 64..95
+ */
+static int8_t sfp_check(uint8_t sds, __xdata bool mem_range)
+{
+	uint8_t addr = 0;
+	uint8_t len;
 
+	if (mem_range)
+		addr = 64;
+
+	uint8_t check = 0;
+	do {
+		if (!sfp_read_block(sds, addr, I2C_READ_CNT))
+			return -1;
+		len = I2C_READ_CNT;
+		__xdata uint8_t * b = &i2c_buf;
+		do {
+			check += *b++;
+		} while(--len);
+
+		len = 64;
+		if (addr >= 64)
+			len = 96;
+		addr += I2C_READ_CNT;
+	} while(addr < len);
+
+	uint8_t crc = i2c_buf[15];
+	check -= crc;
+
+	return (check == crc);
+}
 
 bool sfp_print_info(uint8_t sfp) __banked
 {
@@ -160,13 +196,28 @@ void setup_sfp_gpio(void) __banked
 static bool sfp_module_read(uint8_t sfp)
 {
 	uint8_t rate;
+	int8_t sfp_status;
+
+	// Validate EEPROM MEMORY: BASIC ID
+	sfp_status = sfp_check(sfp, false);
+	if (sfp_status < 0)
+		return false;
+	if (!sfp_status)
+		print_string("\nERROR: SFP base checksum failed!\n");
+
+	// Validate EEPROM MEMORY: EXTENDED ID
+	sfp_status = sfp_check(sfp, true);
+	if (sfp_status < 0)
+		return false;
+	if (!sfp_status)
+		print_string("\nERROR: SFP extended checksum failed!\n");
 
 	// Read Reg 11: Encoding, see SFF-8472 and SFF-8024
 	// Read Reg 12: Signalling rate (including overhead) in 100Mbit: 0xd: 1Gbit, 0x67:10Gbit
-	if (!sfp_read_block(sfp, 11, 2))
+	if (!sfp_read_block(sfp, 0, 16))
 		return false;
 
-	rate = i2c_buf[1];
+	rate = i2c_buf[12];
 	if (sfp_speed[sfp] == SFP_SPEED_100M)
 		rate = 0x1;
 	else if (sfp_speed[sfp] == SFP_SPEED_1G)
@@ -176,15 +227,26 @@ static bool sfp_module_read(uint8_t sfp)
 	else if (sfp_speed[sfp] == SFP_SPEED_10G)
 		rate = 0x69;
 	print_string("  Rate: "); print_byte(rate);  // Normally 1, but 0 for DAC, can be ignored?
-	print_string("  Encoding: "); print_byte(i2c_buf[0]);
+	print_string("  Encoding: "); print_byte(i2c_buf[11]);
+	print_string("  Connector: "); print_byte(i2c_buf[2]);
 	print_string("  Module: ");
 	if (!sfp_print_info(sfp))
 		return false;
+	if (!sfp_read_block(sfp, 64, I2C_READ_CNT))
+		return false;
+
+	print_string("  Option: ");
+	print_byte(i2c_buf[0]);
+	print_byte(i2c_buf[1]);
+	
+	if (!sfp_read_block(sfp, 80, I2C_READ_CNT))
+		return false;
+	sfp_options[sfp] = i2c_buf[12];
+
+	print_byte(i2c_buf[12]);
+	print_byte(i2c_buf[13]);
 	print_string("\n");
 
-	if (!sfp_read_block(sfp, 92, 1))
-		return false;
-	sfp_options[sfp] = i2c_buf[0];
 	if (!sfp_get_info(sfp))
 		return false;
 
@@ -193,8 +255,6 @@ static bool sfp_module_read(uint8_t sfp)
 
 	return true;
 }
-
-
 
 
 void handle_sfp(void) __banked

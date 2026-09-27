@@ -302,42 +302,53 @@ static bool sfp_module_read(uint8_t sfp)
 
 void handle_sfp(void) __banked
 {
-	for (uint8_t sfp = 0; sfp < 2; sfp++) {
-		if (machine.sds_settings[sfp].usage != SDS_SFP)
+	for (uint8_t sds = 0; sds < 2; sds++) {
+		if (machine.sds_settings[sds].usage != SDS_SFP)
 			continue;
 
-		if (!gpio_pin_test(machine.sds_settings[sfp].sds_settings_t.sfp.pin_detect)) {
-			if (sfp_pins_last & (0x1 << (sfp << 2))) {
-				sfp_pins_last &= ~(0x01 << (sfp << 2));
-				print_string("\n<MODULE INSERTED>  Slot: "); write_char('1' + sfp);
-				sfp_wake_at[sfp] = ticks;
-				sfp_wake_pending[sfp] = 1;
-			} else if (sfp_wake_pending[sfp]
-				   && (uint8_t)((uint8_t)ticks - sfp_wake_at[sfp]) >= SFP_WAKE_TICKS) {
-				sfp_wake_pending[sfp] = 0;
-				if (!sfp_module_read(sfp)) {
-					print_string("SFP: an I2C read failed, retrying on the next poll\n");
-					sfp_pins_last |= 0x01 << (sfp << 2);
-				}
+		__xdata uint8_t port = sds == 1 ? MAC_SDS1 : MAC_SDS0;
+
+		// pin_detect is active_low
+		bool sfp_cage_is_empty = gpio_pin_test(machine.sds_settings[sds].sds_settings_t.sfp.pin_detect);
+
+		if (sfp_cage_is_empty) {
+			if (!(sfp_pins_last & (0x1 << (sds << 2)))) {
+				sfp_pins_last |= 0x01 << (sds << 2);
+				sfp_wake_pending[sds] = 0;
+				print_string("\n<MODULE REMOVED>  Port: "); print_phys_port(port); write_char('\n');
+				sds_config(sds, SDS_OFF);
 			}
-		} else {
-			if (!(sfp_pins_last & (0x1 << (sfp << 2)))) {
-				sfp_pins_last |= 0x01 << (sfp << 2);
-				sfp_wake_pending[sfp] = 0;
-				print_string("\n<MODULE REMOVED>  Slot: "); write_char('1' + sfp); write_char('\n');
-				sds_config(sfp, SDS_OFF);
-			}
+			continue;
 		}
 
-		if (!gpio_pin_test(machine.sds_settings[sfp].sds_settings_t.sfp.pin_los)) {
-			if (sfp_pins_last & (0x2 << (sfp << 2))) { // 0x2 0x08
-				sfp_pins_last &= ~(0x02 << (sfp << 2));
-				print_string("\n<SFP-RX OK>  Slot: "); write_char('1' + sfp); write_char('\n');
+		if (sfp_pins_last & (0x1 << (sds << 2))) {
+			sfp_pins_last &= ~(0x01 << (sds << 2));
+			print_string("\n<MODULE INSERTED>  Port: "); print_phys_port(port);
+			sfp_wake_at[sds] = ticks;
+			sfp_wake_pending[sds] = 1;
+			continue;
+		}
+
+		if (sfp_wake_pending[sds]
+				&& (uint8_t)((uint8_t)ticks - sfp_wake_at[sds]) >= SFP_WAKE_TICKS) {
+			sfp_wake_pending[sds] = 0;
+			if (!sfp_module_read(sds)) {
+				print_string("SFP: an I2C read failed, retrying on the next poll\n");
+				sfp_pins_last |= 0x01 << (sds << 2);
 			}
 		} else {
-			if (!(sfp_pins_last & 0x2 << (sfp << 2))) {
-				sfp_pins_last |= 0x02 << (sfp << 2);
-				print_string("\n<SFP-RX LOS>  Slot: "); write_char('1' + sfp); write_char('\n');
+			continue;
+		}
+
+		if (!gpio_pin_test(machine.sds_settings[sds].sds_settings_t.sfp.pin_los)) {
+			if (sfp_pins_last & (0x2 << (sds << 2))) { // 0x2 0x08
+				sfp_pins_last &= ~(0x02 << (sds << 2));
+				print_string("\n<SFP-RX OK>  Port: "); print_phys_port(port); write_char('\n');
+			}
+		} else {
+			if (!(sfp_pins_last & 0x2 << (sds << 2))) {
+				sfp_pins_last |= 0x02 << (sds << 2);
+				print_string("\n<SFP-RX LOS>  Port: "); print_phys_port(port); write_char('\n');
 			}
 		}
 	}

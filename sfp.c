@@ -72,11 +72,11 @@ static inline uint8_t sfp_rate_to_sds_config(uint8_t rate)
 	if (rate == 0x1 || rate == 0x2)
 		return SDS_100FX;
 	if (rate == 0xc || rate == 0xd)
-		return SDS_1000BX_FIBER;
+		return SDS_1000BASEX;
 	if (rate >= 0x19 && rate <= 0x20)  // Ethernet 2.5 GBit
-		return SDS_HSG;
+		return SDS_2500BASEX;
 	if (rate >= 0x62 && rate < 0x70)
-		return SDS_10GR;
+		return SDS_10GBASER;
 	return 0xff;
 }
 
@@ -279,14 +279,14 @@ static bool sfp_module_read(uint8_t sfp)
 			// translate fiber SDS settings to xSGMII variant
 			// So we have in-band handling with the phy.
 			switch(sfp_rate) {
-				case SDS_1000BX_FIBER:
+				case SDS_1000BASEX:
 					sfp_rate = SDS_SGMII;
 					break;
-				case SDS_HSG:
-					sfp_rate = SDS_HISGMII;
+				case SDS_2500BASEX:
+					sfp_rate = SDS_2G5_SGMII;
 					break;
-				case SDS_10GR:
-					sfp_rate = SDS_QXGMII;
+				case SDS_10GBASER:
+					sfp_rate = SDS_10G_QXGMII;
 					break;
 				default:
 					break;

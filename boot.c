@@ -118,9 +118,9 @@ void early_boot_handle_button(void) __banked
 /*
  * Configure the SerDes of the SoC for a particular mode
  * to connect to an SFP module or a PHY
- * Valid modes are SDS_10GR, SDS_QXGMII, SDS_HISGMII, SDS_HSG, SDS_SGMII and SDS_1000BX_FIBER
+ * Valid modes are SDS_10GBASER, SDS_10G_QXGMII, SDS_2G5_SGMII, SDS_2500BASEX, SDS_SGMII and SDS_1000BASEX
  * The SerDes ID may be 0 or 1 for RTL8272 and 0-2 for RTL8373
- * SDS_QXGMII is used for 10G Fiber, RTL8224 and RTL8261BE
+ * SDS_10G_QXGMII is used for 10G Fiber, RTL8224 and RTL8261BE
  */
 void sds_config(uint8_t sds, uint8_t mode) __banked
 {
@@ -130,7 +130,7 @@ void sds_config(uint8_t sds, uint8_t mode) __banked
 	print_string(", mode: ");
 
 	uint16_t v = 0x6480; // Q002110:6480
-	if (mode == SDS_10GR || mode == SDS_QXGMII)
+	if (mode == SDS_10GBASER || mode == SDS_10G_QXGMII)
 		v = 0x4480; // Q002110:6480
 	sds_write_v(sds, 0x21, 0x10, v);
 
@@ -149,19 +149,19 @@ void sds_config(uint8_t sds, uint8_t mode) __banked
 	case SDS_SGMII:
 		msg = "SGMII\n";
 		break;
-	case SDS_1000BX_FIBER:
+	case SDS_1000BASEX:
 		msg = "1000BX\n";
 		break;
-	case SDS_HISGMII:
-		msg = "HISGMII\n";
+	case SDS_2G5_SGMII:
+		msg = "2G5_SGMII\n";
 		break;
-	case SDS_HSG:
-		msg = "HSG\n";
+	case SDS_2500BASEX:
+		msg = "2500BASEX\n";
 		break;
-	case SDS_10GR:
-		msg = "10GR\n";
+	case SDS_10GBASER:
+		msg = "10GBASER\n";
 		break;
-	case SDS_QXGMII:
+	case SDS_10G_QXGMII:
 		msg = "QXGMII\n";
 		break;
 	case SDS_100FX:
@@ -175,17 +175,17 @@ void sds_config(uint8_t sds, uint8_t mode) __banked
 
 	switch (mode) {
 	case SDS_SGMII:
-	case SDS_1000BX_FIBER:
+	case SDS_1000BASEX:
 		v = 0x0300;
 		page = 0x24;
 		break;
-	case SDS_HISGMII:
-	case SDS_HSG:
+	case SDS_2G5_SGMII:
+	case SDS_2500BASEX:
 		v = 0x0200;
 		page = 0x28;
 		break;
-	case SDS_10GR:
-	case SDS_QXGMII:
+	case SDS_10GBASER:
+	case SDS_10G_QXGMII:
 		v = 0x0200;
 		page = 0x2e;
 		break;
@@ -193,13 +193,15 @@ void sds_config(uint8_t sds, uint8_t mode) __banked
 		v = 0x0200;
 		page = 0x26;
 		break;
+	case SDS_OFF:
+		return;
 	default:
 		print_string("Error in SDS Mode\n");
 		return;
 	}
 	sds_write_v(sds, 0x36, 0x10, v); // Q003610:0200
 
-	if (page == 0x2e) {  // 10G Fiber / SDS_QXGMII
+	if (page == 0x2e) {  // 10G Fiber / SDS_10G_QXGMII
 		sds_write_v(sds, page, 0x04, 0x0080); // Q012e04:0080
 		sds_write_v(sds, page, 0x06, 0x0408); // Q012e06:0408
 		sds_write_v(sds, page, 0x07, 0x020d); // Q012e07:020d
@@ -253,10 +255,10 @@ void sds_config(uint8_t sds, uint8_t mode) __banked
 		sds_write_v(sds, 0x1f, 0x00, 0x0000); // Q001f00:0000
 		return;
 	}
-	if (mode != SDS_QXGMII)
+	if (mode != SDS_10G_QXGMII)
 		sds_write_v(sds, 0x06, 0x1f, 0x2100); // Q00061f:2100
 
-	if (mode == SDS_1000BX_FIBER) {
+	if (mode == SDS_1000BASEX) {
 		sds_write_v(sds, 0x02, 0x04, 0x0020); 	// Q000204:0020
 		sds_write_v(sds, 0x00, 0x02, 0x73d0); 	// Q000002:73d0
 		sds_write_v(sds, 0x00, 0x04, 0x074d); 	// Q000004:074d

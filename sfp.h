@@ -3,6 +3,16 @@
 
 #define SFP_WAKE_TICKS	100
 
+
+// SFF-8024 Rev 4.14 defines
+#define SFF_CONN_REF_RJ45 0x22
+
+
+#define I2C_SFP_ADDR            0x56
+#define SFP_PHY_ADDR            22
+#define SFP_PHY_ADDR_ROLLBALL   17
+
+
 extern __xdata uint8_t sfp_pins_last;
 extern __xdata char sfp_module_vendor[2][17];
 extern __xdata char sfp_module_model[2][17];

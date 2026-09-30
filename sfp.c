@@ -32,6 +32,7 @@ __xdata uint8_t sfp_speed[2];
 __xdata uint8_t sfp_quirks[2];
 __xdata uint8_t sfp_wake_at[2];
 __xdata uint8_t sfp_wake_pending[2];
+extern __xdata uint8_t sfr_data[4];
 
 
 __code enum sfp_quirk {
@@ -207,6 +208,66 @@ void setup_sfp_gpio(void) __banked
 	}
 }
 
+/* Read SFP-PHY with C45
+ * arguments:
+ *   - sds: SDS port
+ *   - dev: I2C-address
+ *   - devad: set -1 for C22 read.
+ *   - reg: 16-bit for C45, lsb for C22
+*/
+// https://elixir.bootlin.com/linux/v7.2.8/source/drivers/net/phy/phy_device.c#L991
+bool i2c_mdio_phy_read_c45(uint8_t sds, uint8_t phy_id, int8_t devad, uint16_t reg) __reentrant __banked
+{
+	print_string("i2c: sds: "); print_byte(sds);
+	print_string(" phy_id: "); print_byte(phy_id);
+	print_string(" devad: "); print_byte(devad);
+	print_string(" reg: "); print_short(reg);
+
+	uint8_t dev = phy_id + 0x40;
+	uint8_t len = 0x02;
+	if (devad >= 0) {
+		sfr_data[3] = devad | 0x20;
+		sfr_data[2] = reg >> 8;
+		sfr_data[1] = reg;
+		len |= 0x3 << 4;
+	} else {
+		sfr_data[3] = reg;
+		sfr_data[2] = 0;
+		sfr_data[1] = 0;
+		len |= 0x1 << 4;
+	}
+	sfr_data[0] = 0;
+
+	write_char(' ');
+	print_byte(len);
+	write_char(' ');
+	print_byte(sfr_data[0]);
+	print_byte(sfr_data[1]);
+	print_byte(sfr_data[2]);
+	print_byte(sfr_data[3]);
+	write_char('\n');
+
+	reg_write_m(RTL837X_REG_I2C_IN);
+
+	REG_WRITE(RTL837X_REG_I2C_CTRL,
+			  0x00,
+			  len,
+			  (dev >> 5) | machine.sds_settings[sds].sds_settings_t.sfp.i2c,
+			  ((dev << 3) & 0xff) | FLAG_I2C_TRIGGER);
+
+	do {
+		reg_read(RTL837X_REG_I2C_CTRL);
+	} while (SFR_DATA_0 & FLAG_I2C_TRIGGER);
+
+	if (SFR_DATA_0 & FLAG_I2C_FAIL)
+		return false;
+
+	reg_read(RTL837X_REG_I2C_OUT);
+	i2c_buf[0] = SFR_DATA_0;
+	i2c_buf[1] = SFR_DATA_8;
+
+	return true;
+}
 
 
 static bool sfp_module_read(uint8_t sfp)
@@ -274,8 +335,15 @@ static bool sfp_module_read(uint8_t sfp)
 
 	// Detect SFP PHY
 	if (may_has_phy) {
-		if (i2c_read(sfp, I2C_SFP_ADDR, SFP_PHY_ADDR, 16)) {
-			print_string("EPHY FOUND\n");
+		if (i2c_mdio_phy_read_c45(sfp, SFP_PHY_ADDR, -1, 0x02)) {
+			print_string("EPHY FOUND: ID: ");
+			print_byte(i2c_buf[0]);
+			print_byte(i2c_buf[1]);
+			if (i2c_mdio_phy_read_c45(sfp, SFP_PHY_ADDR, -1, 0x03)) {
+				print_byte(i2c_buf[0]);
+				print_byte(i2c_buf[1]);
+			}
+			write_char('\n');
 			// translate fiber SDS settings to xSGMII variant
 			// So we have in-band handling with the phy.
 			switch(sfp_rate) {

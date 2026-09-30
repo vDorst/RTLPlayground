@@ -249,7 +249,7 @@ uint8_t atoi_short(uint8_t idx)
 uint8_t cmd_parse_port(uint8_t idx) {
 	uint8_t port = cmd_buffer[idx] - '0';
 	port = phys_to_log_port(port);
-	if (IS_PHYS_PORT_INVALID(port))
+	if ((int8_t)port < 0)
 		return 0;
 
 	atoi_results_u8 = port;
@@ -1095,6 +1095,72 @@ err:
 }
 
 
+void parse_phy(void)
+{
+	uint8_t hex_size;
+
+	if (cmd_words_len < 4)
+		goto err;
+
+	// port
+	if (cmd_parse_port_separator(cmd_words_b[1]) == 0) {
+		cmd_error("Invalid or unused port number\n");
+		return;
+	}
+	uint8_t port = atoi_results_u8;
+	print_string("Port: "); print_phys_port(port);
+
+	// devad
+	hex_size = atoi_hex(cmd_words_b[2]);
+	if (hex_size != 1)
+		goto err;
+	uint8_t devad = hexvalue[0];
+	print_string("\ndevad: "); print_byte(devad);
+
+	// reg
+	hex_size = atoi_hex(cmd_words_b[3]);
+	if (hex_size == 0 || hex_size > 2)
+		goto err;
+
+	uint16_t reg = hexvalue[0];
+	if (hex_size == 2) {
+		reg <<= 8;
+		reg |= hexvalue[1];
+	}
+	print_string("\nreg: "); print_short(reg); write_char('\n');
+
+	// Read value
+	if (port == MAC_SDS0 && !machine.isRTL8373 || port == MAC_SDS1) {
+		uint8_t sds = port == MAC_SDS1;
+		if (machine.sds_settings[sds].usage == SDS_SFP) {
+			if (!i2c_mdio_phy_read_c45(sds, SFP_PHY_ADDR, devad, reg)) {
+				print_string("I2C error\n");
+				return;
+			}
+		} else if (machine.sds_settings[sds].usage == SDS_EPHY) {
+			phy_read(machine.sds_settings[sds].sds_settings_t.ephy.phy_addr, devad, reg);
+		} else {
+			print_string("Not a SFP or EPHY");
+			return;
+		}
+	} else {
+		print_string("phy: port/id: "); print_byte(port);
+		print_string(", devad: "); print_byte(devad);
+		print_string(", reg: "); print_short(reg);
+		phy_read(port, devad, reg);
+	}
+
+	print_string(" = ");
+	uint16_t pval = SFR_DATA_U16LE;
+	print_short(pval);
+	write_char('\n');
+
+	return;
+
+err:
+	cmd_error("Usage phy <port> <devad> <reg> [value]");
+}
+
 void parse_regget(void)
 {
 	if (cmd_words_len != 2) {
@@ -1939,6 +2005,8 @@ void cmd_parser(void) __banked
 			reg_read_m(RTL837X_REG_SEC_COUNTER);
 			print_sfr_data();
 			write_char('\n');
+		} else if (cmd_compare(0, "phy")) {
+			parse_phy();
 		} else if (cmd_compare(0, "history")) {
 			__xdata uint16_t p = (cmd_history_ptr + 1) & CMD_HISTORY_MASK;
 			__xdata uint8_t found_begin = 0;

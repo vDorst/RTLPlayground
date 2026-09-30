@@ -1405,6 +1405,7 @@ int8_t phys_to_log_port(uint8_t phys_port) {
 	uint8_t port = machine.min_port;
 	uint8_t port_max = machine.max_port;
 
+	// .log_to_phys_port = {1, 2, 3, 4, 5, 6, 7, 8, 9},
 	do {
 		uint8_t phys_port_val = machine.log_to_phys_port[port];
 		if (phys_port_val == phys_port && phys_port_val != NOP)

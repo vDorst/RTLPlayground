@@ -27,5 +27,6 @@ void sfp_apply_quirks(uint8_t sfp) __banked __reentrant;
 void setup_sfp_gpio(void) __banked;
 void handle_sfp(void) __banked;
 bool i2c_mdio_phy_read_c45(uint8_t sds, uint8_t phy_id, int8_t devad, uint16_t reg) __reentrant __banked;
+bool i2c_mdio_phy_write_c45(uint8_t sds, uint8_t phy_id, int8_t devad, uint16_t reg, uint16_t val) __reentrant __banked;
 
 #endif

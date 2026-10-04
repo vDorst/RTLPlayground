@@ -1222,7 +1222,7 @@ void check_links(void)
 			}
 			new &= 0x0F;
 			old &= 0x0F;
-				
+
 			uint8_t diff = new ^ old;
 			bool change = diff != 0;
 

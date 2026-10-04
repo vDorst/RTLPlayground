@@ -1131,32 +1131,67 @@ void parse_phy(void)
 	}
 	print_string("\nreg: "); print_short(reg); write_char('\n');
 
-	// Read value
-	if (port == MAC_SDS0 && !machine.isRTL8373 || port == MAC_SDS1) {
-		uint8_t sds = port == MAC_SDS1;
-		if (machine.sds_settings[sds].usage == SDS_SFP) {
-			if (!i2c_mdio_phy_read_c45(sds, SFP_PHY_ADDR, devad, reg)) {
-				print_string("I2C error\n");
+	if (cmd_words_len == 5) {
+		// Write value
+
+		// reg
+		hex_size = atoi_hex(cmd_words_b[4]);
+		if (hex_size == 0 || hex_size > 2)
+			goto err;
+		uint16_t val = hexvalue[0];
+		if (hex_size == 2) {
+			val <<= 8;
+			val |= hexvalue[1];
+		}
+		print_string("\val: "); print_short(val); write_char('\n');
+
+		if (port == MAC_SDS0 && !machine.isRTL8373 || port == MAC_SDS1) {
+			uint8_t sds = port == MAC_SDS1;
+			if (machine.sds_settings[sds].usage == SDS_SFP) {
+				if (!i2c_mdio_phy_write_c45(sds, SFP_PHY_ADDR, devad, reg, val)) {
+					print_string("I2C error\n");
+					return;
+				}
+			} else if (machine.sds_settings[sds].usage == SDS_EPHY) {
+				phy_write(machine.sds_settings[sds].sds_settings_t.ephy.phy_addr, devad, reg, val);
+			} else {
+				print_string("Not a SFP or EPHY");
 				return;
 			}
-		} else if (machine.sds_settings[sds].usage == SDS_EPHY) {
-			phy_read(machine.sds_settings[sds].sds_settings_t.ephy.phy_addr, devad, reg);
 		} else {
-			print_string("Not a SFP or EPHY");
-			return;
+			print_string("phy: port/id: "); print_byte(port);
+			print_string(", devad: "); print_byte(devad);
+			print_string(", reg: "); print_short(reg);
+			print_string(", val: "); print_short(val);
+			phy_write(port, devad, reg, val);
 		}
 	} else {
-		print_string("phy: port/id: "); print_byte(port);
-		print_string(", devad: "); print_byte(devad);
-		print_string(", reg: "); print_short(reg);
-		phy_read(port, devad, reg);
+		// Read value
+		if (port == MAC_SDS0 && !machine.isRTL8373 || port == MAC_SDS1) {
+			uint8_t sds = port == MAC_SDS1;
+			if (machine.sds_settings[sds].usage == SDS_SFP) {
+				if (!i2c_mdio_phy_read_c45(sds, SFP_PHY_ADDR, devad, reg)) {
+					print_string("I2C error\n");
+					return;
+				}
+			} else if (machine.sds_settings[sds].usage == SDS_EPHY) {
+				phy_read(machine.sds_settings[sds].sds_settings_t.ephy.phy_addr, devad, reg);
+			} else {
+				print_string("Not a SFP or EPHY");
+				return;
+			}
+		} else {
+			print_string("phy: port/id: "); print_byte(port);
+			print_string(", devad: "); print_byte(devad);
+			print_string(", reg: "); print_short(reg);
+			phy_read(port, devad, reg);
+		}
+
+		print_string(" = ");
+		uint16_t pval = SFR_DATA_U16LE;
+		print_short(pval);
+		write_char('\n');
 	}
-
-	print_string(" = ");
-	uint16_t pval = SFR_DATA_U16LE;
-	print_short(pval);
-	write_char('\n');
-
 	return;
 
 err:

@@ -24,7 +24,7 @@ bool i2c_read(uint8_t sds, uint8_t dev, uint8_t reg, uint8_t len) __banked __ree
 	if (len > 15)
 		return false;
 
-	REG_WRITE(RTL837X_REG_I2C_IN, 0, 0, 0, reg);
+	REG_WRITE(RTL837X_REG_I2C_ADDR_DATA, 0, 0, 0, reg);
 
 	REG_WRITE(RTL837X_REG_I2C_CTRL, 0x00,
 		  0x1 << (I2C_MEM_ADDR_WIDTH - 16) | len,
@@ -41,7 +41,7 @@ bool i2c_read(uint8_t sds, uint8_t dev, uint8_t reg, uint8_t len) __banked __ree
 	for (uint8_t i = 0; i <= len; i++) {
 		switch (i & 0x3) {
 		case 0:
-			reg_read(RTL837X_REG_I2C_OUT + i);
+			reg_read(RTL837X_REG_I2C_DATA + i);
 			val = SFR_DATA_0;
 			break;
 		case 1:

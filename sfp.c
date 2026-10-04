@@ -218,23 +218,22 @@ void setup_sfp_gpio(void) __banked
 // https://elixir.bootlin.com/linux/v7.2.8/source/drivers/net/phy/phy_device.c#L991
 bool i2c_mdio_phy_read_c45(uint8_t sds, uint8_t phy_id, int8_t devad, uint16_t reg) __reentrant __banked
 {
-	print_string("i2c: sds: "); print_byte(sds);
+	print_string("i2c-r: sds: "); print_byte(sds);
 	print_string(" phy_id: "); print_byte(phy_id);
 	print_string(" devad: "); print_byte(devad);
 	print_string(" reg: "); print_short(reg);
 
 	uint8_t dev = phy_id + 0x40;
-	uint8_t len = 0x02;
+	uint8_t len = 0x12;
 	if (devad >= 0) {
 		sfr_data[3] = devad | 0x20;
 		sfr_data[2] = reg >> 8;
 		sfr_data[1] = reg;
-		len |= 0x3 << 4;
+		len |= 0x30;
 	} else {
 		sfr_data[3] = reg;
 		sfr_data[2] = 0;
 		sfr_data[1] = 0;
-		len |= 0x1 << 4;
 	}
 	sfr_data[0] = 0;
 
@@ -247,7 +246,7 @@ bool i2c_mdio_phy_read_c45(uint8_t sds, uint8_t phy_id, int8_t devad, uint16_t r
 	print_byte(sfr_data[3]);
 	write_char('\n');
 
-	reg_write_m(RTL837X_REG_I2C_IN);
+	reg_write_m(RTL837X_REG_I2C_ADDR_DATA);
 
 	REG_WRITE(RTL837X_REG_I2C_CTRL,
 			  0x00,
@@ -259,12 +258,70 @@ bool i2c_mdio_phy_read_c45(uint8_t sds, uint8_t phy_id, int8_t devad, uint16_t r
 		reg_read(RTL837X_REG_I2C_CTRL);
 	} while (SFR_DATA_0 & FLAG_I2C_TRIGGER);
 
-	if (SFR_DATA_0 & FLAG_I2C_FAIL)
+	if (SFR_DATA_0 & FLAG_I2C_FAIL) {
+		write_char('1');
 		return false;
+	}
 
-	reg_read(RTL837X_REG_I2C_OUT);
+	reg_read(RTL837X_REG_I2C_DATA);
 	i2c_buf[0] = SFR_DATA_0;
 	i2c_buf[1] = SFR_DATA_8;
+
+	return true;
+}
+
+bool i2c_mdio_phy_write_c45(uint8_t sds, uint8_t phy_id, int8_t devad, uint16_t reg, uint16_t val) __reentrant __banked
+{
+	print_string("i2c-w: sds: "); print_byte(sds);
+	print_string(" phy_id: "); print_byte(phy_id);
+	print_string(" devad: "); print_byte(devad);
+	print_string(" reg: "); print_short(reg);
+	print_string(" val: "); print_short(val);
+
+	uint8_t dev = phy_id + 0x40;
+	uint8_t len = 0x12;
+	if (devad >= 0) {
+		sfr_data[3] = devad | 0x20;
+		sfr_data[2] = reg >> 8;
+		sfr_data[1] = reg;
+		len |= 0x30;
+	} else {
+		sfr_data[3] = reg;
+		sfr_data[2] = 0;
+		sfr_data[1] = 0;
+	}
+	sfr_data[0] = 0;
+
+	write_char(' ');
+	print_byte(len);
+	write_char(' ');
+	print_byte(sfr_data[0]);
+	print_byte(sfr_data[1]);
+	print_byte(sfr_data[2]);
+	print_byte(sfr_data[3]);
+	write_char('\n');
+
+	reg_write_m(RTL837X_REG_I2C_ADDR_DATA);
+
+	SFR_DATA_U16 = val;
+	SFR_DATA_16 = 0x00;
+	SFR_DATA_24 = 0x00;
+	reg_write(RTL837X_REG_I2C_DATA);
+
+	REG_WRITE(RTL837X_REG_I2C_CTRL,
+			  0x00,
+			  len,
+			  (dev >> 5) | machine.sds_settings[sds].sds_settings_t.sfp.i2c,
+			  ((dev << 3) & 0xff) | I2C_FLAG_OPPR_WRITE | FLAG_I2C_TRIGGER);
+
+	do {
+		reg_read(RTL837X_REG_I2C_CTRL);
+	} while (SFR_DATA_0 & FLAG_I2C_TRIGGER);
+
+	if (SFR_DATA_0 & FLAG_I2C_FAIL) {
+		write_char('1');
+		return false;
+	}
 
 	return true;
 }
@@ -317,7 +374,7 @@ static bool sfp_module_read(uint8_t sfp)
 	print_string("  Option: ");
 	print_byte(i2c_buf[0]);
 	print_byte(i2c_buf[1]);
-	
+
 	if (!sfp_read_block(sfp, 80, I2C_READ_CNT))
 		return false;
 	sfp_options[sfp] = i2c_buf[12];
@@ -337,11 +394,10 @@ static bool sfp_module_read(uint8_t sfp)
 	if (may_has_phy) {
 		if (i2c_mdio_phy_read_c45(sfp, SFP_PHY_ADDR, -1, 0x02)) {
 			print_string("EPHY FOUND: ID: ");
-			print_byte(i2c_buf[0]);
+			print_short(SFR_DATA_U16LE);
 			print_byte(i2c_buf[1]);
 			if (i2c_mdio_phy_read_c45(sfp, SFP_PHY_ADDR, -1, 0x03)) {
-				print_byte(i2c_buf[0]);
-				print_byte(i2c_buf[1]);
+				print_short(SFR_DATA_U16LE);
 			}
 			write_char('\n');
 			// translate fiber SDS settings to xSGMII variant

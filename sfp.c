@@ -224,7 +224,8 @@ bool i2c_mdio_phy_read_c45(uint8_t sds, uint8_t phy_id, int8_t devad, uint16_t r
 	print_string(" reg: "); print_short(reg);
 
 	uint8_t dev = phy_id + 0x40;
-	uint8_t len = 0x12;
+	// Len = 2 -1!!!
+	uint8_t len = 0x11;
 	if (devad >= 0) {
 		sfr_data[3] = devad | 0x20;
 		sfr_data[2] = reg >> 8;
@@ -240,19 +241,20 @@ bool i2c_mdio_phy_read_c45(uint8_t sds, uint8_t phy_id, int8_t devad, uint16_t r
 	write_char(' ');
 	print_byte(len);
 	write_char(' ');
-	print_byte(sfr_data[0]);
-	print_byte(sfr_data[1]);
-	print_byte(sfr_data[2]);
-	print_byte(sfr_data[3]);
+	print_sfr_data();
 	write_char('\n');
 
 	reg_write_m(RTL837X_REG_I2C_ADDR_DATA);
 
-	REG_WRITE(RTL837X_REG_I2C_CTRL,
-			  0x00,
-			  len,
-			  (dev >> 5) | machine.sds_settings[sds].sds_settings_t.sfp.i2c,
-			  ((dev << 3) & 0xff) | FLAG_I2C_TRIGGER);
+
+	sfr_data[0] = 0x00;
+	sfr_data[1] = len;
+	sfr_data[2] = (dev >> 5) | machine.sds_settings[sds].sds_settings_t.sfp.i2c;
+	sfr_data[3] = (dev << 3) | FLAG_I2C_TRIGGER;
+	write_char('I');
+	print_sfr_data();
+	write_char('\n');
+	reg_write_m(RTL837X_REG_I2C_CTRL);
 
 	do {
 		reg_read(RTL837X_REG_I2C_CTRL);
@@ -263,9 +265,11 @@ bool i2c_mdio_phy_read_c45(uint8_t sds, uint8_t phy_id, int8_t devad, uint16_t r
 		return false;
 	}
 
-	reg_read(RTL837X_REG_I2C_DATA);
-	i2c_buf[0] = SFR_DATA_0;
-	i2c_buf[1] = SFR_DATA_8;
+	reg_read_m(RTL837X_REG_I2C_DATA);
+	write_char('R');print_sfr_data();write_char('\n');
+	// Data is Big Endian
+	i2c_buf[0] = SFR_DATA_8;
+	i2c_buf[1] = SFR_DATA_0;
 
 	return true;
 }
@@ -279,7 +283,8 @@ bool i2c_mdio_phy_write_c45(uint8_t sds, uint8_t phy_id, int8_t devad, uint16_t 
 	print_string(" val: "); print_short(val);
 
 	uint8_t dev = phy_id + 0x40;
-	uint8_t len = 0x12;
+	// Len = 2 -1!!!
+	uint8_t len = 0x11;
 	if (devad >= 0) {
 		sfr_data[3] = devad | 0x20;
 		sfr_data[2] = reg >> 8;

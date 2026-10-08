@@ -924,28 +924,26 @@ __code const struct machine machine = {
 #elif defined MACHINE_ONT_S207CW_62TS_SE
 
 __code const struct machine machine = {
-    .machine_name = "ONT-S207CW-62TS-SE / Binardat 2G06-04210GSM / Binardat 2G06-04210GS",
+	//.machine_name = "ONT-S207CW-62TS-SE / Binardat 2G06-04210GSM / Binardat 2G06-04210GS",
+    .machine_name = "ONT-S207CW-62TS-SE",
     .isRTL8373 = 0,
     .min_port = 3,
     .max_port = 8,
-    .n_sfp = 2,
-    .log_to_phys_port = {0, 0, 0, 5, 4, 3, 2, 1, 6},
-    .phys_to_log_port = {7, 6, 5, 4, 3, 8, 0, 0, 0},
-    .is_sfp = {0, 0, 0, 1, 0, 0, 0, 0, 2},
+    .log_to_phys_port = {NOP, NOP, NOP, 5, 4, 3, 2, 1, 6},
 
     // SFP port on SDS0 / logical port 3
-    .sfp_port[0].pin_detect = GPIO37,
-    .sfp_port[0].pin_los = GPIO_NA,
-    .sfp_port[0].pin_tx_disable = GPIO_NA,
-    .sfp_port[0].sds = 0,
-    .sfp_port[0].i2c = I2CBUS( GPIO41_I2C_SDA3_MDIO1, GPIO40_I2C_SCL3_MDC1 ),
+	.sds_settings[0].usage = SDS_SFP,
+    .sds_settings[0].sds_settings_t.sfp.pin_detect = GPIO37,
+    .sds_settings[0].sds_settings_t.sfp.pin_los = GPIO_NA,
+    .sds_settings[0].sds_settings_t.sfp.pin_tx_disable = GPIO_NA,
+    .sds_settings[0].sds_settings_t.sfp.i2c = I2CBUS( GPIO41_I2C_SDA3_MDIO1, GPIO40_I2C_SCL3_MDC1 ),
 
     // SFP port on SDS1 / logical port 8
-    .sfp_port[1].pin_detect = GPIO38,
-    .sfp_port[1].pin_los = GPIO_NA,
-    .sfp_port[1].pin_tx_disable = GPIO_NA,
-    .sfp_port[1].sds = 1,
-    .sfp_port[1].i2c = I2CBUS( GPIO39_I2C_SDA4, GPIO40_I2C_SCL3_MDC1 ),
+	.sds_settings[1].usage = SDS_SFP,
+    .sds_settings[1].sds_settings_t.sfp.pin_detect = GPIO38,
+    .sds_settings[1].sds_settings_t.sfp.pin_los = GPIO_NA,
+    .sds_settings[1].sds_settings_t.sfp.pin_tx_disable = GPIO_NA,
+    .sds_settings[1].sds_settings_t.sfp.i2c = I2CBUS( GPIO39_I2C_SDA4, GPIO40_I2C_SCL3_MDC1 ),
 
     .reset_pin = GPIO_NA,
     .high_leds = { .mux =  LED_28_SYS | LED_29, .enable = LED_27 | LED_28_SYS | LED_29 },

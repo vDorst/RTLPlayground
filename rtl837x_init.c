@@ -227,6 +227,7 @@ void rtl8372_init(void) __banked
 						sds_config_mac(sds, SDS_2G5_SGMII);
 						break;
 				}
+				break;
 			case SDS_FIXED_LINK:
 				sds_config_mac(sds, SDS_10G_QXGMII);
 				break;

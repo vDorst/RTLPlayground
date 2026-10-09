@@ -141,7 +141,7 @@ void sds_config(uint8_t sds, uint8_t mode) __banked
 	sds_write_v(sds, 0x36, 0x1c, 0x1390); // Q00361c:1390
 	sds_write_v(sds, 0x36, 0x14, 0x003f); // Q003614:003f
 
-	__code uint8_t * msg = "UNKNOWN\n";
+	__code const char * msg = "UNKNOWN\n";
 	switch (mode) {
 	case SDS_OFF:
 		msg = "OFF\n";

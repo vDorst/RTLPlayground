@@ -1143,7 +1143,7 @@ void parse_phy(void)
 			val <<= 8;
 			val |= hexvalue[1];
 		}
-		print_string("\val: "); print_short(val); write_char('\n');
+		print_string("\nval: "); print_short(val); write_char('\n');
 
 		if (port == MAC_SDS0 && !machine.isRTL8373 || port == MAC_SDS1) {
 			uint8_t sds = port == MAC_SDS1;

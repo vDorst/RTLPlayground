@@ -921,7 +921,7 @@ void parse_port(void)
 		} else {
 			print_string ("Unknown port <port> lldp [block|permit] command\n");
 		}
-	} else if (machine.sds_settings[sds].usage == SDS_SFP) {
+	} else if (port_to_sds_usage(phy_settings.port) == SDS_SFP) {
 		print_string(" is SFP no PHY information available.\n");
 	} else if (cmd_compare(2, "10m")) {
 		print_string(" 10M\n");

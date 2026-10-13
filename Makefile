@@ -7,7 +7,7 @@ HTML_LOCATION = 262144
 ifeq ($(origin CC),default)
 CC = sdcc
 endif
-CC_FLAGS = -mmcs51 -I. -Ihttpd -Iuip
+CC_FLAGS = -mmcs51 -I. -Ihttpd -Iuip -Iphy_drv
 ASM ?= sdas8051
 AFLAGS= -plosgff
 
@@ -57,6 +57,7 @@ create_build_dir:
 	mkdir -p "$(BUILDDIR)"
 	mkdir -p "$(BUILDDIR)/uip"
 	mkdir -p "$(BUILDDIR)/httpd"
+	mkdir -p "$(BUILDDIR)/phy_drv"
 
 # Keep machine.c in first position to fail immediately on invalid $MACHINE value
 SRCS = \
@@ -100,6 +101,9 @@ SRCS += \
 	uip/uip-fw.c \
 	uip/uip-neighbor.c \
 	uip/uip-split.c
+SRCS += \
+	phy_driver.c \
+	phy_drv/marvell.c
 
 OBJS = ${SRCS:%.c=$(BUILDDIR)/%.rel}
 DEPS := ${SRCS:%.c=$(BUILDDIR)/%.d}

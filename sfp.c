@@ -16,6 +16,7 @@
 #include "phy.h"
 #include "boot.h"
 #include "sfp.h"
+#include "phy_driver.h"
 
 extern __code const struct machine machine;
 
@@ -33,6 +34,7 @@ __xdata uint8_t sfp_quirks[2];
 __xdata uint8_t sfp_wake_at[2];
 __xdata uint8_t sfp_wake_pending[2];
 extern __xdata uint8_t sfr_data[4];
+extern __code struct phy_driver phy_drivers[PHY_DRIVER_CNT];
 
 
 __code enum sfp_quirk {
@@ -218,10 +220,10 @@ void setup_sfp_gpio(void) __banked
 // https://elixir.bootlin.com/linux/v7.2.8/source/drivers/net/phy/phy_device.c#L991
 bool i2c_mdio_phy_read_c45(uint8_t sds, uint8_t phy_id, int8_t devad, uint16_t reg) __reentrant __banked
 {
-	print_string("i2c-r: sds: "); print_byte(sds);
-	print_string(" phy_id: "); print_byte(phy_id);
-	print_string(" devad: "); print_byte(devad);
-	print_string(" reg: "); print_short(reg);
+	// print_string("i2c-r: sds: "); print_byte(sds);
+	// print_string(" phy_id: "); print_byte(phy_id);
+	// print_string(" devad: "); print_byte(devad);
+	// print_string(" reg: "); print_short(reg);
 
 	uint8_t dev = phy_id + 0x40;
 	// Len = 2 -1!!!
@@ -238,11 +240,11 @@ bool i2c_mdio_phy_read_c45(uint8_t sds, uint8_t phy_id, int8_t devad, uint16_t r
 	}
 	sfr_data[0] = 0;
 
-	write_char(' ');
-	print_byte(len);
-	write_char(' ');
-	print_sfr_data();
-	write_char('\n');
+	// write_char(' ');
+	// print_byte(len);
+	// write_char(' ');
+	// print_sfr_data();
+	// write_char('\n');
 
 	reg_write_m(RTL837X_REG_I2C_ADDR_DATA);
 
@@ -251,9 +253,9 @@ bool i2c_mdio_phy_read_c45(uint8_t sds, uint8_t phy_id, int8_t devad, uint16_t r
 	sfr_data[1] = len;
 	sfr_data[2] = (dev >> 5) | machine.sds_settings[sds].sds_settings_t.sfp.i2c;
 	sfr_data[3] = (dev << 3) | FLAG_I2C_TRIGGER;
-	write_char('I');
-	print_sfr_data();
-	write_char('\n');
+	// write_char('I');
+	// print_sfr_data();
+	// write_char('\n');
 	reg_write_m(RTL837X_REG_I2C_CTRL);
 
 	do {
@@ -266,7 +268,7 @@ bool i2c_mdio_phy_read_c45(uint8_t sds, uint8_t phy_id, int8_t devad, uint16_t r
 	}
 
 	reg_read_m(RTL837X_REG_I2C_DATA);
-	write_char('R');print_sfr_data();write_char('\n');
+	// write_char('R');print_sfr_data();write_char('\n');
 	// Data is Big Endian
 	i2c_buf[0] = SFR_DATA_8;
 	i2c_buf[1] = SFR_DATA_0;
@@ -398,12 +400,23 @@ static bool sfp_module_read(uint8_t sfp)
 	// Detect SFP PHY
 	if (may_has_phy) {
 		if (i2c_mdio_phy_read_c45(sfp, SFP_PHY_ADDR, -1, 0x02)) {
+			uint32_t phy_id = (uint32_t)SFR_DATA_U16LE << 16;
 			print_string("EPHY FOUND: ID: ");
-			print_short(SFR_DATA_U16LE);
 			print_byte(i2c_buf[1]);
 			if (i2c_mdio_phy_read_c45(sfp, SFP_PHY_ADDR, -1, 0x03)) {
-				print_short(SFR_DATA_U16LE);
+				phy_id |= SFR_DATA_U16LE;
 			}
+			print_long(phy_id);
+			
+			enum PHYID id = phy_probe(phy_id);
+
+			if (id == PHY_NONE) {
+				print_string("\nNo PHY ID FOUND!");
+			} else {
+				print_string("\nFOUND: PHY: ");
+				print_string(phy_drivers[id].name);
+			}
+
 			write_char('\n');
 			// translate fiber SDS settings to xSGMII variant
 			// So we have in-band handling with the phy.

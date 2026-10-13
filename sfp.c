@@ -415,24 +415,14 @@ static bool sfp_module_read(uint8_t sfp)
 			} else {
 				print_string("\nFOUND: PHY: ");
 				print_string(phy_drivers[id].name);
+				int8_t ret = (phy_drivers[id].config_init)(sfp);
+				if (ret >= 0) {
+					if (phy_drivers[id].config_aneg && (phy_drivers[id].config_aneg)(sfp))
+						sfp_rate = ret;
+				}
 			}
 
 			write_char('\n');
-			// translate fiber SDS settings to xSGMII variant
-			// So we have in-band handling with the phy.
-			switch(sfp_rate) {
-				case SDS_1000BASEX:
-					sfp_rate = SDS_SGMII;
-					break;
-				case SDS_2500BASEX:
-					sfp_rate = SDS_2G5_SGMII;
-					break;
-				case SDS_10GBASER:
-					sfp_rate = SDS_10G_QXGMII;
-					break;
-				default:
-					break;
-			}
 		}
 	}
 

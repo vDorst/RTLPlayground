@@ -11,11 +11,16 @@ enum PHYID {
 	PHY_NONE,
 };
 
+
 struct phy_driver {
 	uint32_t phy_id;
 	uint32_t phy_id_mask;
 	char name[33];
-	int8_t (*probe)(uint8_t sds);
+	// Inits the PHY and returns the interface or negative error number.
+	int8_t (*config_init)(uint8_t sds) __banked;
+
+	// Activate auto neg.
+	bool (*config_aneg)(uint8_t sds) __banked;
 };
 
 enum PHYID phy_probe(__xdata uint32_t id);

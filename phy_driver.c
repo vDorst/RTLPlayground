@@ -25,6 +25,7 @@ __code struct phy_driver phy_drivers[PHY_DRIVER_CNT] = {
     	.phy_id = MARVELL_PHY_ID_88E1111_FINISAR,
 		.phy_id_mask = MARVELL_PHY_ID_MASK,
 		.name = { "Marvell 88E1111 (Finisar)" },
-		.probe = marvell_probe,
+		.config_init = m88e1111gbe_config_init,
+		.config_aneg = m88e1111_config_aneg,
 	},
 };

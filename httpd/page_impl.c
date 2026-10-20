@@ -175,7 +175,7 @@ void send_sfp_info(uint8_t sfp)
 			return;
 		if (i < 20 || i >= 60 || (i >= 36 && i < 40)) // Skip Non-ASCII codes
 			continue;
-		uint8_t c = sfp_buf[i & 0xf];
+		uint8_t c = i2c_buf[i & 0xf];
 		if (c)
 			json_char_to_html(c);
 	}
@@ -192,7 +192,7 @@ void sfp_send_data(uint8_t slot, uint8_t reg, uint8_t len)
 		return;
 
 	for (uint8_t i = 0; i < len; i++)
-		byte_to_html(sfp_buf[i]);
+		byte_to_html(i2c_buf[i]);
 }
 
 
@@ -252,10 +252,14 @@ void send_basic_info(void)
 	str_code_to_html("\"," JSONQUOTE("flash_size") ":\"");
 	str_code_to_html(get_flash_size_str());
 
-	if (machine.n_sfp) {
+
+	/* TODO: Now mimics the old situation, need to replace with other solution. */
+	bool sds0_is_sfp = is_slot_sfp(0);
+	bool sds1_is_sfp = is_slot_sfp(1);
+	if (sds0_is_sfp || sds1_is_sfp) {
 		str_code_to_html("\"," JSONQUOTE("sfp_slot_0") ":\"");
-		send_sfp_info(0);
-		if (machine.n_sfp == 2) {
+		send_sfp_info(!sds0_is_sfp);
+		if (sds0_is_sfp && sds1_is_sfp) {
 			str_code_to_html("\"," JSONQUOTE("sfp_slot_1") ":\"");
 			send_sfp_info(1);
 		}
@@ -329,10 +333,9 @@ void send_vlan(uint16_t vlan)
  */
 bool send_counters(uint8_t phys_port)
 {
-	uint8_t phys_port_idx = phys_port - 1;
-	if (phys_port_idx > (MACHINE_MAX_PORT - MACHINE_MIN_PORT))
+	uint8_t log_port = phys_to_log_port(phys_port);
+	if (IS_PHYS_PORT_INVALID(log_port))
 		goto err;
-	uint8_t log_port = machine.phys_to_log_port[phys_port_idx];
 
 	dbg_string("send_counters called: "); dbg_byte(phys_port_idx); dbg_char('\n');
 	slen = strtox(outbuf, HTTP_RESPONSE_JSON);
@@ -686,9 +689,11 @@ void send_eee(void)
 	char_to_html('[');
 	for (uint8_t i = MACHINE_MIN_PORT; i <= MACHINE_MAX_PORT; i++) {
 		str_code_to_html("{" JSONQUOTE("port") ":");
-		itoa_html(machine.log_to_phys_port[i]);
 
-		if (machine.is_sfp[i]) {
+		uint8_t phys_port = machine.log_to_phys_port[i];
+		itoa_html(phys_port);
+
+		if (port_to_sds_usage(i) == SDS_SFP) {
 			str_code_to_html("," JSONQUOTE("isSFP") ":true");
 		} else {
 			str_code_to_html("," JSONQUOTE("isSFP") ":false," JSONQUOTE("advertised") ":[");
@@ -901,8 +906,8 @@ void send_ports(void)
 		}
 		char_to_html('"');
 
-		if (machine.is_sfp[i]) {
-			uint8_t sfp = machine.is_sfp[i] - 1;
+		if (port_to_sds_usage(i) == SDS_SFP) {
+			uint8_t sfp = port_to_sds(i); 
 			str_code_to_html("," JSONQUOTE("isSFP") ":true," JSONQUOTE("enabled") ":");
 			if (!(sfp_pins_last & (0x1 << (sfp << 2)))) {
 				bool_to_json(1);
@@ -942,7 +947,7 @@ void send_ports(void)
 				str_code_to_html("\"," JSONQUOTE("sfp_serial") ":\"");
 				str_x_to_html(sfp_module_serial[sfp]);
 				str_code_to_html("\"," JSONQUOTE("sfp_los") ":");
-				if (machine.sfp_port[sfp].pin_los == GPIO_NA) {
+				if (machine.sds_settings[sfp].sds_settings_t.sfp.pin_los == GPIO_NA) {
 					str_code_to_html("null");
 				} else {
 					bool_to_json(sfp_pins_last & (0x2 << (sfp << 2)));

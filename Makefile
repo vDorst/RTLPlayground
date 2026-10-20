@@ -32,9 +32,7 @@ SDCC_BANNER = $(if $(SDCC_REV),sdcc/ at $(SDCC_REV),$(SDCC_TOOLCHAIN)) ($(words 
 else
 SDCC_BANNER = system
 endif
-# Keep default constants in the fixed HOME code area.
-CC_FLAGS = -mmcs51 -I. -Imachine -Ihttpd -Iuip
-MACHINE_CC_FLAGS =
+CC_FLAGS = -mmcs51 -I. -Imachine -Ihttpd -Iuip -Iphy_drv
 ASM ?= sdas8051
 AFLAGS= -plosgff
 
@@ -175,6 +173,7 @@ create_build_dir: $(SDCC)
 	mkdir -p "$(BUILDDIR)/machine"
 	mkdir -p "$(BUILDDIR)/machine/pcb"
 	mkdir -p "$(BUILDDIR)/crypto"
+	mkdir -p "$(BUILDDIR)/phy_drv"
 
 $(MACHINE_REGISTRY):
 	@echo "ERROR: machine registry is missing (expected $(MACHINE_REGISTRY))." >&2
@@ -233,6 +232,7 @@ SRCS += \
 	rtl837x_igmp.c \
 	rtl837x_init.c \
 	rtl837x_nic.c \
+	rtl837x_i2c.c \
 	rtl837x_leds.c \
 	rtl837x_leds_dump.c \
 	rtl837x_phy.c \
@@ -256,6 +256,10 @@ SRCS += \
 	uip/uip-fw.c \
 	uip/uip-neighbor.c \
 	uip/uip-split.c
+SRCS += \
+	phy_driver.c \
+	phy_drv/marvell.c \
+	machine.c
 
 OBJS = ${SRCS:%.c=$(BUILDDIR)/%.rel}
 MACHINE_OBJ = $(BUILDDIR)/$(MACHINE_SRC:.c=.rel)

@@ -59,7 +59,7 @@ bool nic_rx_packet(__xdata uint8_t *buffer, uint16_t ring_ptr) __reentrant
 /*
  * Transfers data in XMEM to the ASIC for transmission by the NIC
  */
-void nic_tx_packet(__xdata uint8_t *buffer, uint16_t len, uint16_t ring_ptr)
+void nic_tx_packet(__xdata uint8_t *buffer, __xdata uint16_t len, __xdata uint16_t ring_ptr)
 {
 	uint16_t guard = 0;
 

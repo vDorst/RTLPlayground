@@ -290,7 +290,7 @@ static __xdata uint8_t *lldp_mac_phy(__xdata uint8_t *p, uint8_t port) __reentra
     uint16_t v;
 
     p = lldp_org_header(p, lldp_oui_8023, LLDP_8023_SUBTYPE_MAC_PHY, 5);
-    if (machine.is_sfp[port]) {
+    if (port_to_sds_usage(port) == SDS_SFP) {
         if (lldp_link_code(port) == LINKS_CODE_1000M)
             mau = LLDP_MAU_1000BASE_X_FD;
     } else {

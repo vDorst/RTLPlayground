@@ -24,7 +24,7 @@ SDCC_BANNER = $(if $(SDCC_REV),sdcc/ at $(SDCC_REV),$(SDCC_TOOLCHAIN)) ($(words 
 else
 SDCC_BANNER = system
 endif
-CC_FLAGS = -mmcs51 -I. -Imachine -Ihttpd -Iuip
+CC_FLAGS = -mmcs51 -I. -Imachine -Ihttpd -Iuip -Iphy_drv
 ASM ?= sdas8051
 AFLAGS= -plosgff
 
@@ -121,6 +121,7 @@ create_build_dir: $(SDCC)
 	mkdir -p "$(BUILDDIR)/httpd"
 	mkdir -p "$(BUILDDIR)/machine"
 	mkdir -p "$(BUILDDIR)/crypto"
+	mkdir -p "$(BUILDDIR)/phy_drv"
 
 # Every machine is a pair machine/<MACHINE>.c + machine/<MACHINE>.h. Selecting
 # them by name means no #if/#elif chain, so an unknown or empty $MACHINE is
@@ -168,6 +169,7 @@ SRCS += \
 	rtl837x_igmp.c \
 	rtl837x_init.c \
 	rtl837x_nic.c \
+	rtl837x_i2c.c \
 	rtl837x_leds.c \
 	rtl837x_leds_dump.c \
 	rtl837x_phy.c \
@@ -191,6 +193,10 @@ SRCS += \
 	uip/uip-fw.c \
 	uip/uip-neighbor.c \
 	uip/uip-split.c
+SRCS += \
+	phy_driver.c \
+	phy_drv/marvell.c \
+	machine.c
 
 OBJS = ${SRCS:%.c=$(BUILDDIR)/%.rel}
 DEPS := ${SRCS:%.c=$(BUILDDIR)/%.d}

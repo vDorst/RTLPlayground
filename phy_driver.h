@@ -3,10 +3,11 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#define PHY_DRIVER_CNT 1
+#define PHY_DRIVER_CNT 2
 
 enum PHYID {
 	PHY_MARVELL_88E1111_FINISAR,
+	PHY_MARVELL_CUX3610,
 	PHY_RTL8224,
 	PHY_NONE,
 };
@@ -23,6 +24,6 @@ struct phy_driver {
 	bool (*config_aneg)(uint8_t sds) __banked;
 };
 
-enum PHYID phy_probe(__xdata uint32_t id);
+enum PHYID phy_probe(__xdata uint32_t * id);
 
 #endif

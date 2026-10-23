@@ -4,14 +4,14 @@
 
 extern __code const struct phy_driver phy_drivers[PHY_DRIVER_CNT];
 
-enum PHYID phy_probe(__xdata uint32_t id) {
+enum PHYID phy_probe(__xdata uint32_t * id) {
 	print_string("\nP: ID = ");
-	print_long(id);
+	print_long(*id);
 	for (uint8_t i = 0; i < PHY_DRIVER_CNT; i++) {
 		print_string(" M: MASK = "); print_long(phy_drivers[i].phy_id_mask);
 		print_string(" I: ID = "); print_long(phy_drivers[i].phy_id);
-		print_string(" R: ID = "); print_long(id & phy_drivers[i].phy_id_mask);
-		if ((id & phy_drivers[i].phy_id_mask) == phy_drivers[i].phy_id) {
+		print_string(" R: ID = "); print_long(*id & phy_drivers[i].phy_id_mask);
+		if ((*id & phy_drivers[i].phy_id_mask) == phy_drivers[i].phy_id) {
 			print_string("\nID MATCH\n");
 			return i;
 		}
@@ -27,5 +27,12 @@ __code const struct phy_driver phy_drivers[PHY_DRIVER_CNT] = {
 		.name = { "Marvell 88E1111 (Finisar)" },
 		.config_init = m88e1111gbe_config_init,
 		.config_aneg = m88e1111_config_aneg,
+	},
+	{
+		.phy_id = MARVELL_PHY_ID_CUX36100,
+		.phy_id_mask = MARVELL_PHY_ID_MASK,
+		.name = { "Marvell CUX3610" },
+		.config_init = m88e1111gbe_config_init,
+		// .config_aneg = m88e1111_config_aneg,
 	},
 };

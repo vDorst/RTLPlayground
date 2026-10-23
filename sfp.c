@@ -221,10 +221,10 @@ void setup_sfp_gpio(void) __banked
 // https://elixir.bootlin.com/linux/v7.2.8/source/drivers/net/phy/phy_device.c#L991
 bool i2c_mdio_phy_read_c45(uint8_t sds, uint8_t phy_id, int8_t devad, uint16_t reg) __reentrant __banked
 {
-	// print_string("i2c-r: sds: "); print_byte(sds);
-	// print_string(" phy_id: "); print_byte(phy_id);
-	// print_string(" devad: "); print_byte(devad);
-	// print_string(" reg: "); print_short(reg);
+	print_string("i2c-r: sds: "); print_byte(sds);
+	print_string(" phy_id: "); print_byte(phy_id);
+	print_string(" devad: "); print_byte(devad);
+	print_string(" reg: "); print_short(reg);
 
 	uint8_t dev = phy_id + 0x40;
 	// Len = 2 -1!!!
@@ -241,11 +241,11 @@ bool i2c_mdio_phy_read_c45(uint8_t sds, uint8_t phy_id, int8_t devad, uint16_t r
 	}
 	sfr_data[0] = 0;
 
-	// write_char(' ');
-	// print_byte(len);
-	// write_char(' ');
-	// print_sfr_data();
-	// write_char('\n');
+	write_char(' ');
+	print_byte(len);
+	write_char(' ');
+	print_sfr_data();
+	write_char('\n');
 
 	reg_write_m(RTL837X_REG_I2C_ADDR_DATA);
 
@@ -372,7 +372,7 @@ static bool sfp_module_read(__xdata uint8_t sfp)
 	print_string("  Rate: "); print_byte(rate);  // Normally 1, but 0 for DAC, can be ignored?
 	print_string("  Encoding: "); print_byte(i2c_buf[11]);
 	print_string("  Connector: "); print_byte(i2c_buf[2]);
-	may_has_phy = i2c_buf[2] == SFF_CONN_REF_RJ45;
+	may_has_phy = i2c_buf[2] == SFF_CONN_REF_RJ45 || i2c_buf[6] & 0x08 != 00;
 	print_string("  Module: ");
 	if (!sfp_print_info(sfp))
 		return false;
@@ -400,34 +400,89 @@ static bool sfp_module_read(__xdata uint8_t sfp)
 
 	__xdata uint8_t sfp_rate = sfp_rate_to_sds_config(rate);
 
-	// Detect SFP PHY
-	if (may_has_phy) {
-		if (i2c_mdio_phy_read_c45(sfp, SFP_PHY_ADDR, -1, 0x02)) {
-			__xdata uint32_t phy_id = (uint32_t)SFR_DATA_U16LE << 16;
-			print_string("EPHY FOUND: ID: ");
-			print_byte(i2c_buf[1]);
-			if (i2c_mdio_phy_read_c45(sfp, SFP_PHY_ADDR, -1, 0x03)) {
-				phy_id |= SFR_DATA_U16LE;
-			}
-			print_long(phy_id);
-			
-			enum PHYID id = phy_probe(phy_id);
 
-			if (id == PHY_NONE) {
-				print_string("\nNo PHY ID FOUND!");
-			} else {
-				print_string("\nFOUND: PHY: ");
-				print_string(phy_drivers[id].name);
-				int8_t ret = (phy_drivers[id].config_init)(sfp);
-				if (ret >= 0) {
-					if (phy_drivers[id].config_aneg && (phy_drivers[id].config_aneg)(sfp))
-						sfp_rate = ret;
-				}
-			}
 
-			write_char('\n');
-		}
+	#define SFF8024_ECC_10GBASE_T_SFI	0x16
+	#define SFF8024_ECC_10GBASE_T_SR	0x1c
+	#define SFF8024_ECC_5GBASE_T		0x1d
+	#define SFF8024_ECC_2_5GBASE_T		0x1e
+
+
+	if (!sfp_read_block(sfp, 32, I2C_READ_CNT))
+		return false;
+	// Byte 36
+	uint8_t extended_cc = i2c_buf[4];
+	write_char('C'); print_byte(extended_cc);
+
+	int8_t devad = 0x1e;
+
+	__xdata enum ephy_mode sfp_ephy_mode = MDIO_I2C_C45;
+	if (extended_cc == SFF8024_ECC_10GBASE_T_SFI ||
+	    extended_cc == SFF8024_ECC_10GBASE_T_SR ||
+	    extended_cc == SFF8024_ECC_5GBASE_T ||
+	    extended_cc == SFF8024_ECC_2_5GBASE_T) {
+
+		sfp_ephy_mode = MDIO_I2C_C45;
+		devad = 0x1e;
+	} else if (may_has_phy) {
+		sfp_ephy_mode = MDIO_I2C_C22;
+		devad = -1;
 	}
+
+	__xdata uint32_t phy_id = 0;
+
+	switch (sfp_ephy_mode) {
+	case MDIO_NONE:
+		print_string("MDIO None\n");
+		break;
+	case MDIO_I2C_C45:
+		print_string("MDIO C45\n");
+		break;
+	case MDIO_I2C_C22:
+		print_string("MDIO C22\n");
+		break;
+	default:
+		print_string("MDIO Unknown\n");
+	}
+
+	// Detect SFP PHY
+	if (i2c_mdio_phy_read_c45(sfp, SFP_PHY_ADDR, devad, 0x02)) {
+		phy_id = (uint32_t)SFR_DATA_U16LE << 16;
+		if (i2c_mdio_phy_read_c45(sfp, SFP_PHY_ADDR, devad, 0x03)) {
+			write_char('+');
+			phy_id |= SFR_DATA_U16LE;
+		} else {
+			write_char('e');
+			sfp_ephy_mode = MDIO_NONE;
+		}
+	} else {
+		write_char('E');
+		sfp_ephy_mode = MDIO_NONE;
+	}
+
+	if (sfp_ephy_mode != MDIO_NONE) {
+		print_long(phy_id);
+
+		enum PHYID id = phy_probe(&phy_id);
+
+		if (id == PHY_NONE) {
+			sfp_ephy_mode = MDIO_NONE;
+			print_string("\nNo PHY ID FOUND!");
+		} else {
+			print_string("\nFOUND: PHY: ");
+			print_string(phy_drivers[id].name);
+			int8_t ret = (phy_drivers[id].config_init)(sfp);
+			if (ret >= 0) {
+				if (phy_drivers[id].config_aneg && (phy_drivers[id].config_aneg)(sfp))
+					sfp_rate = ret;
+			}
+		}
+
+		write_char('\n');
+	} else {
+		print_string("No Phy ID");
+	}
+
 
 	sds_config(sfp, sfp_rate);
 
@@ -442,6 +497,18 @@ void handle_sfp(void) __banked
 			continue;
 
 		uint8_t port = sds == 1 ? MAC_SDS1 : MAC_SDS0;
+
+		if (!gpio_pin_test(machine.sds_settings[sds].sds_settings_t.sfp.pin_los)) {
+			if (sfp_pins_last & (0x2 << (sds << 2))) { // 0x2 0x08
+				sfp_pins_last &= ~(0x02 << (sds << 2));
+				print_string("\n<SFP-RX OK>  Port: "); print_phys_port(port); write_char('\n');
+			}
+		} else {
+			if (!(sfp_pins_last & 0x2 << (sds << 2))) {
+				sfp_pins_last |= 0x02 << (sds << 2);
+				print_string("\n<SFP-RX LOS>  Port: "); print_phys_port(port); write_char('\n');
+			}
+		}
 
 		// pin_detect is active_low
 		bool sfp_cage_is_empty = gpio_pin_test(machine.sds_settings[sds].sds_settings_t.sfp.pin_detect);
@@ -473,18 +540,6 @@ void handle_sfp(void) __banked
 			}
 		} else {
 			continue;
-		}
-
-		if (!gpio_pin_test(machine.sds_settings[sds].sds_settings_t.sfp.pin_los)) {
-			if (sfp_pins_last & (0x2 << (sds << 2))) { // 0x2 0x08
-				sfp_pins_last &= ~(0x02 << (sds << 2));
-				print_string("\n<SFP-RX OK>  Port: "); print_phys_port(port); write_char('\n');
-			}
-		} else {
-			if (!(sfp_pins_last & 0x2 << (sds << 2))) {
-				sfp_pins_last |= 0x02 << (sds << 2);
-				print_string("\n<SFP-RX LOS>  Port: "); print_phys_port(port); write_char('\n');
-			}
 		}
 	}
 }

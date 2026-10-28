@@ -781,6 +781,35 @@ void sds_write_v(uint8_t sds_id, uint8_t page, uint8_t reg, uint16_t v)
 }
 
 
+/*
+ * Read a SerDes register in the SoC
+ * Input must be: sds_id = 0/1, page < 128,  reg <= 0xff
+ * The result is in SFR A6 and A7 (SFR_DATA_8, SFR_DATA_0)
+ */
+void sds_modify(uint8_t sds_id, uint8_t page, uint8_t reg, uint16_t mask, uint16_t set)
+{
+#ifdef REGDBG
+	print_string("q"); print_byte(sds_id); print_byte(page); print_byte(reg);
+#endif
+	SFR_93 = reg;			// 93
+	SFR_94 = page << 1 | sds_id;	// 94
+	SFR_EXEC_GO = SFR_EXEC_READ_SDS;
+	do {
+	} while (SFR_EXEC_STATUS != 0);
+
+#ifdef REGDBG
+	write_char(':'); print_byte(SFR_DATA_8); print_byte(SFR_DATA_0); write_char(' ');
+#endif
+	uint16_t val = SFR_DATA_U16;
+	val &= ~mask;
+	val |= set;
+	SFR_DATA_U16 = val;
+	SFR_EXEC_GO = SFR_EXEC_WRITE_SDS;
+	do {
+	} while (SFR_EXEC_STATUS != 0);
+}
+
+
 void print_sfr_data(void)
 {
 	write_char('0');

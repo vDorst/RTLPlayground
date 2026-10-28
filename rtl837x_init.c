@@ -15,6 +15,107 @@ extern __xdata struct machine_runtime machine_detected;
 #pragma codeseg BANK2
 #pragma constseg BANK2
 
+
+void static serdes_off(uint8_t sds) {
+
+}
+
+void static serdes_on(uint8_t sds) {
+
+}
+
+void static serdes_reset_x(uint8_t sds) {
+
+}
+
+void static serdes_reset_u(uint8_t sds) {
+
+}
+
+void static serdes_an_patch(uint8_t sds, enum sds_modes interface) {
+
+}
+
+void static serdes_mac_patch(uint8_t sds) {
+
+}
+
+void static sds_pcs_config(uint8_t sds, enum sds_modes interface, bool en_inband) {
+	reg_bit_clear(RTL837X_REG_SDS_MODES, sds == 1: RTL837X_REG_SDS_MODES_MAC8_8221_BIT ? RTL837X_REG_SDS_MODES_MAC3_8221_BIT);
+	
+	serdes_off();
+
+	reg_read_m(RTL837X_REG_SDS_MODES);
+	if (sds == 0) {
+		// SDD0: 1f << 10
+		sfr_data[2] &= ~(0x1f << 2);
+	} else {
+		// SDS1: 1f << 16
+		sfr_data[1] &= ~(0x1f << 0);
+	}
+	reg_write_m(RTL837X_REG_SDS_MODES);
+
+	if (sds == 0) {
+		// SDD0: 1f << 0
+		sfr_data[3] &= ~(0x1f << 0);
+	} else {
+		// SDS1: 1f << 5
+		sfr_data[3] &= ~(0x1f << 5);
+		sfr_data[2] &= ~(0x1f >> 3);
+	}
+	reg_write_m(RTL837X_REG_SDS_MODES);
+
+	// apply patch
+    serdes_an_patch(sds, interface)?;
+    serdes_mac_patch(sds)?;
+
+	// delay 250mS
+	delay(250);
+
+	switch interface {
+		case SDS_SGMII:
+		case SDS_1000BASEX:
+		case SDS_2500BASEX:
+			sds_modify(sds, 0, 2, 3 << 8, sds == 0 ? 1 << 8 : 3 << 8);
+			break;
+		case SDS_10G_QXGMII:
+    	case SDS_10G_USXGMII:
+		case SDS_10GBASER:
+		break;
+		default:
+			break;
+	}
+
+	serdes_on();
+
+	sds_read(sds, 0x1f, 0x00, 0xFFFF, 0xb);
+
+	// delay 50mS
+	delay(50);
+
+	sds_read(sds, 0x1f, 0x00, 0xFFFF, 0x0);
+
+	// delay 50mS
+	delay(50);
+
+	switch interface {
+		case SDS_SGMII:
+		case SDS_100BASEX:
+		case SDS_1000BASEX:
+		case SDS_2500BASEX:
+			sds_reset_x(sds);
+			break;
+		case SDS_10G_QXGMII:
+    	case SDS_10G_USXGMII:
+		case SDS_10GBASER:
+			sds_reset_u(sds);
+		break;
+		default:
+			break;
+	}
+
+}
+
 /*
  * Configure the PHY-Side of the SDS-SDS link between SoC and PHY
  */

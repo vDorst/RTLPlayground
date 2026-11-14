@@ -201,7 +201,6 @@ static __code const struct sds_patch_entry patch_data_phy[] = {
 	LAST
 };
 
-
 void static serdes_off(uint8_t sds) {
 
 }
@@ -283,8 +282,20 @@ void static serdes_an_patch(uint8_t sds, enum sds_modes interface) {
 }
 
 void static serdes_mac_patch(uint8_t sds) {
+	print_string_no_syslog("Patch: patch_data_mac: ");
 
-	return;
+	__code const struct sds_patch_entry *ptr = patch_data_mac;
+
+	uint8_t idx = 0;
+	while(1) {
+		if (ptr[idx].page == 0xFF)
+			break;
+		sds_write_v(sds, ptr[idx].page, ptr[idx].reg, ptr[idx].value);
+		idx++;
+	}
+
+	print_byte(idx);
+	write_char('\n');
 }
 
 void static sds_pcs_config(uint8_t sds, enum sds_modes interface, bool en_inband) {

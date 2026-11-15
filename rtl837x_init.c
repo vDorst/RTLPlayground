@@ -435,7 +435,7 @@ void static serdes_mac_patch(uint8_t sds) {
 	write_char('\n');
 }
 
-void static sds_pcs_config(uint8_t sds, enum sds_modes interface, bool en_inband) {
+void sds_pcs_config(uint8_t sds, enum sds_modes interface, bool en_inband) __banked {
 	reg_bit_clear(RTL837X_REG_SDS_MODES, sds == 1 ? RTL837X_REG_SDS_MODES_MAC8_8221_BIT : RTL837X_REG_SDS_MODES_MAC3_8221_BIT);
 	
 	serdes_off(sds);
@@ -612,21 +612,17 @@ void rtl8373_init(void) __banked
 	pval = SFR_DATA_U16;
 	sds_write_v(0, 0x06, 0x01, pval & 0xfffb);
 
-	sds_config_mac(1, SDS_OFF);    // Off for now until SFP+ port used
+	sds_pcs_config(0, SDS_OFF, false);    // Off for now until SFP+ port used
 
 	bool is_rtl8224 = machine.sds_settings[0].usage == SDS_EPHY && \
 					  machine.sds_settings[0].sds_settings_t.ephy.type == RTL8224;
 	if (is_rtl8224) {
 		phy_config_8224();
-		sds_config_mac(2, SDS_SGMII);  // For RTL8224
-		sds_config(0, SDS_10G_QXGMII);     // For RTL8224
+		// sds_config_mac(2, SDS_SGMII);  // For RTL8224
+		// sds_config(0, SDS_10G_QXGMII);     // For RTL8224
+		sds_pcs_config(0, SDS_10G_QXGMII, false);
 	}
 
-	// SDS 1 setup
-	// q012100:4902 Q012100:4906 q013605:0000 Q013605:4000 Q011f02:001f q011f15:0086
-	sds_write_v(1, 0x21, 0x00, 0x4906);
-	sds_write_v(1, 0x36, 0x05, 0x4000);
-	sds_write_v(1, 0x1f, 0x02, 0x001f);
 	sds_read(1, 0x1f, 0x15);
 	pval = SFR_DATA_U16;
 
@@ -712,24 +708,24 @@ void rtl8372_init(void) __banked
 				// uint8_t speed = get_phy_max_speed(phy_type);
 				switch (phy_type) {
 					case RTL8224:
-						sds_config_mac(sds, SDS_SGMII);
+						sds_pcs_config(sds, SDS_SGMII, false);
 						break;
 					case RTL8261BE:
 						phy_config_8261(port, sds);
-						sds_config_mac(sds, SDS_10G_QXGMII);
+						sds_pcs_config(sds, SDS_10G_QXGMII, false);
 						break;
 					case RTL8221B:
 						phy_config(port);	// PHY configuration: External 8221B?
-						sds_config_mac(sds, SDS_2G5_SGMII);
+						sds_pcs_config(sds, SDS_2G5_SGMII, false);
 						break;
 				}
 				break;
 			case SDS_FIXED_LINK:
-				sds_config_mac(sds, SDS_10G_QXGMII);
+				sds_pcs_config(sds, SDS_10G_QXGMII, false);
 				break;
 			case SDS_SFP:
 			default:
-				sds_config_mac(sds, SDS_OFF);
+				sds_pcs_config(sds, SDS_OFF, false);
 				break;
 		}
 	}

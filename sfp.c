@@ -12,6 +12,7 @@
 #include "rtl837x_phy.h"
 #include "rtl837x_port.h"
 #include "rtl837x_i2c.h"
+#include "rtl837x_init.h"
 #include "machine.h"
 #include "phy.h"
 #include "boot.h"
@@ -484,7 +485,7 @@ static bool sfp_module_read(__xdata uint8_t sfp)
 	}
 
 
-	sds_config(sfp, sfp_rate);
+	sds_pcs_config(sfp, sfp_rate, false);
 
 	return true;
 }

@@ -230,44 +230,58 @@ static __code const struct sds_patch_entry patch_data_phy[] = {
 void static serdes_off(uint8_t sds) {
 
 	sds_modify(sds, SDS_PAGE_FRC, SDS_REG_FRC, SDS_FRC_RX_EN_VAL_MASK | SDS_FRC_RX_EN_ON_MASK, SDS_FRC_RX_EN_VAL_MASK | SDS_FRC_RX_EN_ON_MASK);
-	delay(20);
+	// Delay 20mS
+	delay(4);
 	sds_modify(sds, SDS_PAGE_FRC, SDS_REG_FRC, SDS_FRC_RX_EN_VAL_MASK | SDS_FRC_RX_EN_ON_MASK, SDS_FRC_RX_EN_ON_MASK);
-	delay(50);
+	// Delay 50mS
+	delay(10);
 
 	sds_modify(sds, SDS_PAGE_FRC, SDS_REG_FRC, SDS_FRC_PDOWN_ON_MASK | SDS_FRC_PDOWN_VAL_MASK, SDS_FRC_PDOWN_ON_MASK);
-	delay(20);
+	// Delay 20mS
+	delay(4);
 	sds_modify(sds, SDS_PAGE_FRC, SDS_REG_FRC, SDS_FRC_PDOWN_ON_MASK | SDS_FRC_PDOWN_VAL_MASK, SDS_FRC_PDOWN_ON_MASK | SDS_FRC_PDOWN_VAL_MASK);
-	delay(50);
+	// Delay 50mS
+	delay(10);
 
 	sds_modify(sds, SDS_PAGE_FRC, SDS_REG_FRC, SDS_FRC_CMU_EN_ON_MASK | SDS_FRC_CMU_EN_VAL_MASK, SDS_FRC_CMU_EN_ON_MASK | SDS_FRC_CMU_EN_VAL_MASK);
-	delay(20);
+	// Delay 20mS
+	delay(4);
 	sds_modify(sds, SDS_PAGE_FRC, SDS_REG_FRC, SDS_FRC_CMU_EN_ON_MASK | SDS_FRC_CMU_EN_VAL_MASK, SDS_FRC_CMU_EN_ON_MASK);
-	delay(50);
+	// Delay 50mS
+	delay(10);
 }
 
 void static serdes_on(uint8_t sds) {
 
 	sds_modify(sds, SDS_PAGE_FRC, SDS_REG_FRC, SDS_FRC_CMU_EN_ON_MASK | SDS_FRC_CMU_EN_VAL_MASK, SDS_FRC_CMU_EN_ON_MASK);
-	delay(20);
+	// Delay 20mS
+	delay(4);
 	sds_modify(sds, SDS_PAGE_FRC, SDS_REG_FRC, SDS_FRC_CMU_EN_ON_MASK | SDS_FRC_CMU_EN_VAL_MASK, SDS_FRC_CMU_EN_ON_MASK | SDS_FRC_CMU_EN_VAL_MASK);
-	delay(50);
+	// Delay 50mS
+	delay(10);
 	sds_modify(sds, SDS_PAGE_FRC, SDS_REG_FRC, SDS_FRC_CMU_EN_ON_MASK | SDS_FRC_CMU_EN_VAL_MASK, 0);
-	delay(20);
+	// Delay 20mS
+	delay(4);
 
 	sds_modify(sds, SDS_PAGE_FRC, SDS_REG_FRC, SDS_FRC_PDOWN_ON_MASK | SDS_FRC_PDOWN_VAL_MASK, SDS_FRC_PDOWN_ON_MASK | SDS_FRC_PDOWN_VAL_MASK);
-	delay(20);
+	// Delay 20mS
+	delay(4);
 	sds_modify(sds, SDS_PAGE_FRC, SDS_REG_FRC, SDS_FRC_PDOWN_ON_MASK | SDS_FRC_PDOWN_VAL_MASK, SDS_FRC_PDOWN_ON_MASK);
-	delay(50);
+	// Delay 50mS
+	delay(10);
 	sds_modify(sds, SDS_PAGE_FRC, SDS_REG_FRC, SDS_FRC_PDOWN_ON_MASK | SDS_FRC_PDOWN_VAL_MASK, 0);
-	delay(20);
-
+	// Delay 20mS
+	delay(4);
 
 	sds_modify(sds, SDS_PAGE_FRC, SDS_REG_FRC, SDS_FRC_RX_EN_VAL_MASK | SDS_FRC_RX_EN_ON_MASK, SDS_FRC_RX_EN_ON_MASK);
-	delay(20);
+	// Delay 20mS
+	delay(4);
 	sds_modify(sds, SDS_PAGE_FRC, SDS_REG_FRC, SDS_FRC_RX_EN_VAL_MASK | SDS_FRC_RX_EN_ON_MASK, SDS_FRC_RX_EN_VAL_MASK | SDS_FRC_RX_EN_ON_MASK);
-	delay(50);
+	// Delay 50mS
+	delay(10);
 	sds_modify(sds, SDS_PAGE_FRC, SDS_REG_FRC, SDS_FRC_RX_EN_VAL_MASK | SDS_FRC_RX_EN_ON_MASK, 0);
-	delay(50);
+	// Delay 20mS
+	delay(4);
 }
 
 void static serdes_reset_x(uint8_t sds) {
@@ -292,15 +306,18 @@ void static serdes_reset_x(uint8_t sds) {
 		goto reset;
 	return;
 
-	reset:
-	print_string("Reset SERDES");
+reset:
+	print_string("\tReset SERDES\n");
 
 	sds_modify(sds, 0x00, 0x00, BIT(1), BIT(1));
-	delay(20);
+	// Delay 20mS
+	delay(4);
 	sds_modify(sds, 0x00, 0x00, BIT(1), 0);
-	delay(20);
+	// Delay 20mS
+	delay(4);
 	sds_modify(sds, 0x00, 0x00, BIT(1), BIT(1));
-	delay(20);
+	// Delay 20mS
+	delay(4);
 }
 
 void static serdes_reset_r(uint8_t sds) {
@@ -344,17 +361,23 @@ void static serdes_reset_r(uint8_t sds) {
 	return;
 
 reset:
+	print_string("\tReset SERDES\n");
+
 	sds_read(sds, SDS_PAGE_FRC, SDS_REG_FRC);
 	val = SFR_DATA_U16 & ~(SDS_FRC_RX_EN_VAL_MASK | SDS_FRC_RX_EN_ON_MASK);
 
 	sds_write_v(sds, SDS_PAGE_FRC, SDS_REG_FRC, val | SDS_FRC_RX_EN_VAL_MASK | SDS_FRC_RX_EN_ON_MASK);
-	delay(20);
+	// Delay 20mS
+	delay(4);
 	sds_write_v(sds, SDS_PAGE_FRC, SDS_REG_FRC, val | SDS_FRC_RX_EN_ON_MASK);
-	delay(20);
+	// Delay 20mS
+	delay(4);
 	sds_write_v(sds, SDS_PAGE_FRC, SDS_REG_FRC, val | SDS_FRC_RX_EN_VAL_MASK | SDS_FRC_RX_EN_ON_MASK);
-	delay(20);
+	// Delay 20mS
+	delay(4);
 	sds_write_v(sds, SDS_PAGE_FRC, SDS_REG_FRC, val);
-	delay(20);
+	// Delay 20mS
+	delay(4);
 }
 
 void static serdes_an_patch(uint8_t sds, enum sds_modes interface) {
@@ -513,7 +536,7 @@ void sds_pcs_config(uint8_t sds, enum sds_modes interface, bool en_inband) __ban
     serdes_mac_patch(sds);
 
 	// delay 250mS
-	delay(250);
+	delay(50);
 
 	switch (interface) {
 		case SDS_SGMII:
@@ -534,12 +557,12 @@ void sds_pcs_config(uint8_t sds, enum sds_modes interface, bool en_inband) __ban
 	sds_modify(sds, 0x1f, 0x00, 0xFFFF, 0xb);
 
 	// delay 50mS
-	delay(50);
+	delay(10);
 
 	sds_modify(sds, 0x1f, 0x00, 0xFFFF, 0x0);
 
 	// delay 50mS
-	delay(50);
+	delay(10);
 
 	switch (interface) {
 		case SDS_SGMII:
@@ -568,12 +591,14 @@ void static sds_init(void)
 
 	// PHY Initialization:
 	REG_WRITE(0x2f8, 0, 0, pval >> 8, pval);
-	delay(20);
+	// Delay 20mS
+	delay(4);
 
 	pval &= 0xfff0;
 	pval |= 0x0a;
 	REG_WRITE(0x2f4, 0, 0, pval >> 8, pval);
-	delay(10);
+	// Delay 10mS
+	delay(2);
 
 	phy_write_mask(0x1, PHY_MMD30, 0xd, pval);
 

@@ -484,8 +484,7 @@ static bool sfp_module_read(__xdata uint8_t sfp)
 		print_string("No Phy ID");
 	}
 
-
-	sds_pcs_config(sfp, sfp_rate, false);
+	sds_pcs_config(sfp, sfp_rate, true);
 
 	return true;
 }

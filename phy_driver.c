@@ -28,11 +28,30 @@ __code const struct phy_driver phy_drivers[PHY_DRIVER_CNT] = {
 		.config_init = m88e1111gbe_config_init,
 		.config_aneg = m88e1111_config_aneg,
 	},
-	{
-		.phy_id = MARVELL_PHY_ID_CUX36100,
-		.phy_id_mask = MARVELL_PHY_ID_MASK,
-		.name = { "Marvell CUX3610" },
-		.config_init = m88e1111gbe_config_init,
-		// .config_aneg = m88e1111_config_aneg,
-	},
+	// {
+	// 	.phy_id = MARVELL_PHY_ID_CUX36100,
+	// 	.phy_id_mask = MARVELL_PHY_ID_MASK,
+	// 	.name = { "Marvell CUX3610" },
+	// 	.config_init = m88e1111gbe_config_init,
+	// 	// .config_aneg = m88e1111_config_aneg,
+	// },
 };
+
+int8_t phy_config_init(uint8_t sds, enum PHYID id) __banked {
+	print_byte(id);
+	__code const struct phy_driver * pd = &phy_drivers[id];
+
+	if ((uint8_t)id < PHY_DRIVER_CNT && pd->config_init != 0)
+		return pd->config_init(sds);
+
+	print_string("\nNo config_init\n");
+
+	return -1;
+}
+
+int8_t phy_config_aneg(uint8_t sds, enum PHYID id) __banked {
+	if ((uint8_t)id < PHY_DRIVER_CNT && phy_drivers[id].config_aneg != 0)
+		return phy_drivers[id].config_aneg(sds);
+
+	return -1;
+}

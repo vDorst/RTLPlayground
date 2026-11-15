@@ -203,6 +203,14 @@ static __code const struct sds_patch_entry patch_data_phy[] = {
 
 #define BIT(b) ((uint16_t)1<<b)
 
+
+#define SDS_PAGE_CTRL00  0x00
+#define SDS_REG_CTRL00_REG00     0x00
+#define SDS_REG_CTRL00_REG02     0x02
+ #define SDS_CTRL00_REG02_XSG_SP_SDS_FRC_AN    BIT(8)
+ #define SDS_CTRL00_REG02_XSG_SP_SDS_FRC_AN_EN BIT(9)
+#define SDS_REG_CTRL00_REG04     0x04
+
 #define SDS_PAGE_FRC 0x20
 #define SDS_REG_FRC 0x00
 #define SDS_FRC_RX_EN_ON_MASK    BIT(4)
@@ -218,6 +226,15 @@ static __code const struct sds_patch_entry patch_data_phy[] = {
 #define SDS_CTRL01_XSG_STS_LINK_OK   BIT(4)
 #define SDS_CTRL01_XSG_STS_SIG_OK    BIT(8)
 
+#define SDS_PAGE_CTRL02       0x02
+#define SDS_REG_CTRL02_XSG_AN   0x04
+ #define SDS_CTRL02_XSG_AN_10_100_AsymmetricPause_MASK BIT(11)
+ #define SDS_CTRL02_XSG_AN_10_100_Pause_MASK           BIT(10)
+ #define SDS_CTRL02_XSG_AN_1G_AsymmetricPause_MASK BIT(8)
+ #define SDS_CTRL02_XSG_AN_1G_Pause_MASK           BIT(7)
+ #define SDS_CTRL02_XSG_AN_1G_HalfDuplex_MASK      BIT(6)
+ #define SDS_CTRL02_XSG_AN_1G_FullDuplex_MASK      BIT(5)
+
 #define SDS_PAGE_CTRL05             0x05
 #define SDS_REG_CTRL05_10GR_STS     0x00
 #define SDS_CTRL05_10GR_STS_SYNC_OK   BIT(0)
@@ -226,6 +243,13 @@ static __code const struct sds_patch_entry patch_data_phy[] = {
 
 #define SDS_PAGE_NWAY_AN   0x07
 #define SDS_REG_NWAY_AN    17
+
+#define SDS_PAGE_CTRL1F       0x1f
+#define SDS_REG_CTRL1F_REG00  0x00
+#define SDS_REG_CTRL1F_REG05  0x05
+#define SDS_REG_CTRL1F_10GR_AN  0x0B
+#define SDS_CTRL1F_10GR_AN_Pause_MASK     BIT(2)
+#define SDS_CTRL1F_10GR_AN_AsymmetricPause_MASK  BIT(3)
 
 void static serdes_off(uint8_t sds) {
 
@@ -280,8 +304,8 @@ void static serdes_on(uint8_t sds) {
 	// Delay 50mS
 	delay(10);
 	sds_modify(sds, SDS_PAGE_FRC, SDS_REG_FRC, SDS_FRC_RX_EN_VAL_MASK | SDS_FRC_RX_EN_ON_MASK, 0);
-	// Delay 20mS
-	delay(4);
+	// Delay 50mS
+	delay(10);
 }
 
 void static serdes_reset_x(uint8_t sds) {
@@ -296,18 +320,23 @@ void static serdes_reset_x(uint8_t sds) {
 	val = SFR_DATA_U16;
 
 	bool sig_ok = (val & SDS_CTRL01_XSG_STS_SIG_OK) != 0;
-	if (!sig_ok)
+	if (!sig_ok) {
+		print_string("No reset because not active\n");
 		return;
+	}
 	
 	bool link_ok = (val & SDS_CTRL01_XSG_STS_LINK_OK) != 0;
 	bool sync_ok = (val & SDS_CTRL01_XSG_STS_SYNC_OK) != 0;
 
-	if (!sync_ok || !link_ok)
+	if (sync_ok == false)
 		goto reset;
+	else
+		if (link_ok == false)
+			goto reset;
 	return;
 
 reset:
-	print_string("\tReset SERDES\n");
+	print_string("\tReset_x SERDES\n");
 
 	sds_modify(sds, 0x00, 0x00, BIT(1), BIT(1));
 	// Delay 20mS
@@ -354,28 +383,25 @@ void static serdes_reset_r(uint8_t sds) {
 		bool link_ok = (val & SDS_CTRL05_10GR_STS_LINK_OK) == SDS_CTRL05_10GR_STS_LINK_OK;
 		if (link_ok == false)
 			goto reset;
-		bool hi_ber =  (val & SDS_CTRL05_10GR_STS_HI_BER) == SDS_CTRL05_10GR_STS_HI_BER;
+		bool hi_ber = (val & SDS_CTRL05_10GR_STS_HI_BER) == SDS_CTRL05_10GR_STS_HI_BER;
 		if (hi_ber == true)
 			goto reset;
 	}
 	return;
 
 reset:
-	print_string("\tReset SERDES\n");
+	print_string("\tReset_r SERDES\n");
 
-	sds_read(sds, SDS_PAGE_FRC, SDS_REG_FRC);
-	val = SFR_DATA_U16 & ~(SDS_FRC_RX_EN_VAL_MASK | SDS_FRC_RX_EN_ON_MASK);
-
-	sds_write_v(sds, SDS_PAGE_FRC, SDS_REG_FRC, val | SDS_FRC_RX_EN_VAL_MASK | SDS_FRC_RX_EN_ON_MASK);
+	sds_modify(sds, SDS_PAGE_FRC, SDS_REG_FRC, SDS_FRC_RX_EN_VAL_MASK | SDS_FRC_RX_EN_ON_MASK, SDS_FRC_RX_EN_VAL_MASK | SDS_FRC_RX_EN_ON_MASK);
 	// Delay 20mS
 	delay(4);
-	sds_write_v(sds, SDS_PAGE_FRC, SDS_REG_FRC, val | SDS_FRC_RX_EN_ON_MASK);
+	sds_modify(sds, SDS_PAGE_FRC, SDS_REG_FRC, SDS_FRC_RX_EN_VAL_MASK | SDS_FRC_RX_EN_ON_MASK, SDS_FRC_RX_EN_ON_MASK);
 	// Delay 20mS
 	delay(4);
-	sds_write_v(sds, SDS_PAGE_FRC, SDS_REG_FRC, val | SDS_FRC_RX_EN_VAL_MASK | SDS_FRC_RX_EN_ON_MASK);
+	sds_modify(sds, SDS_PAGE_FRC, SDS_REG_FRC, SDS_FRC_RX_EN_VAL_MASK | SDS_FRC_RX_EN_ON_MASK, SDS_FRC_RX_EN_VAL_MASK | SDS_FRC_RX_EN_ON_MASK);
 	// Delay 20mS
 	delay(4);
-	sds_write_v(sds, SDS_PAGE_FRC, SDS_REG_FRC, val);
+	sds_modify(sds, SDS_PAGE_FRC, SDS_REG_FRC, SDS_FRC_RX_EN_VAL_MASK | SDS_FRC_RX_EN_ON_MASK, 0);
 	// Delay 20mS
 	delay(4);
 }
@@ -512,7 +538,6 @@ void sds_pcs_config(uint8_t sds, enum sds_modes interface, bool en_inband) __ban
 		// SDS1: 1f << 16
 		sfr_data[1] &= ~(0x1f << 0);
 	}
-	reg_write_m(RTL837X_REG_SDS_MODES);
 
 	// Set interface
 	if (sds == 0) {
@@ -538,12 +563,33 @@ void sds_pcs_config(uint8_t sds, enum sds_modes interface, bool en_inband) __ban
 	// delay 250mS
 	delay(50);
 
+	// Set Auto Negotiation Pause/AsymPause
+	switch (interface) {
+		case SDS_100FX:
+			sds_modify(sds, SDS_PAGE_CTRL1F, SDS_REG_CTRL1F_REG05, BIT(3) | BIT(2), BIT(3) | BIT(2));
+			// Set pause_bits
+			sds_modify(sds, SDS_PAGE_CTRL02, SDS_REG_CTRL02_XSG_AN, SDS_CTRL02_XSG_AN_10_100_AsymmetricPause_MASK | SDS_CTRL02_XSG_AN_10_100_Pause_MASK, SDS_CTRL02_XSG_AN_10_100_AsymmetricPause_MASK | SDS_CTRL02_XSG_AN_10_100_Pause_MASK);
+			break;
+		case SDS_1000BASEX:
+		case SDS_2500BASEX:
+			sds_modify(sds, SDS_PAGE_CTRL1F, SDS_REG_CTRL1F_REG05, BIT(3) | BIT(2), BIT(2));
+			// Set pause_bits
+			sds_modify(sds, SDS_PAGE_CTRL02, SDS_REG_CTRL02_XSG_AN, SDS_CTRL02_XSG_AN_1G_AsymmetricPause_MASK | SDS_CTRL02_XSG_AN_1G_Pause_MASK, SDS_CTRL02_XSG_AN_1G_AsymmetricPause_MASK | SDS_CTRL02_XSG_AN_1G_Pause_MASK);
+		break;
+		case SDS_10GBASER:
+			sds_modify(sds, SDS_PAGE_CTRL1F, SDS_REG_CTRL1F_10GR_AN, SDS_CTRL1F_10GR_AN_AsymmetricPause_MASK | SDS_CTRL1F_10GR_AN_Pause_MASK, SDS_CTRL1F_10GR_AN_AsymmetricPause_MASK | SDS_CTRL1F_10GR_AN_Pause_MASK);
+			break;
+		default:
+			break;
+	}
+
+	// Auto Negotiation
 	switch (interface) {
 		case SDS_SGMII:
 		case SDS_1000BASEX:
 		case SDS_2500BASEX:
-			sds_modify(sds, 0, 2, 3 << 8, en_inband ? 3 << 8 : 1 << 8);
-			sds_modify(sds, 0, 4, BIT(2), BIT(2));
+			sds_modify(sds, SDS_PAGE_CTRL00, SDS_REG_CTRL00_REG02, SDS_CTRL00_REG02_XSG_SP_SDS_FRC_AN | SDS_CTRL00_REG02_XSG_SP_SDS_FRC_AN_EN, en_inband ? SDS_CTRL00_REG02_XSG_SP_SDS_FRC_AN | SDS_CTRL00_REG02_XSG_SP_SDS_FRC_AN_EN : SDS_CTRL00_REG02_XSG_SP_SDS_FRC_AN);
+			sds_modify(sds, SDS_PAGE_CTRL00, SDS_REG_CTRL00_REG04, BIT(2), BIT(2));
 			break;
 		case SDS_10G_USXGMII:
 			sds_modify(sds, SDS_PAGE_NWAY_AN, SDS_REG_NWAY_AN, 0xF, en_inband ? 0xF : 0);
@@ -554,29 +600,23 @@ void sds_pcs_config(uint8_t sds, enum sds_modes interface, bool en_inband) __ban
 
 	serdes_on(sds);
 
-	sds_modify(sds, 0x1f, 0x00, 0xFFFF, 0xb);
+	sds_modify(sds, SDS_PAGE_CTRL1F, SDS_REG_CTRL1F_REG00, 0xFFFF, 0xb);
 
 	// delay 50mS
 	delay(10);
 
-	sds_modify(sds, 0x1f, 0x00, 0xFFFF, 0x0);
+	sds_modify(sds, SDS_PAGE_CTRL1F, SDS_REG_CTRL1F_REG00, 0xFFFF, 0x0);
 
 	// delay 50mS
 	delay(10);
 
 	switch (interface) {
-		case SDS_SGMII:
-		case SDS_100FX:
-		case SDS_1000BASEX:
-		case SDS_2500BASEX:
-			serdes_reset_x(sds);
-			break;
-		case SDS_10G_QXGMII:
     	case SDS_10G_USXGMII:
 		case SDS_10GBASER:
 			serdes_reset_r(sds);
 			break;
 		default:
+			serdes_reset_x(sds);
 			break;
 	}
 }

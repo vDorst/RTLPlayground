@@ -17,8 +17,6 @@ __code const struct machine machine = {
 	.sds_settings[1].sds_settings_t.sfp.i2c = I2CBUS( GPIO39_I2C_SDA4, GPIO40_I2C_SCL3_MDC1 ), /* GPIO 39 */
 	.reset_pin = GPIO54_ACL_BIT2_EN,
 	.high_leds = { .mux = LED_27 | LED_29, .enable = LED_28_SYS | LED_29 },
-	.reset_pin = GPIO54_ACL_BIT2_EN,
-	.high_leds = { .mux = LED_27 | LED_29, .enable = LED_28_SYS | LED_29 },
 	.port_led_set = { 0, 0, 0, 1, 0, 0, 0, 0, 1},
 	.led_sets = {
 		{ /* RJ45: Green LED */

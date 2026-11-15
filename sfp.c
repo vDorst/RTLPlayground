@@ -218,6 +218,7 @@ void setup_sfp_gpio(void) __banked
  *   - dev: I2C-address
  *   - devad: set -1 for C22 read.
  *   - reg: 16-bit for C45, lsb for C22
+ * Return true when OK
 */
 // https://elixir.bootlin.com/linux/v7.2.8/source/drivers/net/phy/phy_device.c#L991
 bool i2c_mdio_phy_read_c45(uint8_t sds, uint8_t phy_id, int8_t devad, uint16_t reg) __reentrant __banked
@@ -472,16 +473,21 @@ static bool sfp_module_read(__xdata uint8_t sfp)
 		} else {
 			print_string("\nFOUND: PHY: ");
 			print_string(phy_drivers[id].name);
-			int8_t ret = (phy_drivers[id].config_init)(sfp);
+			int8_t ret = phy_config_init(sfp, id);
 			if (ret >= 0) {
-				if (phy_drivers[id].config_aneg && (phy_drivers[id].config_aneg)(sfp))
+				int8_t ret_aneg = phy_config_aneg(sfp, id);
+				if (ret_aneg >= 0) {
+					print_string("\nphy_config_aneg: Done\n");
 					sfp_rate = ret;
+				} else {
+					print_string("\nphy_config_aneg: failt\n");
+				}
+			} else {
+				print_string("\nphy_config_init: failt\n");
 			}
 		}
-
-		write_char('\n');
 	} else {
-		print_string("No Phy ID");
+		print_string("SFP have no known Phy\n");
 	}
 
 	sds_pcs_config(sfp, sfp_rate, true);

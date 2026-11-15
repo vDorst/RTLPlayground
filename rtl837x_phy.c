@@ -137,23 +137,13 @@ void phy_config_8261(uint8_t phy, uint8_t sds) __banked
 	phy_write(phy, PHY_MMD30, 0x00c1, 0x0127); // p031e.00c1:0127 P000008.1e0000c1:0127
 	phy_write(phy, PHY_MMD30, 0x00c1, 0x0167); // p031e.00c1:0127 P000008.1e0000c1:0167
 
-	sds_write_v(sds, 0x21, 0x00, 0x4096); // Q002100:4906
-	sds_write_v(sds, 0x36, 0x05, 0x4000); // Q003605:4000
-	sds_write_v(sds, 0x1f, 0x02, 0x001f); // Q001f02:001f
-
 	phy_read(phy, 0x01, 0x0000);
 	print_phy_data(); // p0301.0000:2040
 
 	phy_write(phy, 0x01, 0x0000, 0x2040);  // P000008.01000000:2040
 	delay(20);
 
-	sds_write_v(sds, 0, 0, 0x1603); // Q000000:1603
-	delay(20);
-	sds_write_v(sds, 0, 0, 0x1601); // Q000000:1601
-	delay(20);
-	sds_write_v(sds, 0, 0, 0x1603); //Q000000:1603
-	delay(20);
-	// r6330:00005555 R6330-00005555 r7b20:000003ed R7b20-000003ed
+	// // r6330:00005555 R6330-00005555 r7b20:000003ed R7b20-000003ed
 	print_string("\r\nphy_config_8261 done\n");
 }
 

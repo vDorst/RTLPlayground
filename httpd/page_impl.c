@@ -702,9 +702,7 @@ void send_eee(void)
 	char_to_html('[');
 	for (uint8_t i = MACHINE_MIN_PORT; i <= MACHINE_MAX_PORT; i++) {
 		str_code_to_html("{" JSONQUOTE("port") ":");
-
-		uint8_t phys_port = machine.log_to_phys_port[i];
-		itoa_html(phys_port);
+		itoa_html(machine.log_to_phys_port[i]);
 
 		if (port_to_sds_usage(i) == SDS_SFP) {
 			str_code_to_html("," JSONQUOTE("isSFP") ":true");
@@ -1028,75 +1026,7 @@ void send_traffic(void)
 		str_code_to_html("{" JSONQUOTE("port") ":");
 		itoa_html(machine.log_to_phys_port[i]);
 
-		int8_t sds = port_to_sds(i);
-		if (sds >= 0 && machine.sds_settings[sds].usage == SDS_SFP) {
-			uint8_t sfp = (uint8_t)sds;
-			slen += strtox(outbuf + slen, ",\"isSFP\":1,\"enabled\":");
-			if (!(sfp_pins_last & (0x1 << (sfp << 2)))) {
-				bool_to_html(1);
-				slen += strtox(outbuf + slen,",\"sfp_options\":\"0x");
-				byte_to_html(sfp_options[sfp]);
-				if (sfp_options[sfp] & 0x40) {
-					slen += strtox(outbuf + slen,"\",\"sfp_temp\":\"0x");
-					sfp_send_data(sfp, 224, 2);
-					slen += strtox(outbuf + slen,"\",\"sfp_vcc\":\"0x");
-					sfp_send_data(sfp, 226, 2);
-					slen += strtox(outbuf + slen,"\",\"sfp_txbias\":\"0x");
-					sfp_send_data(sfp, 228, 2);
-					slen += strtox(outbuf + slen,"\",\"sfp_txpower\":\"0x");
-					sfp_send_data(sfp, 230, 2);
-					slen += strtox(outbuf + slen,"\",\"sfp_rxpower\":\"0x");
-					sfp_send_data(sfp, 232, 2);
-					if (sfp_options[sfp] & 0x10) {
-						slen += strtox(outbuf + slen,"\",\"sfp_temp_cal\":\"0x");
-						sfp_send_data(sfp, 212, 4);
-						slen += strtox(outbuf + slen,"\",\"sfp_vcc_cal\":\"0x");
-						sfp_send_data(sfp, 216, 4);
-						slen += strtox(outbuf + slen,"\",\"sfp_txbias_cal\":\"0x");
-						sfp_send_data(sfp, 204, 4);
-						slen += strtox(outbuf + slen,"\",\"sfp_txpower_cal\":\"0x");
-						sfp_send_data(sfp, 208, 4);
-						slen += strtox(outbuf + slen,"\",\"sfp_rxpower_cal\":\"0x");
-						sfp_send_data(sfp, 184, 16);
-						sfp_send_data(sfp, 200, 4);
-					}
-					slen += strtox(outbuf + slen,"\",\"sfp_state\":\"0x");
-					sfp_send_data(sfp, 238, 1);
-				}
-				slen += strtox(outbuf + slen,"\",\"sfp_vendor\":\"");
-				str_x_to_html(sfp_module_vendor[sfp]);
-				slen += strtox(outbuf + slen,"\",\"sfp_model\":\"");
-				str_x_to_html(sfp_module_model[sfp]);
-				slen += strtox(outbuf + slen,"\",\"sfp_serial\":\"");
-				str_x_to_html(sfp_module_serial[sfp]);
-				slen += strtox(outbuf + slen,"\",\"sfp_los\":");
-				if (machine.sds_settings[sfp].sds_settings_t.sfp.pin_los == GPIO_NA) {
-					slen += strtox(outbuf + slen,"null");
-				} else {
-					bool_to_html(sfp_pins_last & (0x2 << (sfp << 2)));
-				}
-			} else {
-				bool_to_html(0);
-			}
-		} else {
-			slen += strtox(outbuf + slen, ",\"isSFP\":0,\"enabled\":");
-			phy_read(i, PHY_MMD31, 0xa610);
-			bool_to_html(SFR_DATA_8 == 0x20);
-			slen += strtox(outbuf + slen, ",\"adv\":\"");
-			phy_read(i, PHY_MMD_AN, PHY_ANEG_MGBASE_CTRL);
-			uint16_t w = SFR_DATA_U16;
-			bool_to_html(!!(w & 0x80));		// 2500BaseN-Full
-			phy_read(i, PHY_MMD31, PHY_MMD31_GBCR);
-			w = SFR_DATA_U16;
-			bool_to_html(!!(w & 0x0200));		// 1000Base-Full
-			phy_read(i, PHY_MMD_AN, PHY_ANEG_ADV);
-			w = SFR_DATA_U16;
-			bool_to_html(!!(w & 0x0100));		// 100Base-Full
-			bool_to_html(!!(w & 0x80));		// 100Base-Half
-			bool_to_html(!!(w & 0x40));		// 10Base-Full
-			bool_to_html(!!(w & 0x20));		// 10Base-Half
-			char_to_html('"');
-		}
+		str_code_to_html("," JSONQUOTE("link") ":\"");
 
 		linkspeed_to_json(i);
 

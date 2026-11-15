@@ -12,6 +12,7 @@
 #include "rtl837x_phy.h"
 #include "rtl837x_port.h"
 #include "rtl837x_i2c.h"
+#include "rtl837x_init.h"
 #include "machine.h"
 #include "phy.h"
 #include "boot.h"
@@ -484,7 +485,7 @@ static bool sfp_module_read(__xdata uint8_t sfp)
 	}
 
 
-	sds_config(sfp, sfp_rate);
+	sds_pcs_config(sfp, sfp_rate, false);
 
 	return true;
 }
@@ -518,7 +519,7 @@ void handle_sfp(void) __banked
 				sfp_pins_last |= 0x01 << (sds << 2);
 				sfp_wake_pending[sds] = 0;
 				print_string("\n<MODULE REMOVED>  Port: "); print_phys_port(port); write_char('\n');
-				sds_config(sds, SDS_OFF);
+				sds_pcs_config(sds, SDS_OFF, false);
 			} else if (sfp_wake_pending[sds] && timer_expired(&sfp_wake[sds])) {
 				sfp_wake_pending[sds] = 0;
 				if (!sfp_module_read(sds)) {

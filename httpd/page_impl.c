@@ -689,9 +689,7 @@ void send_eee(void)
 	char_to_html('[');
 	for (uint8_t i = MACHINE_MIN_PORT; i <= MACHINE_MAX_PORT; i++) {
 		str_code_to_html("{" JSONQUOTE("port") ":");
-
-		uint8_t phys_port = machine.log_to_phys_port[i];
-		itoa_html(phys_port);
+		itoa_html(machine.log_to_phys_port[i]);
 
 		if (port_to_sds_usage(i) == SDS_SFP) {
 			str_code_to_html("," JSONQUOTE("isSFP") ":true");

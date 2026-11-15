@@ -438,7 +438,44 @@ void static serdes_mac_patch(uint8_t sds) {
 	write_char('\n');
 }
 
+void print_sds_mode(enum sds_modes interface) {
+	__code const char * msg;
+	switch (interface) {
+		case SDS_OFF:
+			msg = "OFF\n";
+			break;
+		case SDS_SGMII:
+			msg = "SGMII\n";
+			break;
+		case SDS_1000BASEX:
+			msg = "1000BX\n";
+			break;
+		case SDS_2G5_SGMII:
+			msg = "2G5_SGMII\n";
+			break;
+		case SDS_2500BASEX:
+			msg = "2500BASEX\n";
+			break;
+		case SDS_10GBASER:
+			msg = "10GBASER\n";
+			break;
+		case SDS_10G_QXGMII:
+			msg = "QXGMII\n";
+			break;
+		case SDS_100FX:
+			msg = "100FX\n";
+			break;
+		default:
+			msg = "UNKNOWN\n";
+	}
+	print_string(msg);
+}
+
 void sds_pcs_config(uint8_t sds, enum sds_modes interface, bool en_inband) __banked {
+	print_string("Set SDS: "); print_byte(sds);
+    print_string(", mode: ");
+	print_sds_mode(interface);
+
 	reg_bit_clear(RTL837X_REG_SDS_MODES, sds == 1 ? RTL837X_REG_SDS_MODES_MAC8_8221_BIT : RTL837X_REG_SDS_MODES_MAC3_8221_BIT);
 	
 	serdes_off(sds);
@@ -462,6 +499,9 @@ void sds_pcs_config(uint8_t sds, enum sds_modes interface, bool en_inband) __ban
 		sfr_data[2] &= ~(0x1f >> 3);
 	}
 	reg_write_m(RTL837X_REG_SDS_MODES);
+
+	if (interface == SDS_OFF) 
+		return;
 
 	// apply patch
     serdes_an_patch(sds, interface);

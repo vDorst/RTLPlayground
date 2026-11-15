@@ -480,6 +480,7 @@ void sds_pcs_config(uint8_t sds, enum sds_modes interface, bool en_inband) __ban
 	
 	serdes_off(sds);
 
+	// Set USX_SUB_MODE
 	reg_read_m(RTL837X_REG_SDS_MODES);
 	if (sds == 0) {
 		// SDD0: 1f << 10
@@ -490,17 +491,21 @@ void sds_pcs_config(uint8_t sds, enum sds_modes interface, bool en_inband) __ban
 	}
 	reg_write_m(RTL837X_REG_SDS_MODES);
 
+	// Set interface
 	if (sds == 0) {
 		// SDD0: 1f << 0
 		sfr_data[3] &= ~(0x1f << 0);
+		sfr_data[3] |= (interface << 0);
 	} else {
 		// SDS1: 1f << 5
 		sfr_data[3] &= ~(0x1f << 5);
+		sfr_data[3] |= (interface << 5);
 		sfr_data[2] &= ~(0x1f >> 3);
+		sfr_data[2] |= (interface >> 3);
 	}
 	reg_write_m(RTL837X_REG_SDS_MODES);
 
-	if (interface == SDS_OFF) 
+	if (interface == SDS_OFF)
 		return;
 
 	// apply patch

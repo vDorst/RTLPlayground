@@ -502,7 +502,7 @@ void handle_sfp(void) __banked
 		if (!gpio_pin_test(machine.sds_settings[sds].sds_settings_t.sfp.pin_detect)) {
 			if (sfp_pins_last & (0x1 << (sds << 2))) {
 				sfp_pins_last &= ~(0x01 << (sds << 2));
-				print_string("\n<MODULE INSERTED>  Slot: "); write_char('1' + sds);
+				print_string("\n<MODULE INSERTED>  port: "); print_phys_port(port); write_char('\n');
 				timer_set(&sfp_wake[sds], SFP_WAKE_TICKS);
 				sfp_wake_pending[sds] = 1;
 			} else if (sfp_wake_pending[sds] && timer_expired(&sfp_wake[sds])) {
@@ -516,7 +516,8 @@ void handle_sfp(void) __banked
 			if (!(sfp_pins_last & (0x1 << (sds << 2)))) {
 				sfp_pins_last |= 0x01 << (sds << 2);
 				sfp_wake_pending[sds] = 0;
-				print_string("\n<MODULE REMOVED>  Slot: "); write_char('1' + sds); write_char('\n');
+				print_string("\n<MODULE REMOVED>  port: "); print_phys_port(port); write_char('\n');
+				sds_pcs_config(sds, SDS_OFF, false);
 			}
 		}
 
@@ -525,13 +526,14 @@ void handle_sfp(void) __banked
 		if (!gpio_pin_test(machine.sds_settings[sds].sds_settings_t.sfp.pin_los)) {
 			if (sfp_pins_last & (0x2 << (sds << 2))) { // 0x2 0x08
 				sfp_pins_last &= ~(0x02 << (sds << 2));
-				print_string("\n<SFP-RX OK>  Slot: "); write_char('1' + sds); write_char('\n');
+				print_string("\n<SFP-RX OK>  port: "); print_phys_port(port); write_char('\n');
 			}
 		} else {
 			if (!(sfp_pins_last & 0x2 << (sds << 2))) {
 				sfp_pins_last |= 0x02 << (sds << 2);
-				print_string("\n<SFP-RX LOS>  Slot: "); write_char('1' + sds); write_char('\n');
+				print_string("\n<SFP-RX LOS>  port: "); print_phys_port(port); write_char('\n');
 			}
 		}
 	}
 }
+

@@ -212,6 +212,12 @@ static __code const struct sds_patch_entry patch_data_phy[] = {
 #define SDS_FRC_CMU_EN_ON_MASK   BIT(10)
 #define SDS_FRC_CMU_EN_VAL_MASK  BIT(11)
 
+#define SDS_PAGE_CTRL01             0x01
+#define SDS_REG_CTRL01_XSG_STS      0x1d 
+#define SDS_CTRL01_XSG_STS_SYNC_OK   BIT(0)
+#define SDS_CTRL01_XSG_STS_LINK_OK   BIT(4)
+#define SDS_CTRL01_XSG_STS_SIG_OK    BIT(8)
+
 void static serdes_off(uint8_t sds) {
 
 	sds_modify(sds, SDS_PAGE_FRC, SDS_REG_FRC, SDS_FRC_RX_EN_VAL_MASK | SDS_FRC_RX_EN_ON_MASK, SDS_FRC_RX_EN_VAL_MASK | SDS_FRC_RX_EN_ON_MASK);
@@ -256,7 +262,36 @@ void static serdes_on(uint8_t sds) {
 }
 
 void static serdes_reset_x(uint8_t sds) {
+	uint16_t val;
+	sds_read(sds, SDS_PAGE_FRC, SDS_REG_FRC);
+	val = SFR_DATA_U16;
 
+	if ((val & (SDS_FRC_RX_EN_VAL_MASK | SDS_FRC_RX_EN_ON_MASK)) == SDS_FRC_RX_EN_ON_MASK)
+		return;
+
+	sds_read(sds, SDS_PAGE_CTRL01, SDS_REG_CTRL01_XSG_STS);
+	val = SFR_DATA_U16;
+
+	bool sig_ok = (val & SDS_CTRL01_XSG_STS_SIG_OK) != 0;
+	if (!sig_ok)
+		return;
+	
+	bool link_ok = (val & SDS_CTRL01_XSG_STS_LINK_OK) != 0;
+	bool sync_ok = (val & SDS_CTRL01_XSG_STS_SYNC_OK) != 0;
+
+	if (!sync_ok || !link_ok)
+		goto reset;
+	return;
+
+	reset:
+	print_string("Reset SERDES");
+
+	sds_modify(sds, 0x00, 0x00, BIT(1), BIT(1));
+	delay(20);
+	sds_modify(sds, 0x00, 0x00, BIT(1), 0);
+	delay(20);
+	sds_modify(sds, 0x00, 0x00, BIT(1), BIT(1));
+	delay(20);
 }
 
 void static serdes_reset_u(uint8_t sds) {
@@ -417,7 +452,6 @@ void static sds_pcs_config(uint8_t sds, enum sds_modes interface, bool en_inband
 		default:
 			break;
 	}
-
 }
 
 /*

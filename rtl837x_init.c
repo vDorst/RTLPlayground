@@ -201,12 +201,58 @@ static __code const struct sds_patch_entry patch_data_phy[] = {
 	LAST
 };
 
+#define BIT(b) ((uint16_t)1<<b)
+
+#define SDS_PAGE_FRC 0x20
+#define SDS_REG_FRC 0x00
+#define SDS_FRC_RX_EN_ON_MASK    BIT(4)
+#define SDS_FRC_RX_EN_VAL_MASK   BIT(5)
+#define SDS_FRC_PDOWN_ON_MASK    BIT(6)
+#define SDS_FRC_PDOWN_VAL_MASK   BIT(7)
+#define SDS_FRC_CMU_EN_ON_MASK   BIT(10)
+#define SDS_FRC_CMU_EN_VAL_MASK  BIT(11)
+
 void static serdes_off(uint8_t sds) {
 
+	sds_modify(sds, SDS_PAGE_FRC, SDS_REG_FRC, SDS_FRC_RX_EN_VAL_MASK | SDS_FRC_RX_EN_ON_MASK, SDS_FRC_RX_EN_VAL_MASK | SDS_FRC_RX_EN_ON_MASK);
+	delay(20);
+	sds_modify(sds, SDS_PAGE_FRC, SDS_REG_FRC, SDS_FRC_RX_EN_VAL_MASK | SDS_FRC_RX_EN_ON_MASK, SDS_FRC_RX_EN_ON_MASK);
+	delay(50);
+
+	sds_modify(sds, SDS_PAGE_FRC, SDS_REG_FRC, SDS_FRC_PDOWN_ON_MASK | SDS_FRC_PDOWN_VAL_MASK, SDS_FRC_PDOWN_ON_MASK);
+	delay(20);
+	sds_modify(sds, SDS_PAGE_FRC, SDS_REG_FRC, SDS_FRC_PDOWN_ON_MASK | SDS_FRC_PDOWN_VAL_MASK, SDS_FRC_PDOWN_ON_MASK | SDS_FRC_PDOWN_VAL_MASK);
+	delay(50);
+
+	sds_modify(sds, SDS_PAGE_FRC, SDS_REG_FRC, SDS_FRC_CMU_EN_ON_MASK | SDS_FRC_CMU_EN_VAL_MASK, SDS_FRC_CMU_EN_ON_MASK | SDS_FRC_CMU_EN_VAL_MASK);
+	delay(20);
+	sds_modify(sds, SDS_PAGE_FRC, SDS_REG_FRC, SDS_FRC_CMU_EN_ON_MASK | SDS_FRC_CMU_EN_VAL_MASK, SDS_FRC_CMU_EN_ON_MASK);
+	delay(50);
 }
 
 void static serdes_on(uint8_t sds) {
 
+	sds_modify(sds, SDS_PAGE_FRC, SDS_REG_FRC, SDS_FRC_CMU_EN_ON_MASK | SDS_FRC_CMU_EN_VAL_MASK, SDS_FRC_CMU_EN_ON_MASK);
+	delay(20);
+	sds_modify(sds, SDS_PAGE_FRC, SDS_REG_FRC, SDS_FRC_CMU_EN_ON_MASK | SDS_FRC_CMU_EN_VAL_MASK, SDS_FRC_CMU_EN_ON_MASK | SDS_FRC_CMU_EN_VAL_MASK);
+	delay(50);
+	sds_modify(sds, SDS_PAGE_FRC, SDS_REG_FRC, SDS_FRC_CMU_EN_ON_MASK | SDS_FRC_CMU_EN_VAL_MASK, 0);
+	delay(20);
+
+	sds_modify(sds, SDS_PAGE_FRC, SDS_REG_FRC, SDS_FRC_PDOWN_ON_MASK | SDS_FRC_PDOWN_VAL_MASK, SDS_FRC_PDOWN_ON_MASK | SDS_FRC_PDOWN_VAL_MASK);
+	delay(20);
+	sds_modify(sds, SDS_PAGE_FRC, SDS_REG_FRC, SDS_FRC_PDOWN_ON_MASK | SDS_FRC_PDOWN_VAL_MASK, SDS_FRC_PDOWN_ON_MASK);
+	delay(50);
+	sds_modify(sds, SDS_PAGE_FRC, SDS_REG_FRC, SDS_FRC_PDOWN_ON_MASK | SDS_FRC_PDOWN_VAL_MASK, 0);
+	delay(20);
+
+
+	sds_modify(sds, SDS_PAGE_FRC, SDS_REG_FRC, SDS_FRC_RX_EN_VAL_MASK | SDS_FRC_RX_EN_ON_MASK, SDS_FRC_RX_EN_ON_MASK);
+	delay(20);
+	sds_modify(sds, SDS_PAGE_FRC, SDS_REG_FRC, SDS_FRC_RX_EN_VAL_MASK | SDS_FRC_RX_EN_ON_MASK, SDS_FRC_RX_EN_VAL_MASK | SDS_FRC_RX_EN_ON_MASK);
+	delay(50);
+	sds_modify(sds, SDS_PAGE_FRC, SDS_REG_FRC, SDS_FRC_RX_EN_VAL_MASK | SDS_FRC_RX_EN_ON_MASK, 0);
+	delay(50);
 }
 
 void static serdes_reset_x(uint8_t sds) {

@@ -224,6 +224,9 @@ static __code const struct sds_patch_entry patch_data_phy[] = {
 #define SDS_CTRL05_10GR_STS_HI_BER    BIT(1)
 #define SDS_CTRL05_10GR_STS_LINK_OK   BIT(12)
 
+#define SDS_PAGE_NWAY_AN   0x07
+#define SDS_REG_NWAY_AN    17
+
 void static serdes_off(uint8_t sds) {
 
 	sds_modify(sds, SDS_PAGE_FRC, SDS_REG_FRC, SDS_FRC_RX_EN_VAL_MASK | SDS_FRC_RX_EN_ON_MASK, SDS_FRC_RX_EN_VAL_MASK | SDS_FRC_RX_EN_ON_MASK);
@@ -471,11 +474,11 @@ void sds_pcs_config(uint8_t sds, enum sds_modes interface, bool en_inband) __ban
 		case SDS_SGMII:
 		case SDS_1000BASEX:
 		case SDS_2500BASEX:
-			sds_modify(sds, 0, 2, 3 << 8, sds == 0 ? 1 << 8 : 3 << 8);
+			sds_modify(sds, 0, 2, 3 << 8, en_inband ? 3 << 8 : 1 << 8);
+			sds_modify(sds, 0, 4, BIT(2), BIT(2));
 			break;
-		case SDS_10G_QXGMII:
-    	case SDS_10G_USXGMII:
-		case SDS_10GBASER:
+		case SDS_10G_USXGMII:
+			sds_modify(sds, SDS_PAGE_NWAY_AN, SDS_REG_NWAY_AN, 0xF, en_inband ? 0xF : 0);
 			break;
 		default:
 			break;

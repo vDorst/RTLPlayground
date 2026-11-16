@@ -834,7 +834,8 @@ void rtl8372_init(void) __banked
 				}
 				break;
 			case SDS_FIXED_LINK:
-				sds_pcs_config(sds, SDS_10G_QXGMII, false);
+				enum sds_modes mode = machine.sds_settings[sds].sds_settings_t.fl.mode;
+				sds_pcs_config(sds, mode, false);
 				break;
 			case SDS_SFP:
 			default:

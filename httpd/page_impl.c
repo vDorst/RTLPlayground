@@ -953,6 +953,29 @@ void send_ports(void)
 			} else {
 				bool_to_json(0);
 			}
+		} else if (port_to_sds_usage(i) == SDS_FIXED_LINK) {
+			str_code_to_html("," JSONQUOTE("isSFP") ":false," JSONQUOTE("enabled") ": true," JSONQUOTE("adv") ":[");
+			uint8_t sds = port_to_sds(i);
+			switch (machine.sds_settings[sds].sds_settings_t.fl.mode) {
+				case SDS_10G_QXGMII:
+				case SDS_10G_USXGMII:
+				case SDS_10GBASER:
+					json_add_array_string_item(JSONQUOTE("10G"));
+					break;
+				case SDS_2G5_SGMII:
+				case SDS_2500BASEX:
+					json_add_array_string_item(JSONQUOTE("2.5G"));
+					break;
+				case SDS_SGMII:
+				case SDS_1000BASEX:
+					json_add_array_string_item(JSONQUOTE("1G"));
+					break;
+				case SDS_100FX:
+					json_add_array_string_item(JSONQUOTE("100M-FD"));
+					break;
+				default:
+			}
+			char_to_html(']');
 		} else {
 			str_code_to_html("," JSONQUOTE("isSFP") ":false," JSONQUOTE("enabled") ":");
 			phy_read(i, PHY_MMD31, 0xa610);

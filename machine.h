@@ -131,11 +131,17 @@ struct ext_phy
 	uint8_t reset_pin;
 };
 
+struct fixed_link
+{
+	enum sds_modes mode;
+};
+
 struct sds_settings {
 	enum sds_type usage;
 	union {
 		struct sfp_port sfp;
 		struct ext_phy  ephy;
+		struct fixed_link fl;
 	} sds_settings_t;
 };
 

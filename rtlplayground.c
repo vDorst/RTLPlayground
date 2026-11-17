@@ -1731,10 +1731,7 @@ void main(void)
 
 	set_sys_led_state(SYS_LED_SLOW);
 
-	if (machine_detected.isRTL8373)
-		rtl8373_init();
-	else
-		rtl8372_init();
+	rtl8373_init();
 	delay(1000);
 
 	check_and_flash_update_image();

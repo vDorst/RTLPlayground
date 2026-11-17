@@ -508,6 +508,9 @@ void print_sds_mode(enum sds_modes interface) {
 		case SDS_10GBASER:
 			msg = "10GBASER\n";
 			break;
+		case SDS_10G_USXGMII:
+			msg = "USXGMII\n";
+			break;
 		case SDS_10G_QXGMII:
 			msg = "QXGMII\n";
 			break;
@@ -531,12 +534,18 @@ void sds_pcs_config(uint8_t sds, enum sds_modes interface, bool en_inband) __ban
 
 	// Set USX_SUB_MODE
 	reg_read_m(RTL837X_REG_SDS_MODES);
+	// USX_SUB_MODE
 	if (sds == 0) {
 		// SDD0: 1f << 10
 		sfr_data[2] &= ~(0x1f << 2);
+		if (interface == SDS_10G_QXGMII) {
+			sfr_data[2] |= (2 << 2);
+			interface = 0x0d;
+		}
 	} else {
 		// SDS1: 1f << 16
 		sfr_data[1] &= ~(0x1f << 0);
+		// SDS_10G_QXGMII is not supported for SDS1.
 	}
 
 	// Set interface
@@ -586,11 +595,13 @@ void sds_pcs_config(uint8_t sds, enum sds_modes interface, bool en_inband) __ban
 	// Auto Negotiation
 	switch (interface) {
 		case SDS_SGMII:
+		case SDS_2G5_SGMII:
 		case SDS_1000BASEX:
 		case SDS_2500BASEX:
 			sds_modify(sds, SDS_PAGE_CTRL00, SDS_REG_CTRL00_REG02, SDS_CTRL00_REG02_XSG_SP_SDS_FRC_AN | SDS_CTRL00_REG02_XSG_SP_SDS_FRC_AN_EN, en_inband ? SDS_CTRL00_REG02_XSG_SP_SDS_FRC_AN | SDS_CTRL00_REG02_XSG_SP_SDS_FRC_AN_EN : SDS_CTRL00_REG02_XSG_SP_SDS_FRC_AN);
 			sds_modify(sds, SDS_PAGE_CTRL00, SDS_REG_CTRL00_REG04, BIT(2), BIT(2));
 			break;
+		case SDS_10G_QXGMII:
 		case SDS_10G_USXGMII:
 			sds_modify(sds, SDS_PAGE_NWAY_AN, SDS_REG_NWAY_AN, 0xF, en_inband ? 0xF : 0);
 			break;
@@ -707,41 +718,21 @@ void rtl8373_init(void) __banked
 {
 	tm_init();
 
-	print_string("\nrtl8373_init called\n");
+	print_string("\nrtl837x_init called\n");
 
 	// r65d8:3ffbedff R65d8-3ffbedff
-	reg_bit_set(0x65d8, 0x1d);
+
+	if (machine.isRTL8373)
+		// LED_GLB_ACTIVE
+		reg_bit_set(0x65d8, 0x1d);
 
 	sds_init();
 	// Disable all SERDES for configuration
 	REG_SET(RTL837X_REG_SDS_MODES, 0x000037ff);
 
-	// q000601:c800 Q000601:c804 q000601:c804 Q000601:c800
-	sds_read(0, 0x06, 0x01);
-	uint16_t pval = SFR_DATA_U16;
-	sds_write_v(0, 0x06, 0x01, pval | 0x04);
-	delay(50);
-	sds_read(0, 0x06, 0x01);
-	pval = SFR_DATA_U16;
-	sds_write_v(0, 0x06, 0x01, pval & 0xfffb);
-
-	sds_pcs_config(0, SDS_OFF, false);    // Off for now until SFP+ port used
-
-	bool is_rtl8224 = machine.sds_settings[0].usage == SDS_EPHY && \
-					  machine.sds_settings[0].sds_settings_t.ephy.type == RTL8224;
-	if (is_rtl8224) {
-		phy_config_8224();
-		// sds_config_mac(2, SDS_SGMII);  // For RTL8224
-		// sds_config(0, SDS_10G_QXGMII);     // For RTL8224
-		sds_pcs_config(0, SDS_10G_QXGMII, false);
-	}
-
-	sds_read(1, 0x1f, 0x15);
-	pval = SFR_DATA_U16;
-
 	// r0a90:000000f3 R0a90-000000fc
 	reg_read_m(RTL837X_CFG_PHY_MDI_REVERSE);
-	sfr_mask_data(0, 0x0f,0x0c);
+	sfr_mask_data(0, 0x0f, 0x0c);
 	reg_write_m(RTL837X_CFG_PHY_MDI_REVERSE);
 
 	if (machine_detected.isN) {
@@ -753,65 +744,6 @@ void rtl8373_init(void) __banked
 		reg_write_m(RTL837X_CFG_PHY_TX_POLARITY_SWAP);
 	}
 
-	if (is_rtl8224)
-		rtl8224_phy_enable();
-
-	// Disable PHYs for configuration
-	phy_write_mask(0xff,PHY_MMD31,0xa610,0x2858);
-
-	// Set bits 0x13 and 0x14 of 0x5fd4
-	// r5fd4:0002914a R5fd4-001a914a
-	reg_bit_set(0x5fd4, 0x13);
-	reg_bit_set(0x5fd4, 0x14);
-
-	// Configure ports
-	uint16_t reg = 0x1238; // Port base register for the bits we set
-	for (char i = 0; i < 9; i++) {
-		// Bit 6 (0x40) enables replacement of the RTL-VLAN tag with an 802.1Q VLAN tag
-		REG_SET(reg, 0xf77);
-		reg += 0x100;
-	}
-
-	// r0b7c:000000d8 R0b7c-000000f8 r6040:00000030 R6040-00000031
-	reg_bit_set(0xb7c, 5);
-
-	// R7124-00001050 R7128-00001050 R712c-00001050 R7130-00001050 R7134-00001050 R7138-00001050
-	// R713c-00001050 R7140-00001050 R7144-00001050 R7148-00001050
-	REG_SET(0x7124, 0x1050); REG_SET(0x7128, 0x1050); REG_SET(0x712c, 0x1050);
-	REG_SET(0x7130, 0x1050); REG_SET(0x7134, 0x1050); REG_SET(0x7138, 0x1050);
-	REG_SET(0x713c, 0x1050); REG_SET(0x7140, 0x1050); REG_SET(0x7144, 0x1050);
-	REG_SET(0x7148, 0x1050);
-
-	reg_bit_set(RTL837X_REG_HW_CONF, 0);
-
-	// enable EEE for all ports at 2.5G, but don't reset the PHYs
-	port_eee_enable_all(EEE_2G5 | EEE_NORESET);
-
-	// TODO: patch the PHYs
-
-	// Re-enable PHY after configuration
-	phy_write_mask(0xff,PHY_MMD31,0xa610,0x2058);
-
-	// Enables MAC access
-	// Set bits 0xc-0x14 of 0x632c to 0x1f8, see rtl8372_init
-	// r632c:00000540 R632c-001f8540 // RTL8373: 001ff540
-	reg_read_m(0x632c);
-	sfr_mask_data(1, 0x70, 0xf0); // The ports of the RTL8824
-	sfr_mask_data(2, 0x10, 0x1f);
-	reg_write_m(0x632c);
-
-	print_string("\nrtl8373_init done\n");
-}
-
-
-void rtl8372_init(void) __banked
-{
-	tm_init();
-
-	print_string("\nrtl8372_init called\n");
-
-	sds_init();
-
 	for (uint8_t sds = 0; sds < 2; sds++) {
 		enum sds_type usage = machine.sds_settings[sds].usage;
 		switch (usage) {
@@ -821,21 +753,25 @@ void rtl8372_init(void) __banked
 				// uint8_t speed = get_phy_max_speed(phy_type);
 				switch (phy_type) {
 					case RTL8224:
-						sds_pcs_config(sds, SDS_SGMII, false);
+						phy_config_8224();
+						sds_pcs_config(sds, SDS_10G_QXGMII, true);
+						rtl8224_phy_enable();
 						break;
 					case RTL8261BE:
 						phy_config_8261(port, sds);
-						sds_pcs_config(sds, SDS_10G_QXGMII, false);
+						sds_pcs_config(sds, SDS_10G_USXGMII, true);
 						break;
 					case RTL8221B:
 						phy_config(port);	// PHY configuration: External 8221B?
-						sds_pcs_config(sds, SDS_2G5_SGMII, false);
+						sds_pcs_config(sds, SDS_2G5_SGMII, true);
 						break;
+					default:
+						print_string("\tERROR: Unknown phy_type\n");
 				}
 				break;
 			case SDS_FIXED_LINK:
 				enum sds_modes mode = machine.sds_settings[sds].sds_settings_t.fl.mode;
-				sds_pcs_config(sds, mode, false);
+				sds_pcs_config(sds, mode, true);
 				break;
 			case SDS_SFP:
 			default:
@@ -844,51 +780,57 @@ void rtl8372_init(void) __banked
 		}
 	}
 
-	// r0a90:000000f3 R0a90-000000fc
-	reg_read_m(RTL837X_CFG_PHY_MDI_REVERSE);
-	sfr_mask_data(0, 0x0f, 0x0c);
-	reg_write_m(RTL837X_CFG_PHY_MDI_REVERSE);
-
 	// Disable PHYs for configuration
-	phy_write_mask(0xf0,PHY_MMD31,0xa610,0x2858);
+	phy_write_mask(0xFF, PHY_MMD31, 0xa610, 0x2858);
 
 	// Set bits 0x13 and 0x14 of 0x5fd4
 	// r5fd4:0002914a R5fd4-001a914a
 	reg_bit_set(0x5fd4, 0x13);
 	reg_bit_set(0x5fd4, 0x14);
 
-	// Configure ports 3-8:
+	// Configure ports MACHINE_MIN_PORT-8:
 	//
 	// r1538:00000e33 R1538-00000e37 r1538:00000e37 R1538-00000e37 r1538:00000e37 R1538-00000f37
 	// [...]
 	///
-	uint16_t reg = 0x1238 + 0x300; // Port base register for the bits we set
-	for (char i = MACHINE_MIN_PORT; i <= MACHINE_MAX_PORT; i++) {
+	uint16_t reg = 0x1238; // Port base register for the bits we set
+	for (char i = 0; i <= MACHINE_MAX_PORT; i++) {
 		// Bit 6 (0x40) enables replacement of the RTL-VLAN tag with an 802.1Q VLAN tag
 		REG_SET(reg, 0xf77);
 		reg += 0x100;
 	}
+	REG_SET(reg, 0xf77);
 
 	// r0b7c:000000d8 R0b7c-000000f8 r6040:00000030 R6040-00000031
 	reg_bit_set(0xb7c, 5);
 
+	// R7124-00001050 R7128-00001050 R712c-00001050 R7130-00001050 R7134-00001050 R7138-00001050
+	// R713c-00001050 R7140-00001050 R7144-00001050 R7148-00001050
+
+	// FlowControll and Backpressure, for all ports and CPU_PORT
+	reg = 0x7124;
+	for (char i = 0; i <= CPU_LOGICAL_PORT; i++) {	
+		REG_SET(reg, 0x1050);
+		reg += 4;
+	}
+
 	reg_bit_set(RTL837X_REG_HW_CONF, 0);
 
-
 	// enable EEE for all ports at 2.5G and 10G, but don't reset the PHYs
-	port_eee_enable_all(EEE_10G | EEE_NORESET);
+	port_eee_enable_all(EEE_10G | EEE_2G5 | EEE_NORESET);
 	
 	// TODO: patch the PHYs
 
 	// Re-enable PHY after configuration
-	phy_write_mask(0xf0,PHY_MMD31,0xa610,0x2058);
+	phy_write_mask(machine.isRTL8373 ? 0xFF : 0xF8 ,PHY_MMD31,0xa610,0x2058);
 
-	// Enables MAC access
+	// Enables MAC access, SMI_GLB_CTRL
 	// Set bits 0xc-0x14 of 0x632c to 0x1f8, see rtl8372_init
 	// r632c:00000540 R632c-001f8540 // RTL8373: 001ff540
 	reg_read_m(0x632c);
-	sfr_mask_data(1, 0x70, 0x80);
+	sfr_mask_data(1, 0x70, machine.isRTL8373 ? 0xF0 : 0x80);
 	sfr_mask_data(2, 0x10, 0x1f);
 	reg_write_m(0x632c);
-	print_string("\nrtl8372_init done\n");
+
+	print_string("\nrtl837x_init done\n");
 }

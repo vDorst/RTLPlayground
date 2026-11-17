@@ -3,14 +3,18 @@
 // 2M-PCB23-V3.2 is wired like V3.1 (SFP detection, LEDs, factory MAC location)
 __code const struct machine machine = {
 	MACHINE_COMMON_SETTING,
-	.n_sfp = 1,
 	.log_to_phys_port = {1, 2, 3, 4, 5, 6, 7, 8, 9},
-	.phys_to_log_port = {0, 1, 2, 3, 4, 5, 6, 7, 8},
-	.is_sfp = {0, 0, 0, 0, 0, 0, 0, 0, 1},
-	.sfp_port[0].pin_detect = GPIO38,
-	.sfp_port[0].pin_los = GPIO_NA,
-	.sfp_port[0].sds = 1,
-	.sfp_port[0].i2c = I2CBUS( GPIO39_I2C_SDA4, GPIO40_I2C_SCL3_MDC1 ),
+	// RTL8224
+	.sds_settings[0].usage = SDS_EPHY,
+	.sds_settings[0].sds_settings_t.ephy.type = RTL8224,
+	.sds_settings[0].sds_settings_t.ephy.phy_addr = 0,
+	.sds_settings[0].sds_settings_t.ephy.reset_pin = GPIO_NA,
+	// SFP-PORT
+	.sds_settings[1].usage = SDS_SFP,
+	.sds_settings[1].sds_settings_t.sfp.pin_detect = GPIO38,
+	.sds_settings[1].sds_settings_t.sfp.pin_los = GPIO_NA,
+	.sds_settings[1].sds_settings_t.sfp.pin_tx_disable = GPIO_NA,
+	.sds_settings[1].sds_settings_t.sfp.i2c = I2CBUS( GPIO39_I2C_SDA4, GPIO40_I2C_SCL3_MDC1 ),
 	.reset_pin = GPIO48_I2C_SCL1,
 	.high_leds = { .mux = LED_27 | LED_29, .enable = LED_28_SYS | LED_29 },
 	.port_led_set = { 0, 0, 0, 0, 0, 0, 0, 0, 1},

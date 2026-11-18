@@ -53,4 +53,43 @@
     _Pragma("codeseg BANK2") \
     void machine_custom_init(void) __banked { body }
 
+/* This macro is used to define with mac/serdes is connected to with port number.
+ * But also generating the bitmask for various locations were needed.
+ * MASK_PHYS bitmask for the internal PHYs
+ * MASK_MACS bitmask for the used MACS including the CPU port.
+ */
+#define PORTS(mac0, mac1, mac2, mac3_sds0, mac4, mac5, mac6, mac7, mac8_sds1) \
+	enum { \
+		MAC_USE_0 = mac0, \
+		MAC_USE_1 = mac1, \
+		MAC_USE_2 = mac2, \
+		MAC_USE_3 = mac3_sds0, \
+		MAC_USE_4 = mac4, \
+		MAC_USE_5 = mac5, \
+		MAC_USE_6 = mac6, \
+		MAC_USE_7 = mac7, \
+		MAC_USE_8 = mac8_sds1, \
+		MASK_PHYS = \
+		(((mac0) != 0) ? (1u << 0) : 0u) | \
+		(((mac1) != 0) ? (1u << 1) : 0u) | \
+		(((mac2) != 0) ? (1u << 2) : 0u) | \
+		(((mac3_sds0) != 0) ? (1u << 3) : 0u) | \
+		(((mac4) != 0) ? (1u << 4) : 0u) | \
+		(((mac5) != 0) ? (1u << 5) : 0u) | \
+		(((mac6) != 0) ? (1u << 6) : 0u) | \
+		(((mac7) != 0) ? (1u << 7) : 0u) | \
+		(((mac8_sds1) != 0) ? (1u << 8) : 0u), \
+		MASK_MACS = \
+		(((mac0) != 0) ? (1u << 0) : 0u) | \
+		(((mac1) != 0) ? (1u << 1) : 0u) | \
+		(((mac2) != 0) ? (1u << 2) : 0u) | \
+		(((mac3_sds0) != 0) ? (1u << 3) : 0u) | \
+		(((mac4) != 0) ? (1u << 4) : 0u) | \
+		(((mac5) != 0) ? (1u << 5) : 0u) | \
+		(((mac6) != 0) ? (1u << 6) : 0u) | \
+		(((mac7) != 0) ? (1u << 7) : 0u) | \
+		(((mac8_sds1) != 0) ? (1u << 8) : 0u) | \
+		(1u << 9) \
+	};
+
 #endif

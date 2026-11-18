@@ -1,9 +1,11 @@
 #define MACHINE_CHIPSET RTL8372
 #include "machine_defs.h"
 
+PORTS(NOP, NOP, NOP, 6, 1, 2, 3, 4, 5)
+
 __code const struct machine machine = {
 	MACHINE_COMMON_SETTING,
-	.log_to_phys_port = {NOP, NOP, NOP, 6, 1, 2, 3, 4, 5},
+	.log_to_phys_port = { MAC_USE_0, MAC_USE_1, MAC_USE_2, MAC_USE_3, MAC_USE_4, MAC_USE_5, MAC_USE_6, MAC_USE_7, MAC_USE_8},
 	// Right SFP port (J2)
 	.sds_settings[0].usage = SDS_SFP,
 	.sds_settings[0].sds_settings_t.sfp.pin_detect = GPIO50_I2C_SCL2_UART1_TX,

@@ -795,8 +795,9 @@ void rtl8373_init(void) __banked
 	///
 	uint16_t reg = 0x1238; // Port base register for the bits we set
 	for (char i = 0; i <= MACHINE_MAX_PORT; i++) {
-		// Bit 6 (0x40) enables replacement of the RTL-VLAN tag with an 802.1Q VLAN tag
-		REG_SET(reg, 0xf77);
+		if (machine.log_to_phys_port[i] != NOP)
+			// Bit 6 (0x40) enables replacement of the RTL-VLAN tag with an 802.1Q VLAN tag
+			REG_SET(reg, 0xf77);
 		reg += 0x100;
 	}
 	REG_SET(reg, 0xf77);
@@ -809,8 +810,9 @@ void rtl8373_init(void) __banked
 
 	// FlowControll and Backpressure, for all ports and CPU_PORT
 	reg = 0x7124;
-	for (char i = 0; i <= CPU_LOGICAL_PORT; i++) {	
-		REG_SET(reg, 0x1050);
+	for (char i = 0; i <= CPU_LOGICAL_PORT; i++) {
+		if (machine.log_to_phys_port[i] != NOP)
+			REG_SET(reg, 0x1050);
 		reg += 4;
 	}
 
@@ -822,7 +824,7 @@ void rtl8373_init(void) __banked
 	// TODO: patch the PHYs
 
 	// Re-enable PHY after configuration
-	phy_write_mask(machine.isRTL8373 ? 0xFF : 0xF8 ,PHY_MMD31,0xa610,0x2058);
+	phy_write_mask(machine.isRTL8373 ? 0xFF : 0xF0, PHY_MMD31, 0xa610, 0x2058);
 
 	// Enables MAC access, SMI_GLB_CTRL
 	// Set bits 0xc-0x14 of 0x632c to 0x1f8, see rtl8372_init

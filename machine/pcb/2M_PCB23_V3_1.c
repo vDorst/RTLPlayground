@@ -1,9 +1,11 @@
 #include "machine_defs.h"
 
+PORTS(1, 2, 3, 4, 5, 6, 7, 8, 9)
+
 // 2M-PCB23-V3.2 is wired like V3.1 (SFP detection, LEDs, factory MAC location)
 __code const struct machine machine = {
 	MACHINE_COMMON_SETTING,
-	.log_to_phys_port = {1, 2, 3, 4, 5, 6, 7, 8, 9},
+	.log_to_phys_port = { MAC_USE_0, MAC_USE_1, MAC_USE_2, MAC_USE_3, MAC_USE_4, MAC_USE_5, MAC_USE_6, MAC_USE_7, MAC_USE_8},
 	// RTL8224
 	.sds_settings[0].usage = SDS_EPHY,
 	.sds_settings[0].sds_settings_t.ephy.type = RTL8224,

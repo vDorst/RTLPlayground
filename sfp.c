@@ -470,6 +470,10 @@ static bool sfp_module_read(__xdata uint8_t sfp)
 		if (id == PHY_NONE) {
 			sfp_ephy_mode = MDIO_NONE;
 			print_string("\nNo PHY ID FOUND!");
+			if (strstart(sfp_module_model[sfp], "ASF-10G-T100")) {
+				print_string("ASF-10G-T100 Detected\n");
+				sfp_rate = SDS_10G_USXGMII;
+			}
 		} else {
 			print_string("\nFOUND: PHY: ");
 			print_string(phy_drivers[id].name);

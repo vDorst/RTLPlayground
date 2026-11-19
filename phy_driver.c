@@ -22,6 +22,21 @@ enum PHYID phy_probe(__xdata uint32_t * id) {
 
 __code const struct phy_driver phy_drivers[PHY_DRIVER_CNT] = {
 	{
+		.phy_id = 0x001ccad0,
+		.phy_id_mask = 0xffffffffUL,
+		.name		= { "RTL8224 2.5Gbps PHY" },
+		// .flags		= PHY_POLL_CABLE_TEST,
+		// .probe		= rtl8224_probe,
+		// .config_init	= rtl8224_config_init,
+		// .get_features	= rtl822x_c45_get_features,
+		//.config_aneg	= rtl822x_c45_config_aneg,
+		// .read_status	= rtl822x_c45_read_status,
+		// .suspend	= genphy_c45_pma_suspend,
+		// .resume		= rtlgen_c45_resume,
+		// .cable_test_start = rtl8224_cable_test_start,
+		// .cable_test_get_status = rtl8224_cable_test_get_status,
+	},
+	{
     	.phy_id = MARVELL_PHY_ID_88E1111_FINISAR,
 		.phy_id_mask = MARVELL_PHY_ID_MASK,
 		.name = { "Marvell 88E1111 (Finisar)" },

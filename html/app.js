@@ -66,7 +66,10 @@ var LANG = {
         i_mac: "MAC",
         i_fw: "Firmware",
         i_built: "Built",
+        i_uptime: "Uptime",
+        i_uptime_d: "{d} d {t}",
         i_hw: "Hardware",
+        i_pcb: "PCB",
         i_temp: "Temperature",
         i_flash: "Flash",
         i_syslog: "Syslog",
@@ -132,6 +135,7 @@ var LANG = {
         stp_r2: "Designated",
         stp_r3: "Alternate",
         stp_trip: "guard tripped",
+        stp_trip_t: "Change the guard of this port and press apply to bring it back",
         stp_g_none: "None",
         stp_g_bpdu: "BPDU",
         stp_g_root: "Root",
@@ -242,7 +246,7 @@ var LANG = {
         lacp_neg: "negotiating",
         lacp_agg: "aggregator",
         lacp_members: "active members",
-        lacp_hint: "LACP: select candidate ports and press Apply to start negotiation",
+        lacp_hint: "select candidate ports and press Apply to start negotiation",
         lacp_actor: "Actor",
         lacp_partner: "Partner",
         lacp_rxstate: "RX state",
@@ -276,7 +280,8 @@ var LANG = {
         sc_err: "Storm limit must be 1-1048575 pps or 1-10000000 kbit/s",
         sc_note: "Frames of a type above its limit are dropped where they enter the switch.",
         sy_network: "Network",
-        sy_dhcp: "Use DHCP",
+        sy_mode: "Addressing",
+        sy_static: "Static",
         sy_dhcp_t: "Request address via DHCP",
         sy_services: "Services",
         sy_igmp: "IGMP snooping",
@@ -446,7 +451,10 @@ var LANG = {
         i_mac: "MAC",
         i_fw: "ファームウェア",
         i_built: "ビルド日",
+        i_uptime: "稼働時間",
+        i_uptime_d: "{d}日 {t}",
         i_hw: "ハードウェア",
+        i_pcb: "PCB",
         i_temp: "温度",
         i_flash: "フラッシュ",
         i_syslog: "Syslog",
@@ -512,6 +520,7 @@ var LANG = {
         stp_r2: "指定",
         stp_r3: "代替",
         stp_trip: "ガード作動",
+        stp_trip_t: "このポートのガード設定を変更して適用すると復帰します",
         stp_g_none: "なし",
         stp_g_bpdu: "BPDU",
         stp_g_root: "ルート",
@@ -602,7 +611,8 @@ var LANG = {
         bw_in_err: "入力制限は 0.016〜10000 Mbit/s の範囲で指定してください",
         bw_out_err: "出力制限は 0.016〜10000 Mbit/s の範囲で指定してください",
         sy_network: "ネットワーク",
-        sy_dhcp: "DHCP を使用",
+        sy_mode: "アドレス設定",
+        sy_static: "静的",
         sy_dhcp_t: "DHCP でアドレスを取得",
         sy_services: "サービス",
         sy_igmp: "IGMP スヌーピング",
@@ -751,7 +761,10 @@ var LANG = {
         i_mac: "MAC",
         i_fw: "固件",
         i_built: "构建日期",
+        i_uptime: "运行时间",
+        i_uptime_d: "{d}天 {t}",
         i_hw: "硬件",
+        i_pcb: "PCB",
         i_temp: "温度",
         i_flash: "Flash",
         i_syslog: "Syslog",
@@ -817,6 +830,7 @@ var LANG = {
         stp_r2: "指定端口",
         stp_r3: "替代端口",
         stp_trip: "保护触发",
+        stp_trip_t: "更改此端口的保护设置并应用即可恢复",
         stp_g_none: "无",
         stp_g_bpdu: "BPDU",
         stp_g_root: "根桥",
@@ -960,7 +974,8 @@ var LANG = {
         sc_err: "风暴控制阈值必须为 1-1048575 pps 或  1-10000000 kbit/s",
         sc_note: "超过对应类型限值的数据帧会在进入交换机时被丢弃。",
         sy_network: "网络",
-        sy_dhcp: "使用 DHCP",
+        sy_mode: "地址分配",
+        sy_static: "静态",
         sy_dhcp_t: "通过 DHCP 获取地址",
         sy_services: "服务",
         sy_igmp: "IGMP 侦听",
@@ -1130,7 +1145,10 @@ var LANG = {
         i_mac: "MAC",
         i_fw: "Firmware",
         i_built: "Compilado",
+        i_uptime: "Tiempo en marcha",
+        i_uptime_d: "{d} d {t}",
         i_hw: "Hardware",
+        i_pcb: "PCB",
         i_flash: "Flash",
         i_syslog: "Syslog",
         p_state: "Estado",
@@ -1195,6 +1213,7 @@ var LANG = {
         stp_r2: "Designado",
         stp_r3: "Alternativo",
         stp_trip: "protección disparada",
+        stp_trip_t: "Cambie la protección de este puerto y aplique para recuperarlo",
         stp_g_none: "Ninguno",
         stp_g_bpdu: "BPDU",
         stp_g_root: "Raíz",
@@ -1285,7 +1304,8 @@ var LANG = {
         bw_in_err: "El límite de entrada debe estar entre 0.016 y 10000 Mbit/s",
         bw_out_err: "El límite de salida debe estar entre 0.016 y 10000 Mbit/s",
         sy_network: "Red",
-        sy_dhcp: "Usar DHCP",
+        sy_mode: "Direccionamiento",
+        sy_static: "Estática",
         sy_dhcp_t: "Solicitar dirección mediante DHCP",
         sy_services: "Servicios",
         sy_igmp: "IGMP snooping",
@@ -1410,7 +1430,7 @@ var LANG = {
         lacp_neg: "negociando",
         lacp_agg: "agregador",
         lacp_members: "miembros activos",
-        lacp_hint: "LACP: elige los puertos candidatos y pulsa Aplicar para iniciar la negociación",
+        lacp_hint: "elige los puertos candidatos y pulsa Aplicar para iniciar la negociación",
         lacp_actor: "Local",
         lacp_partner: "Remoto",
         lacp_rxstate: "Estado RX",
@@ -1514,7 +1534,10 @@ var LANG = {
         i_mac: "Adresse MAC",
         i_fw: "Micro logiciel",
         i_built: "Compilé le",
+        i_uptime: "Temps de fonctionnement",
+        i_uptime_d: "{d} j {t}",
         i_hw: "Matériel",
+        i_pcb: "PCB",
         i_temp: "Température",
         i_flash: "Taille Flash",
         i_syslog: "Journal système",
@@ -1580,6 +1603,7 @@ var LANG = {
         stp_r2: "Designé",
         stp_r3: "Alternatif",
         stp_trip: "protection déclenchée",
+        stp_trip_t: "Changez la protection de ce port et appliquez pour le rétablir",
         stp_g_none: "Aucun",
         stp_g_bpdu: "BPDU",
         stp_g_root: "Racine",
@@ -1688,7 +1712,8 @@ var LANG = {
         sc_err: " La limite de tempête doit être comprise entre 1 à 1048575 pps ou 1 à 10000000 kbit/s",
         sc_note: "Les trames de chacun des types ci-dessus dépassant les limites sont abandonnées lorsqu'elles arrivent sur le communtateur.",
         sy_network: "Réseau",
-        sy_dhcp: "Uiliser DHCP",
+        sy_mode: "Adressage",
+        sy_static: "Statique",
         sy_dhcp_t: "Aquérir l'adresse via le protocole DHCP",
         sy_services: "Services",
         sy_igmp: "Surveillance IGMP",
@@ -1859,7 +1884,10 @@ var LANG = {
         i_mac: "MAC",
         i_fw: "Firmware",
         i_built: "Erstellt",
+        i_uptime: "Betriebszeit",
+        i_uptime_d: "{d} T {t}",
         i_hw: "Hardware",
+        i_pcb: "PCB",
         i_temp: "Temperatur",
         i_flash: "Flash",
         i_syslog: "Syslog",
@@ -1925,6 +1953,7 @@ var LANG = {
         stp_r2: "Designated",
         stp_r3: "Alternate",
         stp_trip: "Guard ausgelöst",
+        stp_trip_t: "Guard dieses Ports ändern und übernehmen, um ihn zurückzuholen",
         stp_g_none: "Keiner",
         stp_g_bpdu: "BPDU",
         stp_g_root: "Root",
@@ -2039,7 +2068,7 @@ var LANG = {
         lacp_neg: "wird ausgehandelt",
         lacp_agg: "Aggregator",
         lacp_members: "aktive Mitglieder",
-        lacp_hint: "LACP: Ports auswählen und Übernehmen drücken, um die Aushandlung zu starten",
+        lacp_hint: "Ports auswählen und Übernehmen drücken, um die Aushandlung zu starten",
         lacp_actor: "Lokal",
         lacp_partner: "Partner",
         lacp_rxstate: "Empfangsstatus",
@@ -2071,7 +2100,8 @@ var LANG = {
         sc_err: "Grenzwert muss 1-1048575 pps oder 1-10000000 kbit/s betragen",
         sc_note: "Pakete einer Verkehrsart über ihrem Grenzwert werden beim Eintritt in den Switch verworfen.",
         sy_network: "Netzwerk",
-        sy_dhcp: "DHCP verwenden",
+        sy_mode: "Adressvergabe",
+        sy_static: "Statisch",
         sy_dhcp_t: "Adresse per DHCP beziehen",
         sy_services: "Dienste",
         sy_igmp: "IGMP Snooping",
@@ -2210,19 +2240,16 @@ function i18nApply() {
 var S = {
     ports: [],
     n: 0,
-    physToLog: [],
-    logToPhys: [],
     sfpSlot: [],
     info: {},
     detail: null,
+    tip: null,
     dirty: false,
     prev: null,
     prevT: 0,
     rates: [],
     mtu: [],
 };
-var LINKS = ["Down", "10M", "100M", "1000M", "500M", "10G", "2.5G", "5G"];
-var LINKC = [null, "--s10", "--s100", "--s1000", "--s5g", "--s10g", "--s2g5", "--s5g"];
 var $ = function(id) {
     return document.getElementById(id)
 };
@@ -2253,12 +2280,12 @@ function esc(s) {
     })
 }
 
-function badge(txt, cls) {
-    return '<span class="badge' + (cls ? " " + cls : "") + '">' + esc(txt) + "</span>"
+function badge(txt, cls, tip) {
+    return '<span class="badge' + (cls ? " " + cls : "") + '"' + (tip ? ' title="' + esc(tip) + '"' : "") + ">" + esc(txt) + (tip ? " 🛈" : "") + "</span>"
 }
 
 function linkBadge(p) {
-    return !p.enabled ? badge(t("c_off")) : (p.link > 0 ? badge(LINKS[p.link], "ok") : badge(t("c_down")));
+    return !p.enabled ? badge(t("c_off")) : (p.link != "DOWN" ? badge(p.link, "ok") : badge(t("c_down")));
 }
 
 function applyTheme() {
@@ -2363,7 +2390,7 @@ var CONF_CMDS = [
     /^pvid\s+\d+\s+\d+$/m,
     /^ingress(\s+\d+[tua])+$/, /^ingress\s+[tua]$/,
     /^port\s+\d+\s+(10m|100m|1g|2g5|5g|10g|auto|on|off)(\s+(half|full))?$/,
-    /^port\s+\d+\s+name\s+\S+$/,
+    /^port\s+\d+\s+name(\s+\S+)?$/,
     /^port\s+\d+\s+lldp\s+(permit|block)+$/,
     /^eee\s+(on|off)(\s+\d+)?(\s+(100m|1g|2g5))?$/,
     /^mirror(\s+\d+)(\s+\d+[tr]?)+$/, /^mirror\s+off$/,
@@ -2382,7 +2409,7 @@ var CONF_CMDS = [
     /^stp\s+(port\s+\d+|lag\s+[1-4])\s+prio\s+\d+$/,
     /^stp\s+(port\s+\d+|lag\s+[1-4])\s+guard\s+(none|bpdu|root)$/,
     /^stp\s+(port\s+\d+|lag\s+[1-4])\s+filter\s+(on|off)$/,
-    /^stp\s+(port\s+\d=|lag\s+[1-4])\s+p2p\s+(auto|on|off)$/,
+    /^stp\s+(port\s+\d+|lag\s+[1-4])\s+p2p\s+(auto|on|off)$/,
     /^igmp\s+(on|off)$/,
     /^mtu\s+\d+\s+\d+$/,
     /^lldp\s+(on|off)$/,
@@ -2454,6 +2481,7 @@ function toast(msg, cls) {
 
 function modal(title, bodyEl, buttons) {
     S.detail = null;
+    portTip(); // Hide if open
     $("mtitle").textContent = title;
     var b = $("mbody");
     b.innerHTML = "";
@@ -2591,6 +2619,11 @@ $("burger").addEventListener("click", function() {
     $("nav").classList.toggle("open")
 });
 
+$("nav-overlay").addEventListener("click", function() {
+    $("nav").classList.remove("open");
+    $("burger").focus();
+});
+
 var IDLE_STOP_MS = 600000,
     lastInput = Date.now();
 ["mousemove", "mousedown", "keydown", "touchstart", "wheel"].forEach(function(ev) {
@@ -2630,24 +2663,27 @@ Poller.prototype.tick = function() {
 
 function byPort(a) {
     return a.sort(function(x, y) {
-        return x.portNum - y.portNum
+        return x.port - y.port
     })
 }
 
 function pollStatus() {
-    return getJSON("/status.json").then(function(s) {
+    return Promise.all([
+        getJSON("/ports.json"),
+        getJSON("/traffic.json")
+    ]).then(function([s,t]) {
         byPort(s);
+        byPort(t);
+        s = s.map((item,i) => ({ ...item, ...t[i]}));
         S.ports = s;
         var now = Date.now();
         if (!S.n) {
             S.n = s.length;
             var slot = 0;
             s.forEach(function(p) {
-                S.physToLog[p.portNum - 1] = p.logPort;
-                S.logToPhys[p.logPort] = p.portNum;
                 if (p.isSFP) {
                     slot++;
-                    S.sfpSlot[p.portNum - 1] = slot;
+                    S.sfpSlot[p.port - 1] = slot;
                 }
             });
             buildStrip();
@@ -2656,7 +2692,7 @@ function pollStatus() {
             var dt = (now - S.prevT) / 1000;
             if (dt > 0.2) s.forEach(function(p, i) {
                 var q = S.prev[i];
-                if (q) S.rates[p.portNum - 1] = {
+                if (q) S.rates[p.port - 1] = {
                     tx: Number(BigInt(p.txG) - BigInt(q.txG)) / dt,
                     rx: Number(BigInt(p.rxG) - BigInt(q.rxG)) / dt,
                 };
@@ -2685,8 +2721,28 @@ function fmtPps(v) {
 }
 
 function portLabel(p) {
-    return p.name ? p.portNum + " " + p.name : String(p.portNum)
+    return p.name ? p.port + " " + p.name : String(p.port)
 }
+
+function portTip(i) {
+    S.tip = (typeof i === "number" && S.detail == null && S.ports[i]) ? i : null;
+    var tip = $("ptip");
+    tip.classList.toggle("show", S.tip != null);
+    if (S.tip == null) return;
+    tip.innerHTML = "";
+    tip.appendChild(detailTable(S.ports[S.tip]));
+    var r = $("pp" + S.tip).getBoundingClientRect();
+    var left = Math.max(8, Math.min(innerWidth - tip.offsetWidth - 8, r.left + (r.width - tip.offsetWidth) / 2));
+    tip.style.top = (r.bottom + 8) + "px";
+    tip.style.left = left + "px";
+    tip.style.setProperty("--ax", (r.left + r.width / 2 - left) + "px");
+}
+["scroll", "resize"].forEach(function(ev) {
+    addEventListener(ev, portTip, {
+        passive: true,
+        capture: true
+    })
+});
 
 function buildStrip() {
     var st = $("strip");
@@ -2698,7 +2754,12 @@ function buildStrip() {
             id: "pp" + i,
             onclick: function() {
                 portDetail(i)
-            }
+            },
+            onpointerenter: function(e) {
+                // Don't momentarily flash the modal when tapping via touchscreen
+                if (e.pointerType !== "touch") portTip(i)
+            },
+            onpointerleave: portTip
         }, [
             h("span", {
                 class: "pn",
@@ -2718,19 +2779,17 @@ function buildStrip() {
 
 function updateStrip() {
     S.ports.forEach(function(p) {
-        var i = p.portNum - 1,
+        var i = p.port - 1,
             el = $("pp" + i),
             lb = $("ppl" + i);
         if (!el) return;
         el.classList.toggle("dis", !p.enabled);
-        var up = p.enabled && p.link > 0;
+        var up = p.enabled && p.link != "DOWN";
         el.classList.toggle("up", !!up);
-        if (up) el.style.setProperty("--pc", "var(" + (LINKC[p.link] || "--s1000") + ")");
-        lb.textContent = !p.enabled ? t("c_off") : (p.link > 0 ? LINKS[p.link] : t("c_down"));
-        el.title = portRows(p).map(function(r) {
-            return r[0] + ": " + r[1]
-        }).join("\n");
+        if (up) el.style.setProperty("--pc", "var(" + "--s" + p.link.replace(/\-[HF]D$/,"").replace("2.5G","2G5").toLowerCase() + ")");
+        lb.textContent = !p.enabled ? t("c_off") : (p.link != "DOWN" ? p.link : t("c_down"));
     });
+    if (S.tip != null) portTip(S.tip);
     if (S.detail != null) {
         var b = $("mbody");
         b.innerHTML = "";
@@ -2773,11 +2832,11 @@ function dBm(mw) {
 
 function portRows(p) {
     var rows = [
-        [t("c_port"), String(p.portNum)],
+        [t("c_port"), String(p.port)],
         [t("c_type"), p.isSFP ? "SFP" : "RJ45"]
     ];
     if (p.name) rows.push([t("c_name"), p.name]);
-    rows.push([t("p_state"), !p.enabled ? t("p_disabled") : (p.link > 0 ? t("p_up") + " " + LINKS[p.link] : t("c_down"))]);
+    rows.push([t("p_state"), !p.enabled ? t("p_disabled") : (p.link != "DOWN" ? t("p_up") + " " + p.link : t("c_down"))]);
     rows.push([t("st_txg"), BigInt(p.txG) + " " + t("p_pkts")]);
     rows.push([t("st_txb"), BigInt(p.txB) + " " + t("p_pkts")]);
     rows.push([t("st_rxg"), BigInt(p.rxG) + " " + t("p_pkts")]);
@@ -2804,27 +2863,15 @@ function portRows(p) {
             rows.push([t("p_rxlos"), v]);
         }
     } else if (p.adv) {
-        var bits = parseInt(p.adv, 2),
-            names = ["10M " + t("c_half"), "10M " + t("c_full"), "100M " + t("c_half"), "100M " + t("c_full"), "1G", "2.5G"];
-        var on = names.filter(function(_, b) {
-            return bits & (1 << b)
-        });
-        rows.push([t("p_adv"), on.join(", ") || "-"]);
+        rows.push([t("p_adv"), p.adv.join(", ").replaceAll("-HD"," " + t("c_half")).replaceAll("-FD"," " + t("c_full")) || "-"]);
     }
     return rows;
 }
 
 function detailTable(p) {
-    var tb = h("table", {
-        class: "t"
-    });
+    var tb = h("table", { class: "t" });
     portRows(p).forEach(function(r) {
-        tb.appendChild(h("tr", null, [h("td", {
-            class: "mut",
-            text: r[0]
-        }), h("td", {
-            text: r[1]
-        })]));
+        tb.appendChild(h("tr", null, [h("td", { class: "mut", text: r[0] }), h("td", { text: r[1] })]));
     });
     return tb;
 }
@@ -2833,6 +2880,21 @@ function portDetail(i) {
     if (!S.ports[i]) return;
     modal(t("c_port") + " " + (i + 1), detailTable(S.ports[i]));
     S.detail = i;
+}
+
+/* "0x00015180" seconds -> "1 d 00:00:00" in the page language */
+function fmtUptime(hex) {
+    var s = parseInt(hex, 16);
+
+    function p(n) {
+        return String(n).padStart(2, "0");
+    }
+    var t3 = p(Math.floor(s / 3600) % 24) + ":" + p(Math.floor(s / 60) % 60) + ":" + p(s % 60),
+        d = Math.floor(s / 86400);
+    return d ? t("i_uptime_d", {
+        d: d,
+        t: t3
+    }) : t3;
 }
 
 function renderInfo() {
@@ -2844,7 +2906,9 @@ function renderInfo() {
         ["i_mac", "mac_address"],
         ["i_fw", "sw_ver"],
         ["i_built", "build_date"],
+        ["i_uptime", "uptime"],
         ["i_hw", "hw_ver"],
+        ["i_pcb", "pcb_ver"],
         ["i_temp", "chip_temp"],
         ["i_flash", "flash_size"],
         ["i_syslog", "syslog_server"]
@@ -2853,6 +2917,7 @@ function renderInfo() {
     tb.innerHTML = "";
     m.forEach(function(r) {
         var v = S.info[r[1]];
+        if (r[1] === "uptime") v = fmtUptime(v);
         if (v == null || v === "") return;
         tb.appendChild(h("tr", null, [h("td", {
             class: "mut",
@@ -2889,9 +2954,9 @@ function dashStatus() {
         }
     }
     S.ports.forEach(function(p) {
-        var r = tb.rows[p.portNum - 1];
+        var r = tb.rows[p.port - 1];
         if (!r) return;
-        var rt = S.rates[p.portNum - 1];
+        var rt = S.rates[p.port - 1];
         r.cells[0].textContent = portLabel(p);
         r.cells[1].innerHTML = linkBadge(p);
         r.cells[2].textContent = rt ? fmtPps(rt.tx) : "-";
@@ -2943,7 +3008,7 @@ function buildPorts() {
     var tb = $("ptable").tBodies[0];
     if (tb.rows.length || !S.n) return;
     S.ports.forEach(function(p) {
-        var i = p.portNum - 1;
+        var i = p.port - 1;
         var spd = h("select", {
             class: "in",
             id: "pspd" + i
@@ -2955,7 +3020,7 @@ function buildPorts() {
             }));
         });
         var tr = tb.insertRow();
-        tr.insertCell().textContent = p.portNum + (p.isSFP ? " (SFP)" : "");
+        tr.insertCell().textContent = p.port + (p.isSFP ? " (SFP)" : "");
         tr.insertCell().appendChild(h("input", {
             class: "in",
             id: "pname" + i,
@@ -2976,14 +3041,15 @@ function buildPorts() {
             type: "checkbox",
             id: "pen" + i
         }), h("i")]);
-        sw.firstChild.checked = !!p.enabled;
+        sw.firstChild.checked = p.enabled;
         tr.insertCell().appendChild(sw);
         tr.insertCell().appendChild(h("input", {
             class: "in sm",
             id: "pmtu" + i,
             type: "number",
             min: "64",
-            max: "16383"
+            max: "16383",
+            value: parseInt(p.mtu, 16),
         }));
         tr.insertCell().appendChild(h("button", {
             class: "ctl",
@@ -2992,24 +3058,14 @@ function buildPorts() {
                 applyPort(i)
             }
         }));
-    });
-    loadMtu();
-}
-
-function loadMtu() {
-    return getJSON("/mtu.json").then(function(s) {
-        s.forEach(function(m) {
-            S.mtu[m.portNum - 1] = parseInt(m.mtu, 16);
-            var el = $("pmtu" + (m.portNum - 1));
-            if (el && document.activeElement !== el) el.value = parseInt(m.mtu, 16);
-        });
+        S.mtu[i] = parseInt(p.mtu, 16);
     });
 }
 
 function portsStatus() {
     buildPorts();
     S.ports.forEach(function(p) {
-        var i = p.portNum - 1,
+        var i = p.port - 1,
             el = $("plink" + i);
         var mc = $("pmac" + i);
         if (mc) mc.textContent = parseInt(p.macs, 16) & 0x1fff;
@@ -3027,26 +3083,27 @@ function applyPort(i) {
     var en = $("pen" + i).checked;
     var spd = $("pspd" + i).value;
     var mtu = parseInt($("pmtu" + i).value, 10);
-    if (name && name !== (p.name || "")) {
-        if (!/^\S{1,15}$/.test(name)) {
+    var oldName = p.name || "";
+    if (name !== oldName) {
+        if (name && !/^\S{1,15}$/.test(name)) {
             toast(t("pt_name_err"), "err");
             return;
         }
-        cmds.push("port " + p.portNum + " name " + name);
+        cmds.push("port " + p.port + " name" + (name ? " " + name : ""));
     }
-    if (!en) cmds.push("port " + p.portNum + " off");
+    if (!en) cmds.push("port " + p.port + " off");
     else if (p.isSFP) {
-        if (!p.enabled) cmds.push("port " + p.portNum + " on");
+        if (!p.enabled) cmds.push("port " + p.port + " on");
         cmds.push("sfp " + S.sfpSlot[i] + " " + spd);
-    } else cmds.push("port " + p.portNum + " " + spd);
+    } else cmds.push("port " + p.port + " " + spd);
     if (mtu && mtu !== S.mtu[i]) {
         if (mtu < 64 || mtu > 16383) {
             toast(t("pt_mtu_err"), "err");
             return;
         }
-        cmds.push("mtu " + p.portNum + " " + mtu);
+        cmds.push("mtu " + p.port + " " + mtu);
     }
-    postCmds(cmds).then(loadMtu).catch(function() {});
+    postCmds(cmds).catch(function() {});
 }
 tabHooks.ports = {
     enter: function() {
@@ -3101,7 +3158,7 @@ function stpKey(pt) {
 }
 
 function stpName(pt) {
-    return pt.lag ? "LAG" + pt.lag : String(pt.p)
+    return pt.lag ? "LAG" + pt.lag + " (" + rangeStr(pt.mbr) + ")" : String(pt.p)
 }
 
 function stpDhms(x) {
@@ -3196,7 +3253,7 @@ function stpPortVals(pt) {
     return {
         en: !!(f & STP_PF.EN),
         edge: (f & STP_PF.ADMEDGE) ? "on" : ((f & STP_PF.AUTOEDGE) ? "auto" : "off"),
-        cost: parseInt(pt.pc, 16),
+        cost: parseInt(pt.pc),
         prio: String(pt.prio),
         guard: (f & STP_PF.BPDUG) ? "bpdu" : ((f & STP_PF.ROOTG) ? "root" : "none"),
         filter: (f & STP_PF.FILTER) ? "on" : "off",
@@ -3226,35 +3283,37 @@ function stpLoad() {
         s.ports.sort(function(a, b) {
             return (a.lag - b.lag) || (a.p - b.p)
         });
-        var sig = s.ports.map(stpKey).join();
+        var sig = s.ports.map(function(pt) {
+            return stpKey(pt) + (pt.hasOwnProperty("mbr") && pt.mbr.join(",") || "");
+        }).join();
         if (sig !== stpSig) {
             stpSig = sig;
             stpBuild(s.ports);
         }
         stpCur = s;
         var en = $("stpen");
-        if (document.activeElement !== en) en.checked = !!s.on;
+        if (document.activeElement !== en) en.checked = s.on;
         var msg;
         if (!s.on) msg = t("stp_off_msg");
         else {
             var me = (s.prio * 4096).toString(16).padStart(4, "0") + s.myMac,
-                tc = parseInt(s.tc, 16),
+                tc = parseInt(s.tc),
                 rp = "-";
             s.ports.forEach(function(pt) {
                 if (pt.role === 1) rp = stpName(pt)
             });
             msg = t("stp_bridge") + " " + fmtBridge(me) + (s.weRoot ?
                     " (" + t("stp_root_self") + ")" :
-                    "; " + t("stp_root") + " " + fmtBridge(s.rootPrio + s.rootMac) + " " + t("stp_via") + " " + rp + ", " + t("stp_cost") + " " + parseInt(s.cost, 16)) +
-                "; " + t("stp_tc") + ": " + tc + (tc ? " (" + t("stp_lasttc") + " " + stpDhms(parseInt(s.tcs, 16)) + ")" : "") +
+                    "; " + t("stp_root") + " " + fmtBridge(s.rootPrio + s.rootMac) + " " + t("stp_via") + " " + rp + ", " + t("stp_cost") + " " + parseInt(s.cost)) +
+                "; " + t("stp_tc") + ": " + tc + (tc ? " (" + t("stp_lasttc") + " " + stpDhms(parseInt(s.tcs)) + ")" : "") +
                 "; " + t("stp_times") + " " + s.rMaxage + " / " + s.rFwd + " s";
         }
         $("stpids").textContent = msg;
         var bc = $("stpbridge");
         if (!bc.dataset.dirty) {
-            $("stpver").value = s.rstp ? "rstp" : "stp";
-            $("stppcs").value = s.pcs ? "short" : "long";
-            $("stpbh").value = s.bh ? "filter" : "flood";
+            $("stpver").value = s.type;
+            $("stppcs").value = s.pcs;
+            $("stpbh").value = s.bh;
             $("stpprio").value = String(s.prio);
             $("stphello").value = s.hello;
             $("stpmaxage").value = s.maxage;
@@ -3263,16 +3322,16 @@ function stpLoad() {
         }
         s.ports.forEach(function(pt) {
             var p = stpKey(pt);
-            var trip = (pt.f & STP_PF.TRIP) ? " " + badge(t("stp_trip"), "bad") : "";
+            var trip = (pt.f & STP_PF.TRIP) ? " " + badge(t("stp_trip"), "bad", t("stp_trip_t")) : "";
             $("stro" + p).textContent = s.on && pt.role ? t("stp_r" + pt.role) : "-";
             $("stst" + p).innerHTML = s.on ? (pt.lk ? badge(t("stp_s" + pt.st), pt.st === 3 ? "ok" : "") : badge(t("stp_nolink"))) + trip : "-";
             $("stdb" + p).textContent = s.on ? fmtBridge(pt.db) : "-";
             $("stdp" + p).textContent = s.on ? parseInt(pt.dp.slice(0, 2), 16) + "." + parseInt(pt.dp.slice(2), 16) : "-";
-            $("stdc" + p).textContent = s.on ? parseInt(pt.dc, 16) : "-";
+            $("stdc" + p).textContent = s.on ? parseInt(pt.dc) : "-";
             $("stoe" + p).textContent = s.on ? t((pt.f & STP_PF.OPEREDGE) ? "c_yes" : "c_no") : "-";
             $("stop" + p).textContent = s.on ? t(pt.p2 === 2 ? "c_no" : "c_yes") : "-";
-            $("stpv" + p).textContent = s.on && pt.role ? (s.rstp && !pt.lg ? "RSTP" : "STP") : "-";
-            $("stmc" + p).disabled = !(s.on && pt.role && s.rstp);
+            $("stpv" + p).textContent = s.on && pt.role ? (s.type == "rstp" && !pt.lg ? "RSTP" : "STP") : "-";
+            $("stmc" + p).disabled = !(s.on && pt.role && s.type == "rstp");
             var row = $("sten" + p).closest("tr");
             if (row.dataset.dirty) return;
             var v = stpPortVals(pt);
@@ -3328,10 +3387,10 @@ $("stpbapply").addEventListener("click", function() {
         cmds = [];
     var ver = $("stpver").value,
         prio = $("stpprio").value;
-    if (ver !== (s.rstp ? "rstp" : "stp")) cmds.push("stp version " + ver);
+    if (ver !== s.type) cmds.push("stp version " + ver);
     if (prio !== String(s.prio)) cmds.push("stp prio " + prio);
-    if ($("stppcs").value !== (s.pcs ? "short" : "long")) cmds.push("stp pathcost " + $("stppcs").value);
-    if ($("stpbh").value !== (s.bh ? "filter" : "flood")) cmds.push("stp bpdu " + $("stpbh").value);
+    if ($("stppcs").value !== s.pcs) cmds.push("stp pathcost " + $("stppcs").value);
+    if ($("stpbh").value !== s.bh) cmds.push("stp bpdu " + $("stpbh").value);
     [
         ["stphello", "hello"],
         ["stpmaxage", "maxage"],
@@ -3526,9 +3585,9 @@ function statsStatus() {
         })(i);
     }
     S.ports.forEach(function(p) {
-        var r = tb.rows[p.portNum - 1];
+        var r = tb.rows[p.port - 1];
         if (!r) return;
-        r.cells[0].textContent = p.portNum;
+        r.cells[0].textContent = p.port;
         r.cells[1].textContent = p.name || "";
         r.cells[2].innerHTML = linkBadge(p);
         r.cells[3].textContent = BigInt(p.txG).toString();
@@ -3543,13 +3602,6 @@ tabHooks.stats = {
     },
     status: statsStatus,
 };
-
-function maskToPorts(mask) {
-    var out = [];
-    for (var p = 1; p <= S.n; p++)
-        if ((mask >> S.physToLog[p - 1]) & 1) out.push(p);
-    return out;
-}
 
 function rangeStr(list) {
     if (!list.length) return "-";
@@ -3570,7 +3622,7 @@ function rangeStr(list) {
 function vlanRefresh() {
     var tb = $("vtable").tBodies[0];
     tb.style = "cursor:pointer;"
-    return getJSON("/vlanlist").then(function(d) {
+    return getJSON("/vlanlist.json").then(function(d) {
         var vl = d.vlan || [];
         $("vmgmtcur").dataset.id = d.mgmt;
         $("vempty").style.display = vl.length ? "none" : "";
@@ -3598,17 +3650,12 @@ function vlanRefresh() {
                 if (!d) {
                     for (var c = 0; c < 4; c++) tr.insertCell().textContent = "?";
                 } else {
-                    var m = parseInt(d.members, 16),
-                        mem = m & 0x3ff,
-                        unt = ((m >> 10) & 0x3ff) & mem,
-                        tag = mem & ~unt;
-                    var pv = parseInt(d.pvid, 16) & 0x3ff;
-                    tr.insertCell().textContent = rangeStr(maskToPorts(mem));
-                    tr.insertCell().textContent = rangeStr(maskToPorts(tag));
-                    tr.insertCell().textContent = rangeStr(maskToPorts(unt));
-                    tr.insertCell().textContent = rangeStr(maskToPorts(pv));
-                    l.dataset.t = maskToPorts(tag);
-                    l.dataset.u = maskToPorts(unt);
+                    tr.insertCell().textContent = rangeStr(d.tagged_members.concat(d.untagged_members).sort());
+                    tr.insertCell().textContent = rangeStr(d.tagged_members);
+                    tr.insertCell().textContent = rangeStr(d.untagged_members);
+                    tr.insertCell().textContent = rangeStr(d.pvid);
+                    l.dataset.t = d.tagged_members;
+                    l.dataset.u = d.untagged_members;
                 }
                 var act = tr.insertCell();
                 act.onclick = function(e) {
@@ -3709,7 +3756,7 @@ function buildVlanEdit() {
             }));
         });
         seg.children[0].classList.add("on");
-        rN.insertCell().appendChild(document.createTextNode((S.ports.filter(x => x.portNum == p)[0]).name));
+        rN.insertCell().appendChild(document.createTextNode((S.ports.filter(x => x.port == p)[0]).name));
         rM.insertCell().appendChild(seg);
         rP.insertCell().appendChild(h("span", {
             id: "vp" + p
@@ -3736,14 +3783,12 @@ function vlanLoad(vid) {
         $("vtitle").innerText = "VLAN " + vid + (d.name ? " (" + (d.name) + ")" : "");
         $("vtitle").dataset.id = vid;
         $("vtitle").dataset.name = d.name;
-        var m = parseInt(d.members, 16),
-            mem = m & 0x3ff,
-            unt = ((m >> 10) & 0x3ff) & mem;
-        var pv = parseInt(d.pvid, 16) & 0x3ff;
         for (var p = 1; p <= S.n; p++) {
-            var bit = S.physToLog[p - 1];
-            segSet(p, (mem >> bit) & 1 ? (((unt >> bit) & 1) ? 1 : 2) : 0);
-            $("vp" + p).innerText = (!!((pv >> bit) & 1)) ? "Y" : "N";
+            var setVal = 0;
+            if(d.untagged_members.includes(p)){setVal = 1;}
+            if(d.tagged_members.includes(p)){setVal = 2;}
+            segSet(p, setVal);
+            $("vp" + p).innerText = d.pvid.includes(p) ? "Y" : "N";
         }
         $("vmgmtpromote").checked = ($("vmgmtcur").dataset.id == vid);
         toast(t("v_loaded", {
@@ -3955,7 +4000,7 @@ function l2Load() {
                 seen[e.idx] = 1;
                 e.vlan = parseInt(e.vlan, 16);
                 e.stat = e.type === "s";
-                e.pport = e.port === 9 ? "CPU" : S.logToPhys[e.port];
+                e.pport = e.port === 0 ? "CPU" : e.port;
                 e.where = e.lag ? "LAG" + e.lag : String(e.pport);
                 all.push(e);
             });
@@ -4097,12 +4142,9 @@ function mirrorLoad() {
     return getJSON("/mirror.json").then(function(m) {
         $("mstate").textContent = t(m.enabled ? "m_active" : "c_off");
         $("mstate").className = "badge " + (m.enabled ? "ok" : "");
-        if (m.enabled) $("mport").value = m.mPort;
-        var tx = parseInt(m.mirror_tx, 2),
-            rx = parseInt(m.mirror_rx, 2);
+        if (m.enabled) $("mport").value = m.mirrorPort;
         for (var p = 1; p <= S.n; p++) {
-            var bit = S.physToLog[p - 1];
-            var v = (((rx >> bit) & 1) ? 1 : 0) + (((tx >> bit) & 1) ? 2 : 0);
+            var v = (m.mirror_rx.includes(p) ? 1 : 0) + (m.mirror_tx.includes(p) ? 2: 0);
             $("mm" + p).querySelectorAll("button").forEach(function(b, i) {
                 b.classList.toggle("on", i === v)
             });
@@ -4219,36 +4261,37 @@ function isoLoad() {
         isoAllow = s;
         if ($("isotbl").dataset.dirty) return;
         s.forEach(function(e) {
-            var m = parseInt(e.allow, 16);
             for (var c = 1; c <= S.n; c++) {
-                var b = isoBox(e.portNum, c);
-                if (b) b.checked = !!((m >> S.physToLog[c - 1]) & 1);
+                var b = isoBox(e.port, c);
+                if (b) b.checked = e.allow.includes(c);
             }
-            var cpu = isoBox(e.portNum, S.n + 1);
-            if (cpu) cpu.checked = !!(m & 0x200);
+            var cpu = isoBox(e.port, S.n + 1);
+            if (cpu) cpu.checked = e.allow.includes(0);
         });
         isoMark();
     });
 }
 
-function isoMask(r) {
-    var m = 0;
+function isoArray(r) {
+    var m = [];
     for (var c = 1; c <= S.n; c++) {
         var b = isoBox(r, c);
-        if (r === c || (b && b.checked)) m |= 1 << S.physToLog[c - 1];
+        if (r === c || (b && b.checked)) { m.push(c); }
     }
     var cpu = isoBox(r, S.n + 1);
-    if (cpu && cpu.checked) m |= 0x200;
+    if (cpu && cpu.checked) { m.push(0); }
     return m;
 }
 $("isoapply").addEventListener("click", function() {
     var cmds = [];
     for (var r = 1; r <= S.n; r++) {
-        var cur = -1;
+        var cur = [];
         isoAllow.forEach(function(e) {
-            if (e.portNum === r) cur = parseInt(e.allow, 16)
+            if (e.port === r) cur = e.allow;
         });
-        if (isoMask(r) === cur) continue;
+
+        if (isoArray(r).sort().join(",") === cur.sort().join(",")) continue;
+
         var cmd = "isolate " + r;
         for (var c = 1; c <= S.n; c++) {
             var b = isoBox(r, c);
@@ -4282,66 +4325,50 @@ tabHooks.isolate = {
     }
 };
 
-var HASHF = ["spa", "smac", "dmac", "sip", "dip", "sport", "dport"];
+function lagRefreshPortLocks(lagPortOwner) {
+    for (var g = 1; g <= 4; g++) {
+        for (var p = 1; p <= S.n; p++) {
+            var cb = $("lg" + g + "p" + p);
+            if (lagPortOwner[p] !== 0 && lagPortOwner[p] !== g) {
+              cb.checked = false;
+              cb.disabled = true;
+            } else {
+              cb.disabled = false;
+            }
+        }
+    }
+}
 
+var HASHF = ["spa", "smac", "dmac", "sip", "dip", "sport", "dport"];
 function buildLag() {
     var w = $("lagwrap");
     if (w.children.length) return;
     for (var g = 1; g <= 4; g++)(function(g) {
-        var card = h("div", {
-            class: "card"
-        });
-        card.appendChild(h("h2", {
-            text: "LAG " + g
-        }));
-        var mr = h("div", {
-            style: "display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px",
-            class: "small"
-        });
-        mr.appendChild(h("span", {
-            class: "mut",
-            text: t("lag_mode")
-        }));
-        var ms = h("select", {
-            class: "in",
-            id: "lgm" + g
-        });
-        ms.appendChild(h("option", {
-            value: "static",
-            text: t("lag_static")
-        }));
-        ms.appendChild(h("option", {
-            value: "lacp",
-            text: "LACP"
-        }));
+        var card = h("div", { class: "card" });
+        card.appendChild(h("h2", { text: "LAG " + g }));
+        var mr = h("div", { style: "display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px", class: "small" });
+        mr.appendChild(h("span", { class: "mut", text: t("lag_mode") }));
+        var ms = h("select", { class: "in", id: "lgm" + g });
+        ms.appendChild(h("option", { value: "static", text: t("lag_static") }));
+        ms.appendChild(h("option", { value: "lacp", text: "LACP" }));
         ms.addEventListener("change", function() {
             $("lgs" + g).textContent = ms.value === "lacp" ? t("lacp_hint") : ""
         });
         mr.appendChild(ms);
+        mr.appendChild(h("span", { class: "small mono", id: "lgs" + g, style: "display:inline-blocck;margin-left:10px"}));
         card.appendChild(mr);
-        card.appendChild(h("p", {
-            class: "small mono",
-            id: "lgs" + g,
-            style: "margin-bottom:10px"
-        }));
-        var pr = h("div", {
-            style: "display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px"
-        });
-        for (var p = 1; p <= S.n; p++) pr.appendChild(h("label", null, [
-            h("input", {
-                type: "checkbox",
-                id: "lg" + g + "p" + p
-            }), document.createTextNode(" " + p + " "),
-        ]));
+        var pr = h("div", { style: "display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px", class: "small"});
+        pr.appendChild(h("span", { class: "mut", text: t("c_port") + ":" }));
+        for (var p = 1; p <= S.n; p++) {
+            pr.appendChild(h("label", null, [
+                h("input", {type: "checkbox",id: "lg" + g + "p" + p}), 
+                document.createTextNode(" " + p + " "),
+            ]))
+        };
         card.appendChild(pr);
-        var hr = h("div", {
-            style: "display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px",
-            class: "small"
-        });
-        hr.appendChild(h("span", {
-            class: "mut",
-            text: t("lag_hash")
-        }));
+        
+        var hr = h("div", { style: "display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px", class: "small" });
+        hr.appendChild(h("span", { class: "mut", text: t("lag_hash") }));
         HASHF.forEach(function(f) {
             hr.appendChild(h("label", null, [h("input", {
                 type: "checkbox",
@@ -4349,57 +4376,50 @@ function buildLag() {
             }), document.createTextNode(" " + f + " ")]));
         });
         card.appendChild(hr);
-        card.appendChild(h("button", {
-            class: "ctl pri",
-            text: t("c_apply"),
+        card.appendChild(h("button", { class: "ctl pri", text: t("c_apply"),
             onclick: function() {
                 lagApply(g)
             }
         }));
-        card.addEventListener("change", function() {
-            card.dataset.dirty = "1"
-        });
+        card.addEventListener("change", function() { card.dataset.dirty = "1" });
         w.appendChild(card);
     })(g);
 }
+
 var lacpCfg = [0, 0, 0, 0, 0];
-
-function maskPorts(m) {
-    var r = [];
-    for (var p = 1; p <= S.n; p++)
-        if ((m >> S.physToLog[p - 1]) & 1) r.push(p);
-    return r.length ? r.join(" ") : "-"
-}
-
 function lagLoad() {
-    return getJSON("/lacp.json").then(function(c) {
+    return getJSON("/lag.json").then(function(s) {
+        var lagPortOwner = Array(S.n + 1).fill(0);
+        s.lags.forEach(function(l) {
+            var g = l.lagNum + 1;
+            l.members.forEach(function(p) {
+                lagPortOwner[p] = g;
+            })
+        });
+        s.lags.forEach(function(l) {
+            var g = l.lagNum + 1;
+            if ($("lgm" + g).closest(".card").dataset.dirty) return;
+            for (var p = 1; p <= S.n; p++) {
+                $("lg" + g + "p" + p).checked = lagPortOwner[p]===g;
+            };
+            
+            $("lgm" + g).value = l.type;
+            $("lgs" + g).textContent = l.type == "lacp" ? t("lacp_agg") + " " + (l.valid ? l.aggregator : "(" + t("lacp_neg") + ")") + ", " + t("lacp_members") + " " + l.active_members.join(" ") : "";
+            lacpCfg[g] = l.type=="lacp";
+            var hash = parseInt(l.hash, 16);
+            HASHF.forEach(function(f, i) {
+                $("lg" + g + "h" + f).checked = !!((hash >> i) & 1)
+            });
+        });
+        lagRefreshPortLocks(lagPortOwner);
+        
         var tb = $("lacptbl").tBodies[0];
         tb.innerHTML = "";
-        c.lags.forEach(function(lg, i) {
-            var g = i + 1;
-            lacpCfg[g] = parseInt(lg.cfg, 16);
-            if ($("lgm" + g).closest(".card").dataset.dirty) return;
-            $("lgm" + g).value = lacpCfg[g] ? "lacp" : "static";
-            $("lgs" + g).textContent = lacpCfg[g] ? "LACP: " + t("lacp_agg") + " " + (lg.aggValid ? lg.agg : "(" + t("lacp_neg") + ")") + ", " + t("lacp_members") + " " + maskPorts(parseInt(lg.members, 16)) : "";
-        });
-        if (c.on) c.ports.forEach(function(p) {
+        s.ports.forEach(function(p) {
             if (p.lag === 255) return;
             var tr = tb.insertRow();
             [p.p, p.lag + 1, p.a, p.pt, p.rs, parseInt(p.rx, 16), p.psys].forEach(function(v) {
                 tr.insertCell().textContent = v
-            });
-        });
-        return getJSON("/lag.json");
-    }).then(function(s) {
-        s.forEach(function(l) {
-            var g = l.lagNum + 1;
-            if ($("lgm" + g).closest(".card").dataset.dirty) return;
-            var members = lacpCfg[g] || parseInt(l.members, 2);
-            for (var p = 1; p <= S.n; p++)
-                $("lg" + g + "p" + p).checked = !!((members >> S.physToLog[p - 1]) & 1);
-            var hash = parseInt(l.hash, 16);
-            HASHF.forEach(function(f, i) {
-                $("lg" + g + "h" + f).checked = !!((hash >> i) & 1)
             });
         });
     });
@@ -4422,7 +4442,7 @@ function lagApply(g) {
         confirmModal(t("lag_clear_q", {
             n: g
         }), t("lag_clear_d"), function() {
-            postCmds(pre.concat(["lag " + g + " d"])).then(lagLoad).catch(function() {});
+            postCmds(pre.concat(["lag " + g + " d"])).then(lagLoad).catch(function() {console.error("ERROR LOADING LAG")});
         });
         return;
     }
@@ -4460,7 +4480,7 @@ function lldpLoad() {
         tb.innerHTML = "";
         byPort(s.portStatus).forEach(function(p) {
             var tr = tb.insertRow();
-            tr.insertCell().textContent = p.portNum;
+            tr.insertCell().textContent = p.port;
             tr.insertCell().textContent = p.name;
             var sw = h("label", {
                 class: "switch"
@@ -4468,7 +4488,7 @@ function lldpLoad() {
                 h("input", {
                     type: "checkbox",
                     onchange: function() {
-                        postCmd("port " + p.portNum + " lldp " + (this.checked ? "permit" : "block"))
+                        postCmd("port " + p.port + " lldp " + (this.checked ? "permit" : "block"))
                             .then(function() {
                                 setTimeout(lldpLoad, 300)
                             }).catch(function() {});
@@ -4491,36 +4511,27 @@ tabHooks.lldp = {
     enter: lldpLoad
 };
 
-function eeeFlags(bits) {
-    var b = parseInt(bits, 2);
-    return ["100M", "1G", "2.5G"].map(function(s, i) {
-        return (b & (4 >> i)) ? s : null;
-    }).filter(Boolean).join(", ") || "-";
-}
-
 function eeeLoad() {
     return getJSON("/eee.json").then(function(s) {
         var tb = $("etable").tBodies[0];
         tb.innerHTML = "";
         byPort(s).forEach(function(p) {
             var tr = tb.insertRow();
-            tr.insertCell().textContent = p.portNum + (p.isSFP ? " (SFP)" : "");
+            tr.insertCell().textContent = p.port + (p.isSFP ? " (SFP)" : "");
             if (p.isSFP) {
                 for (var c = 0; c < 3; c++) tr.insertCell().textContent = "-";
                 tr.insertCell().textContent = t("e_na");
                 return;
             }
-            tr.insertCell().textContent = eeeFlags(p.eee);
-            tr.insertCell().textContent = eeeFlags(p.eee_lp);
+            tr.insertCell().textContent = p.advertised.join(", ");
+            tr.insertCell().textContent = p.linkPartner.join(", ");
             tr.insertCell().innerHTML = p.active ? badge(t("e_active"), "ok") : badge(t("e_idle"));
-            var on = parseInt(p.eee, 2) !== 0;
-            var sw = h("label", {
-                class: "switch"
-            }, [
+            var on = p.advertised.length != 0;
+            var sw = h("label", { class: "switch" }, [
                 h("input", {
                     type: "checkbox",
                     onchange: function() {
-                        postCmd("eee " + (this.checked ? "on" : "off") + " " + p.portNum)
+                        postCmd("eee " + (this.checked ? "on" : "off") + " " + p.port)
                             .then(function() {
                                 setTimeout(eeeLoad, 300)
                             }).catch(function() {});
@@ -4549,17 +4560,13 @@ function bwLoad() {
         var tb = $("btable").tBodies[0];
         tb.innerHTML = "";
         byPort(s).forEach(function(p) {
-            var n = p.portNum;
-            var iOn = !!Number(p.iLimited),
-                eOn = !!Number(p.eLimited);
-            var iM = (parseInt(p.iBW, 16) * 16 / 1000),
-                eM = (parseInt(p.eBW, 16) * 16 / 1000);
+            var n = p.port;
+            var iOn = p.iLimited, eOn = p.eLimited;
+            var iM = (parseInt(p.iBW) * 16 / 1000),
+                eM = (parseInt(p.eBW) * 16 / 1000);
             var tr = tb.insertRow();
             tr.insertCell().textContent = n;
-            var icb = h("input", {
-                type: "checkbox",
-                id: "bwi" + n
-            });
+            var icb = h("input", { type: "checkbox", id: "bwi" + n });
             icb.checked = iOn;
             tr.insertCell().appendChild(icb);
             var iin = h("input", {
@@ -4572,25 +4579,13 @@ function bwLoad() {
             });
             if (iOn) iin.value = +iM.toFixed(3);
             tr.insertCell().appendChild(iin);
-            var msel = h("select", {
-                class: "in",
-                id: "bwm" + n
-            }, [
-                h("option", {
-                    value: "fc",
-                    text: t("bw_fc")
-                }),
-                h("option", {
-                    value: "drop",
-                    text: t("bw_drop")
-                }),
+            var msel = h("select", { class: "in", id: "bwm" + n }, [
+                h("option", { value: "fc", text: t("bw_fc") }),
+                h("option", { value: "drop", text: t("bw_drop") }),
             ]);
-            msel.value = Number(p.iFC) === 1 ? "fc" : "drop";
+            msel.value = p.iAction;
             tr.insertCell().appendChild(msel);
-            var ecb = h("input", {
-                type: "checkbox",
-                id: "bwe" + n
-            });
+            var ecb = h("input", { type: "checkbox", id: "bwe" + n });
             ecb.checked = eOn;
             tr.insertCell().appendChild(ecb);
             var ein = h("input", {
@@ -4603,9 +4598,7 @@ function bwLoad() {
             });
             if (eOn) ein.value = +eM.toFixed(3);
             tr.insertCell().appendChild(ein);
-            tr.insertCell().appendChild(h("button", {
-                class: "ctl",
-                text: t("c_apply"),
+            tr.insertCell().appendChild(h("button", { class: "ctl", text: t("c_apply"),
                 onclick: function() {
                     bwApply(n)
                 }
@@ -4640,7 +4633,7 @@ function bwApply(n) {
         }
         cmds.push("bw out " + n + " " + eh);
     } else cmds.push("bw out " + n + " off");
-    postCmds(cmds).then(bwLoad).catch(function() {});
+    postCmds(cmds).then(bwLoad).catch(function(){});
 }
 var SC_TYPES = ["bcast", "mcast", "ucast", "umcast"],
     scSig = "";
@@ -4650,45 +4643,24 @@ function scLoad() {
         var tb = $("sctable").tBodies[0];
         byPort(s);
         var sig = s.map(function(p) {
-            return p.portNum
+            return p.port
         }).join();
         if (sig !== scSig) {
             scSig = sig;
             tb.innerHTML = "";
             s.forEach(function(p) {
-                var n = p.portNum,
+                var n = p.port,
                     tr = tb.insertRow();
                 tr.id = "scr" + n;
-                tr.addEventListener("input", function() {
-                    tr.dataset.dirty = "1"
-                });
-                tr.addEventListener("change", function() {
-                    tr.dataset.dirty = "1"
-                });
+                tr.addEventListener("input", function() { tr.dataset.dirty = "1" });
+                tr.addEventListener("change", function() { tr.dataset.dirty = "1" });
                 tr.insertCell().textContent = n;
                 SC_TYPES.forEach(function(ty) {
-                    tr.insertCell().appendChild(h("span", {
-                        style: "display:flex;gap:4px"
-                    }, [
-                        h("input", {
-                            class: "in sm",
-                            id: "scv" + ty + n,
-                            type: "number",
-                            min: "1",
-                            step: "1"
-                        }),
-                        h("select", {
-                            class: "in",
-                            id: "scu" + ty + n
-                        }, [
-                            h("option", {
-                                value: "pps",
-                                text: "pps"
-                            }),
-                            h("option", {
-                                value: "kbps",
-                                text: "kbit/s"
-                            }),
+                    tr.insertCell().appendChild(h("span", { style: "display:flex;gap:4px" }, [
+                        h("input", { class: "in sm", id: "scv" + ty + n, type: "number", min: "1", step: "1" }),
+                        h("select", { class: "in", id: "scu" + ty + n }, [
+                            h("option", { value: "pps", text: "pps" }),
+                            h("option", { value: "kbps", text: "kbit/s" }),
                         ]),
                     ]));
                 });
@@ -4702,14 +4674,14 @@ function scLoad() {
             });
         }
         s.forEach(function(p) {
-            var n = p.portNum;
+            var n = p.port;
             if ($("scr" + n).dataset.dirty) return;
-            SC_TYPES.forEach(function(ty, k) {
-                var on = p.en.charAt(k) === "1",
-                    pps = p.pps.charAt(k) === "1",
-                    raw = parseInt(p.rate.substr(k * 6, 6), 16);
-                var inp = $("scv" + ty + n),
-                    sel = $("scu" + ty + n);
+            SC_TYPES.forEach(function(v, k) {
+                var on = p[v]["enabled"],
+                    pps = p[v]["unit"] == "pps",
+                    raw = parseInt(p[v]["rate"]);
+                var inp = $("scv" + v + n),
+                    sel = $("scu" + v + n);
                 inp.value = on ? raw : "";
                 sel.value = on && !pps ? "kbps" : "pps";
                 inp.dataset.cur = on ? inp.value + " " + sel.value : "off";
@@ -4763,6 +4735,8 @@ function sysLoad() {
         $("sy-mask").value = S.info.ip_netmask || "";
         $("sy-gw").value = S.info.ip_gateway || "";
         $("sy-host").value = S.info.hostname || "";
+        $("sy-mode").value = S.info.ip_source === "dhcp" ? "dhcp" : "static";
+        syModeUi();
         var sl = (S.info.syslog_server || "").split(":");
         if (sl[0] && sl[0] !== "0.0.0.0") $("sy-sysip").value = sl[0];
         if (sl[1]) $("sy-sysport").value = sl[1];
@@ -4804,17 +4778,25 @@ function cfgParseKnown(txt) {
     $("sy-igmp").checked = igmp;
     $("sy-syslog").checked = syslog;
 }
+function syModeUi() {
+    var dhcp = $("sy-mode").value === "dhcp";
+    ["sy-ip", "sy-mask", "sy-gw", "sy-dns1", "sy-dns2"].forEach(function(id) {
+        $(id).disabled = dhcp;
+    });
+}
+$("sy-mode").addEventListener("change", syModeUi);
 $("sy-apply").addEventListener("click", function() {
-    var ip = $("sy-ip").value.trim(),
+    var dhcp = $("sy-mode").value === "dhcp",
+        ip = $("sy-ip").value.trim(),
         mask = $("sy-mask").value.trim(),
         gw = $("sy-gw").value.trim();
-    if (!okIp(ip) || !okIp(mask) || !okIp(gw)) {
+    if (!dhcp && (!okIp(ip) || !okIp(mask) || !okIp(gw))) {
         toast(t("sy_ip_err"), "err");
         return;
     }
     var d1 = $("sy-dns1").value.trim(),
         d2 = $("sy-dns2").value.trim();
-    if ((d1 && !okIp(d1)) || (d2 && !okIp(d2))) {
+    if (!dhcp && ((d1 && !okIp(d1)) || (d2 && !okIp(d2)))) {
         toast(t("sy_dns_err"), "err");
         return;
     }
@@ -4827,9 +4809,12 @@ $("sy-apply").addEventListener("click", function() {
         }
         cmds.push("hostname " + hn);
     }
-    cmds.push("ip " + ip + "\nnetmask " + mask + "\ngw " + gw + "\ndns server " + (d1 || "0.0.0.0") + (d2 ? " " + d2 : ""));
-    var changingIp = ip !== S.info.ip_address;
-    confirmModal(t("sy_net_q"), changingIp ? t("sy_net_d", {
+    var toDhcp = dhcp && S.info.ip_source !== "dhcp";
+    if (toDhcp) cmds.push("dns server 0.0.0.0\nip dhcp");
+    else if (!dhcp) cmds.push("ip " + ip + "\nnetmask " + mask + "\ngw " + gw + "\ndns server " + (d1 || "0.0.0.0") + (d2 ? " " + d2 : ""));
+    if (!cmds.length) return;
+    var changingIp = !dhcp && ip !== S.info.ip_address;
+    confirmModal(toDhcp ? t("sy_dhcp_q") : t("sy_net_q"), toDhcp ? t("sy_dhcp_d") : changingIp ? t("sy_net_d", {
         ip: ip
     }) : "", function() {
         postCmds(cmds).then(function() {
@@ -4838,11 +4823,6 @@ $("sy-apply").addEventListener("click", function() {
             }), "ok");
             else sysLoad();
         }).catch(function() {});
-    });
-});
-$("sy-dhcp").addEventListener("click", function() {
-    confirmModal(t("sy_dhcp_q"), t("sy_dhcp_d"), function() {
-        postCmd("ip dhcp").catch(function() {})
     });
 });
 $("sy-igmp").addEventListener("change", function() {
@@ -5120,7 +5100,12 @@ function mergeConf(base, texts) {
                 conf.push(line);
                 return;
             }
+            if (line === "ip dhcp") drop(/^(netmask|gw|dns server) /);
             if (!isConfCmd(line)) return;
+            if ((m = line.match(/^port (\d{1,2}) name$/))) {
+                drop(new RegExp("^port " + m[1] + " name( |$)"));
+                return;
+            }
             if ((m = line.match(/^ingress (.+)$/))) {
                 if (/^[tua]$/.test(m[1])) {
                     drop(/^ingress /);

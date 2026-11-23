@@ -1,7 +1,9 @@
+#define MACHINE_CHIPSET RTL8372
 #include "machine_defs.h"
 
 __code const struct machine machine = {
 	MACHINE_COMMON_SETTING,
+	.mac_flash_offset = 0x1FC000,
 	.n_sfp = 2,
 	.log_to_phys_port = {0, 0, 0, 6, 1, 2, 3, 4, 5},
 	.phys_to_log_port = {4, 5, 6, 7, 8, 3, 0, 0, 0},
@@ -43,3 +45,7 @@ __code const struct machine machine = {
 				0x1a,0x19,0x1d,0x1e,0x1c,0x1d,0x20,0x21
 		},
 	};
+
+MACHINE_CUSTOM_INIT(
+	reg_bit_set(RTL837X_REG_LED_GLB_IO_EN, 6);
+)

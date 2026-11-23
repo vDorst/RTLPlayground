@@ -3,6 +3,8 @@
 
 import os
 import secrets
+from random import randint
+from threading import Timer
 import time
 import re
 import argparse
@@ -44,23 +46,43 @@ l2_entries = [
 
 state = {
     "lldp_enabled": False,
-    "vlans": {1: {"active": True, "name": "", "untagged":[1,2,3,4,5,6,7,8], "tagged":[], "pvid":[1,2,3,4,5,6,7,8]}},
+    "vlans": {
+        1: {"active": True, "name": "", "untagged":[3,4,5,6,7,8], "tagged":[], "pvid":[3,4,5,6,7,8]},
+        64: {"active": True, "name": "sixtyFour", "untagged": [1], "tagged": [2], "pvid":[1]}
+    },
     "cmd_history": [],
     "mgmt_vlan": 1,
+    "lacp_enabled": True,
     "lags": [
-                {"cfg":"0000","aggValid":0,"agg":"000000000000","members":"0000"},
-                {"cfg":"0000","aggValid":0,"agg":"000000000000","members":"0000"},
-                {"cfg":"0000","aggValid":0,"agg":"000000000000","members":"0000"},
-                {"cfg":"0000","aggValid":0,"agg":"000000000000","members":"0000"}
+                {"lagNum":0,"type":"static","members":[],"hash":"3f"},
+                {"lagNum":1,"type":"lacp","members":[5,6],"active_members":[6],"valid":1,"aggregator":"ce654f01cb99","hash":"7e"},
+                {"lagNum":2,"type":"static","members":[],"hash":"3f"},
+                {"lagNum":3,"type":"static","members":[],"hash":"3f"}
             ],
+    "lacp": [
+                {"cfg":[],"aggValid":0,"agg":"000000000000","members":[]},
+                {"cfg":[5,6], "aggValid": 1, "agg": "ce654f01cb99", "members": [5]},
+                {"cfg":[],"aggValid":0,"agg":"000000000000","members":[]},
+                {"cfg":[],"aggValid":0,"agg":"000000000000","members":[]}
+            ],
+    "lacp_ports": []
 }
 
+hashTag = {"spa":    1,
+           "smac":   2,
+           "dmac":   4, 
+           "sip":    8,
+           "dip":   16,
+           "sport": 32,
+           "dport": 64,
+          }
 
 tx_g = [0] * PORTS
 rx_g = [0] * PORTS
 tx_b = [0] * PORTS
 rx_b = [0] * PORTS
 last_called = int(time.time())
+started = int(time.time())
 
 sessions = set()
 uploaded_config = None
@@ -71,6 +93,7 @@ def vprint(string):
 
 class Handler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
+        self._update_lacp_ports()         # Initialize LACP ports
         super().__init__(*args, directory=str(ROOT), **kwargs)
 
     def api_handlers(self,query):
@@ -83,16 +106,16 @@ class Handler(SimpleHTTPRequestHandler):
             "/information.json": self._api_information,
             "/isolation.json": self._api_isolation,
             "/l2.json": lambda: self._api_l2(query),
-            "/lacp.json": self._api_lacp,
-            "/lag.json": self._api_lag,
             "/lldp.json": self._api_lldp,
+            "/lag.json": self._api_lag,
             "/mirror.json": self._api_mirror,
-            "/mtu.json": self._api_mtu,
-            "/status.json": self._api_status,
+            "/ports.json": self._api_ports,
+            "/traffic.json": self._api_traffic,
             "/storm.json": self._api_storm,
             "/stp.json": self._api_stp,
+            "/stpcnt.json": self._api_stpcnt,
             "/vlan.json": lambda: self._api_vlan(query),
-            "/vlanlist": self._api_vlanlist,
+            "/vlanlist.json": self._api_vlanlist,
         }
 
     def _send(self, status, body=b"", content_type="text/plain",
@@ -197,7 +220,7 @@ class Handler(SimpleHTTPRequestHandler):
         )
 
     def do_POST(self):
-        global uploaded_config, state
+        global uploaded_config, state, started
 
         path = urlsplit(self.path).path
 
@@ -222,7 +245,10 @@ class Handler(SimpleHTTPRequestHandler):
             command = self._read_raw()
             state["cmd_history"].append(command)
             vprint(f"Received command: '{command}'")
-            response = self.parse_cmd(command.strip());
+            response, missing = self.parse_cmd(command.strip())
+
+            if missing:
+                return self._send(501, f"httpd_sim: no handler for {' '.join(missing)}\n".encode())
 
             if response is not None:
                 return self._send(200, response, "text/plain")
@@ -256,6 +282,9 @@ class Handler(SimpleHTTPRequestHandler):
 
             if path == "/config":
                 uploaded_config = file_data
+            else:
+                sessions.clear()
+                started = int(time.time())
 
             return self._send(
                 200,
@@ -300,14 +329,21 @@ class Handler(SimpleHTTPRequestHandler):
 
     def parse_cmd(self, cmdstring):
         response = bytearray()
+        missing = []
         for cmd in cmdstring.split("\n"):
             pieces = cmd.split(" ")
+            if not pieces[0]:
+                continue
             handler = self.get_parsers().get(pieces[0])
+            if handler is None:
+                print(f"httpd_sim: no handler for '{cmd}'")
+                missing.append(pieces[0])
+                continue
             result = handler(pieces)
             if(result is not None):
                 response.extend(result)
                 response.extend(b"\n")
-        return response
+        return response, missing
 
     def get_parsers(self):
         return {
@@ -316,6 +352,8 @@ class Handler(SimpleHTTPRequestHandler):
             "pvid": self._parse_pvid,
             "dns": self._parse_dns,
             "ntp": self._parse_ntp,
+            "lag": self._parse_lag,
+            "laghash": self._parse_laghash,
         }
 
     def remove_vlan(self, id):
@@ -364,6 +402,127 @@ class Handler(SimpleHTTPRequestHandler):
         else :
             state["vlans"][vid] = self.newVlan("")
 
+    def _parse_lag(self, pieces):
+        global state
+        
+        lagNum = int(pieces[1]) - 1   # convert to internal index
+        delete = lacp = False         # default setup a static lag
+        if not pieces[2].isdigit():   # got a command
+            delete = pieces[2]=="d"   # delete lag
+            lacp = pieces[2]=="lacp"  # setup LACP based lag
+            if lacp and pieces[3]=="off":  # delete LACP based lag
+                delete = True
+                lacp = False
+                ports = []
+            else:
+                ports = [int(port) for port in pieces[3:]] 
+        else:
+            ports = [int(port) for port in pieces[2:]] 
+        bitmask = 0
+        for port in ports:
+            bitmask |= 1 << (port - 1)
+        if delete:
+            # reset global LAG & LACP data to return in lag.json
+            state["lacp"][lagNum] = {"cfg":[],"aggValid":0,"agg":"000000000000","members":[]}
+            state["lags"][lagNum] = {"lagNum":lagNum,"type":"static","members":[],"hash":"3f"}
+
+            # check if LACP is still to be active
+            state["lacp_enabled"] = any([l["aggValid"] for l in state["lacp"]])
+            result = f'port_lag_members_set, lag: {lagNum:02x}, members: 0x{bitmask:04x}'
+        elif lacp:
+            # Update global LAG data to return in lag.json
+            state["lacp_enabled"] = True
+            state["lags"][lagNum] = {
+                "lagNum":lagNum,
+                "type":"lacp",
+                "members": ports,
+                "active_members":[],
+                "valid": False,
+                "aggregator":"000000000000",
+                "hash":"7e"
+            }
+            for port in ports:
+              
+              rt = randint(10,25)
+              Timer(rt, self._activate_lacp_member,args=(lagNum, port,)).start()
+            result = f'port_lag_members_set, lag: {lagNum:02x}, members: 0x{bitmask:04x}'
+        else:
+            # Update global LAG data to return in lag.json
+            state["lags"][lagNum] = {
+                "lagNum": lagNum,
+                "type":"static",
+                "members":ports,
+                "hash":"3f"
+            }
+            result = f'port_lag_members_set, lag: {lagNum:02x}, members: 0x{bitmask:04x}'
+        self._update_lacp_ports()
+        return result.encode("utf-8")
+
+    def _parse_laghash(self, pieces):
+        lagNum = int(pieces[1]) - 1
+        bitmask = 0
+        for tag in pieces[2:]:
+            bitmask |= hashTag[tag]
+        # Update global LAG data to return in lag.json
+        hashValue = f'{bitmask:02x}'
+        state["lags"][lagNum]["hash"] = hashValue
+        result = f'port_lag_hash_set, lag: {lagNum:02x}, hash: {hashValue}'
+        return result.encode("utf-8")
+
+    def _activate_lacp_member(self, lagNum, port):
+        global state
+        
+        lag = state["lags"][lagNum]
+        # note that the user can delete the LACP before the timer
+        # triggered task is run. Guard for this by check the type
+        if lag["type"]!="lacp":
+            return
+            
+        active = randint(0, 100) < 90     # randomly allow a member activation to fail
+        if active:
+          lag["valid"] = 1
+          lag["active_members"].append(port)
+
+          if lag["aggregator"]=="000000000000" and active:
+            # Random locally administered, unicast MAC address
+            mac = bytearray(secrets.token_bytes(6))
+            mac[0] = (mac[0] | 0x02) & 0xFE  # Set local bit; clear multicast bit
+
+            lag["aggregator"] = "".join(f"{byte:02x}" for byte in mac)
+            
+        vprint(f'Updated LAG for port({port}): {lag}')
+        self._update_lacp_ports()
+        
+    def _update_lacp_ports(self):
+        global state
+        
+        # Initialize ports
+        lacp_ports = [{"p":i,"lag":255,"a":"00","pt":"00","rs":0,"rx":"0000","psys":"000000000000"} 
+                      for i in range(1, PORTS + 1)]
+        # Determine LACP ports
+        for lag in state["lags"]:
+            if lag["type"]!="lacp":
+                continue
+
+            for port in lag["members"]:
+                if port in lag.get("active_members",[]):
+                    lacp_ports[port-1] = {"p": port,
+                                          "lag": lag["lagNum"] + 1,
+                                          "a": lag["aggregator"][2:4],
+                                          "pt": lag["aggregator"][-2:],
+                                          "rs":4,
+                                          "rx":"0003",
+                                          "psys": lag["aggregator"]
+                                        }
+                else:
+                    lacp_ports[port-1] = {"p": port,
+                                          "lag":lag["lagNum"] + 1,
+                                          "a":"07",
+                                          "pt":"40",
+                                          "rs":0,
+                                          "rx":"0000",
+                                          "psys":"000000000000"}
+        state['lacp_ports'] = lacp_ports
     def _parse_lldp(self, pieces):
         global state
         state.lldp_enabled = (pieces[0] == "on")
@@ -379,33 +538,55 @@ class Handler(SimpleHTTPRequestHandler):
     def _api_storm(self):
         global state
         return [
-            {"portNum":i,"en":"0000","pps":"0000","rate":"000000000000000000000000"}
+            {
+                "port": i,
+                "bcast":  {"enabled": (i==3), "unit":("kbit/s" if i != 3 else "pps"), "rate": ("0x000000" if i !=3 else "0x000037") },
+                "mcast":  {"enabled": (i==3), "unit":("kbit/s" if i != 3 else "pps"), "rate": ("0x000000" if i !=3 else "0x000047") },
+                "ucast":  {"enabled": (i==3), "unit":"pps", "rate": ("0x000000" if i !=3 else "0x000057") },
+                "umcast": {"enabled": (i==3), "unit":("kbit/s" if i != 3 else "pps"), "rate": ("0x000000" if i !=3 else "0x000031") }
+            }
             for i in range(1, PORTS + 1)
         ]
-
     def _api_stp(self):
         return {
-            "on":0,
-            "rstp":1,
+            "on":True,
+            "type":"rstp",
             "prio":8,
             "hello":2,
             "maxage":20,
             "fwd":15,
             "txhold":6,
+            "bh": "flood",
+            "pcs": "short",
             "rootPrio":"8000",
             "rootMac":"060f00124737",
             "myMac":"060f00124737",
             "cost":"00000000",
-            "weRoot":1,
-            "rootPort":0,
+            "weRoot":True,
+            "rootPort":False,
             "tc":"0000",
             "ports":[
-                {"p":i,"lag":0,"mbr":0,"st":3,"role":2,"f":5,"pc":"00000000","prio":128,"p2":0,"db":"8000060f00124737","dp":"8009","dc":"00000000"}
+                ({"p":i,"lag":0,"mbr":[],"st":3,"role":2,"f":5,"pc":"00000000","prio":128,"p2":0,"db":"8000060f00124737","dp":"8009","dc":"00000000"})
                 for i in range(1, PORTS + 1)
+            ] + [
+                {"p":102,"st":3,"role":2,"f":69,"pc":"00000000","mbr":[6],"prio":128,"p2":0,"lk":1,"lg":0,"db":"8000060f00124737","dp":"8066","dc":"00000000"}
             ]
         }
 
-    def _api_status(self):
+    def _api_stpcnt(self):
+        return {
+                "on":True,
+                "hz":50,
+                "tc":"0002",
+                "ports":[(
+                    {"p":i,"c":"000000000000927000000000000000004903"} if i == 1 else
+                    {"p":i,"c":"000091c60000000300000002000000000008"} if i == 2 else
+                    {"p":i,"c":"000091c80000000300000002000000030009"} if i == 3 else
+                    {"p":i,"c":"00000000000000000000000000000000ffff"} ) for i in range(1, PORTS + 1)
+                ]
+            }
+
+    def _api_ports(self):
         global last_called, machine_config
         now = max(int(time.time()), last_called + 1)
         elapsed = now - last_called
@@ -413,23 +594,12 @@ class Handler(SimpleHTTPRequestHandler):
 
         for i in range(1, PORTS + 1):
             n = i - 1
-            if i % 2:
-                rate = 2_400_000_000 if i == 1 else 950_000_000
-                tx_g[n] += rate * elapsed
-                rx_g[n] += rate * elapsed
-                tx_b[n] += rate * elapsed // 10_000_000
-                rx_b[n] += rate * elapsed // 10_000_000
             item = {
-                "portNum": i,
-                "logPort": machine_config["phys_to_log_port"][n],
+                "port": i,
                 "name": "",
-                "isSFP": machine_config["is_sfp"][i],
+                "isSFP": machine_config["is_sfp"][i] == 1,
                 "enabled": int(i % 4 != 0),
-                "link": (5 if i == 1 else 2) if i % 2 else 0,
-                "txG": f"0x{tx_g[n]:016x}",
-                "txB": f"0x{tx_b[n]:016x}",
-                "rxG": f"0x{rx_g[n]:016x}",
-                "rxB": f"0x{rx_b[n]:016x}",
+                "mtu": f"0x{16383 if i % 2 else 1522:04x}",
             }
 
             if machine_config["is_sfp"][i]:
@@ -446,12 +616,42 @@ class Handler(SimpleHTTPRequestHandler):
                     "sfp_laser": "0x0000",
                 })
             else:
-                item["adv"] = (
-                    "100000" if i == 1
-                    else "000011" if i == 2
-                    else "000100"
-                )
+                if i == 1:
+                    item["adv"] = [ "2.5G" ]
+                elif i == 2:
+                    item["adv"] = [ "10M-HD", "10M-FD" ]
+                else:
+                    item["adv"] = [ "100M-HD" ]
 
+            ports.append(item)
+
+        last_called = now
+        return ports
+
+    def _api_traffic(self):
+        global last_called, machine_config
+        now = max(int(time.time()), last_called + 1)
+        elapsed = now - last_called
+        ports = []
+
+        for i in range(1, PORTS + 1):
+            n = i - 1
+            if i % 2:
+                rate = 2_400_000_000 if i == 1 else 950_000_000
+                tx_g[n] += rate * elapsed
+                rx_g[n] += rate * elapsed
+                tx_b[n] += rate * elapsed // 10_000_000
+                rx_b[n] += rate * elapsed // 10_000_000
+            item = {
+                "port": i,
+                "name": "",
+                "link": ("10G" if i == 1 else "100M-HD") if i % 2 else "DOWN",
+                "macs": "0x01",
+                "txG": f"0x{tx_g[n]:016x}",
+                "txB": f"0x{tx_b[n]:016x}",
+                "rxG": f"0x{rx_g[n]:016x}",
+                "rxB": f"0x{rx_b[n]:016x}",
+            }
             ports.append(item)
 
         last_called = now
@@ -461,10 +661,10 @@ class Handler(SimpleHTTPRequestHandler):
         global state, machine_config
         return [
             {
-                "portNum": i,
-                "isSFP": machine_config["is_sfp"][i],
-                "eee": "00000010",
-                "eee_lp": "00000100",
+                "port": i,
+                "isSFP": machine_config["is_sfp"][i] == 1,
+                "advertised": ["2.5G", "1G", "100M"],
+                "linkPartner": ["2.5G", "1G", "100M"],
                 "active": int(i % 2 == 1),
             }
             for i in range(1, PORTS + 1)
@@ -476,69 +676,48 @@ class Handler(SimpleHTTPRequestHandler):
             ingress_limited = i % 2 == 1
             egress_limited = i % 4 != 0
             ports.append({
-                "portNum": i,
-                "iLimited": int(ingress_limited),
-                "iFC": int(i % 4 != 0) if ingress_limited else 0,
-                "iBW": f"{0x100 if ingress_limited else 0xfffff:08x}",
-                "eLimited": int(egress_limited),
-                "eBW": f"{0x1000 if egress_limited else 0xfffff:08x}",
+                "port": i,
+                "iLimited": (ingress_limited),
+                "iAction": "fc" if ingress_limited else "drop",
+                "iBW": f"0x{0x100 if ingress_limited else 0xfffff:08x}",
+                "eLimited": (egress_limited),
+                "eBW": f"0x{0x1000 if egress_limited else 0xfffff:08x}",
             })
         return ports
 
     def _api_mirror(self):
         return {
-            "mPort": 1,
-            "enabled": 1,
-            "mirror_tx": f"{0b000110:016b}",
-            "mirror_rx": f"{0b000010:016b}",
+            "mirrorPort": 2,
+            "enabled": True,
+            "mirror_rx": [6,5],
+            "mirror_tx": [6,4]
         }
 
     def _api_lacp(self):
         global state
+
         return {
-            "on": 0,
-            "lags": state["lags"],
-            "ports": [
-                {
-                    "p":i,
-                    "lag":255,
-                    "a":"00",
-                    "pt":"00",
-                    "rs":0,
-                    "rx":"0000",
-                    "psys":"000000000000"
-                } for i in range(1, PORTS + 1)
-            ]
+            "on": state["lacp_enabled"],
+            "lags": state["lacp"],
+            "ports": state["lacp_ports"]
         }
 
     def _api_lag(self):
-        return [
-            {
-                "lagNum": i,
-                "members": f"{(0x30 << (i * 2)) & 0x1f8:016b}",
-                "hash": "0x7e",
-            }
-            for i in range(4)
-        ]
+        global state
 
-    def _api_mtu(self):
-        return [
-            {
-                "portNum": i,
-                "mtu": f"0x{16383 if i % 2 else 1522:04x}",
+        return {
+            "lags": state["lags"],
+            "ports": state["lacp_ports"]
             }
-            for i in range(1, PORTS + 1)
-        ]
 
     def _api_lldp(self):
         return {
-            "on": 1,
+            "on": True,
             "portStatus": [
                 {
-                    "portNum": i,
-                    "logPort": i - 1,
+                    "port": i,
                     "name": "",
-                    "permitted": 1,
+                    "permitted": True,
                 }
                 for i in range(1, PORTS + 1)
             ],
@@ -569,7 +748,9 @@ class Handler(SimpleHTTPRequestHandler):
             return {
                 "name": vlan["name"],
                 "members": self.vlanMembers(vlan),
-                "pvid": self.vlanPvid(vlan),
+                "tagged_members": vlan["tagged"],
+                "untagged_members": vlan["untagged"],
+                "pvid": vlan["pvid"]
             }
         return {}
 
@@ -584,12 +765,6 @@ class Handler(SimpleHTTPRequestHandler):
 
         members = member_mask | (untagged_mask << 10)
         return f"0x{members:08x}"
-
-    def vlanPvid(self, vlan):
-        pvid_mask = 0
-        for port in vlan["pvid"]:
-            pvid_mask |= 1 << port
-        return f"0x{pvid_mask:04x}"
 
     def _api_l2(self,query):
         idx = self._int_param(query, "idx")
@@ -616,12 +791,16 @@ class Handler(SimpleHTTPRequestHandler):
             text += "\n"
         return text.encode("utf-8"), "text/plain"
 
+
     def _api_isolation(self):
         global state
         return [
                 {
-                    "portNum": i,
-                    "allow": "03ff"
+                    "port": i,
+                    "allow": (
+                                [ 5, 0 ] if i == 4 else
+                                [ x for x in range(1, PORTS + 1) ]
+                            )
                 }
                 for i in range(1, PORTS + 1)
             ]
@@ -631,9 +810,12 @@ class Handler(SimpleHTTPRequestHandler):
             "ip_address":"192.168.10.247",
             "ip_gateway":"192.168.2.22",
             "ip_netmask":"255.255.255.0",
+            "ip_source":"static",
             "mac_address":"1c:2a:a3:23:00:02",
             "sw_ver":"0.1-sim",
-            "hw_ver":"SWGT024-V2.0"
+            "uptime":f"0x{int(time.time()) - started:08x}",
+            "hw_ver":"SWGT024-V2.0",
+            "pcb_ver":"PCB_SWTG024AS_A_V2_0_1_19650"
         }
 
     def _api_debug(self):
@@ -725,4 +907,10 @@ if __name__ == "__main__":
     PORT = args.port
 
     print(f"Serving {ROOT} on http://{HOST}:{PORT}")
-    ThreadingHTTPServer((HOST, PORT), Handler).serve_forever()
+    try:
+        server = ThreadingHTTPServer((HOST, PORT), Handler)
+        server.serve_forever()
+    except KeyboardInterrupt:
+        print("\nExiting")    # Ctrl-C stops the script without a traceback
+    finally:
+        server.server_close()

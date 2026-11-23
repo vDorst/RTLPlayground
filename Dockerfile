@@ -2,6 +2,7 @@ FROM debian:13-slim
 
 RUN apt-get update && apt-get install -y \
     make \
+    pkg-config \
     gcc \
     g++ \
     bison \
@@ -12,6 +13,7 @@ RUN apt-get update && apt-get install -y \
     curl \
     ca-certificates \
     xxd \
+    jq \
     python3 \
     libjson-c-dev \
     git \

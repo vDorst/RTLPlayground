@@ -2,6 +2,7 @@
 #define _RTL837X_STP_H_
 
 #include <stdint.h>
+#include "timer.h"
 void stp_in(void) __banked;
 void stp_setup(void) __banked;
 void stp_timers(void) __banked;
@@ -9,7 +10,7 @@ void stp_off(void) __banked;
 void stp_parse(void) __banked __reentrant;
 void stp_defaults(void) __banked;
 void stp_status(void) __banked;
-void stp_port_admin(uint8_t port, uint8_t on) __banked;
+void stp_port_admin(uint8_t port) __banked;
 void stp_prio_apply(void) __banked;
 void stp_port_mcheck(uint8_t port) __banked;
 uint8_t stp_port_role(uint8_t port) __banked;
@@ -18,10 +19,29 @@ uint8_t stp_ent_id(uint8_t e) __banked;
 void stp_lag_map(void) __banked;
 void stp_counters_clear(void) __banked __reentrant;
 
+#define STP_DISABLED	0
+#define STP_DISCARDING	1
+#define STP_LEARNING	2
+#define STP_FORWARDING	3
+
+#define BPDU_FLAG_TC		0x01
+#define BPDU_FLAG_PROPOSAL	0x02
+#define BPDU_FLAG_AGREEMENT	0x40
+#define BPDU_FLAG_LEARNING	0x10
+#define BPDU_FLAG_FORWARDING	0x20
+#define BPDU_FLAG_TCACK		0x80
+
+#define BPDU_ROLE_ROOT		(0b10 << 2)
+#define BPDU_ROLE_DESIGNATED	(0b11 << 2)
+#define BPDU_ROLE_MASK		(0b11 << 2)
+#define BPDU_ROLE_ALTBACK	(0b01 << 2)
+
 /* Tick rate of stp_timers(), also used by the web UI. */
 #define STP_HZ 50
+#define STP_TICK_STEP (SYS_TICK_HZ / STP_HZ)
+extern __xdata struct timer stp_step;
 
-#define STP_PORTS	(CPU_PORT + 1)
+#define STP_PORTS	(CPU_LOGICAL_PORT + 1)
 #define STP_LAG_BASE	STP_PORTS
 #define STP_LAG_COUNT	4
 #define STP_ENTITIES	(STP_LAG_BASE + STP_LAG_COUNT)
@@ -77,6 +97,7 @@ extern __xdata uint8_t  stp_root_fwd;
 extern __xdata uint16_t stp_link_prev;
 extern __xdata uint16_t stp_alt;
 extern __xdata uint16_t stp_backup;
+extern __xdata uint8_t  stp_loop_held[STP_ENTITIES];
 extern __xdata uint16_t stp_legacy;
 extern __xdata uint16_t stp_rrwhile[STP_ENTITIES];
 extern __xdata uint16_t stp_rbwhile[STP_ENTITIES];

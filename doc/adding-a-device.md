@@ -1,109 +1,184 @@
 # Adding a new device
 
-A device is supported by adding one board header `.h` and board definition `.c` file
-under `machine/`. 
-the build selects the definition by name, and CI compiles every file it finds.
+A device is supported by adding an entry to `machine/machines.json` and a PCB
+definition under `machine/pcb/`. The build selects the entry by its `machine`
+value, and CI compiles every machine/PCB pair it finds.
 
 To compile for your added device, do:
 ```
-make MACHINE=<NAME>
+make MACHINE=<MACHINE>
 ```
+## Names
+Names are derived from the board, not invented. Using an example device here we can see how
+to construct the name.
+
+The example uses `CSCI` as the vendor Name and `SW-425A` as the switch model (these are from
+labels on the outside of the device itself/the box it came from/the advert). The other text is from
+the PCB inside the casing and the photo shows where this is from.
+
+![PCB](images/S1100W-88T-1SX_SE_PCB_IDENTIFIER.jpg)
+
+- `<PCB_IDENTIFIER>` is `S1100W-88T-1SX_SE V1.05` — the text inside the red box in the picture, even large distances between characters should be represented by a single space.
+- `<PCB_DOC_NAME>` is `S1100W-88T-1SX_SE_V1.05`: the identifier with each space replaced by `_`.
+- `<MACHINE_PCB>` is `S1100W_88T_1SX_SE_V1_05`: the `PCB_DOC_NAME` with every remaining punctuation character (hyphens, dots, ...) converted to `_`.
+- `<MACHINE_PCB_EXT>` is `S1100W_88T_1SX_SE_V1_05__POE`: `<MACHINE_PCB>` plus an extension suffix for an _optional_ add-on; see the later section for details.
+- `<MACHINE_MODEL>` is `CSCI SW-425A` — the human-readable vendor and model string shown in the UI.
+- `<MACHINE>` is `CSCI_SW-425A`: (`<MACHINE_MODEL>`) in all capitals with punctuation converted to `_`. This is the name passed to `make MACHINE=...`.
+
+### Quick Start
+> [!TIP]
+> The interactive helper `tools/add_device.py` implements this workflow for you: it derives
+> the names from the PCB silkscreen identifier, checks whether the device is already supported,
+> then creates the needed files (machine description, board definition, device doc skeleton).
+> Run it from the repository root: `python3 tools/add_device.py` (use `-n` for a dry run).
+
+1. Start from your `<PCB_IDENTIFIER>`, not from the printed vendor or model name: those are often misleading, and the same product name can correspond to several different PCBs.
+2. Check whether `doc/devices/<PCB_DOC_NAME>.md` exists. If it does, your device is most likely already supported.
+   - If you find a doc file that matches your `<PCB_DOC_NAME>` except for punctuation, please file a bug report so we can investigate as this should not happen.
+3. If your device's PCB is already covered then reuse the existing definition:
+   - run `ls machine/pcb/<MACHINE_PCB>*.c` to list the supported variants and pick the one matching your PCB
+   - add an entry to `machine/machines.json` with its target name, model name
+     and the name of `machine/pcb/<MACHINE_PCB>.c` or
+     `machine/pcb/<MACHINE_PCB_EXT>.c` (always this device's own PCB name,
+     even when that PCB file is itself a symlink)
+   - build with `make MACHINE=<MACHINE> CI=1` and verify on your hardware
+   - when everything works, update the documentation and open a pull request.
+
+### Extension suffixes
+These are usually additional boards that add functionality to the base model. They are also 
+used to clarify differences in the Uplink/10GBE port population on boards where the PCB markings
+are insufficient to do so. These are represented by the following suffixes, appended onto the 
+`<MACHINE_PCB>` with two `_` (underscores). Additional plugins are appended with a single underscore (`_`).
+
+The current list of suffixes is:
+* POE: `POE`
+* Reset/VLAN-switch: `VLANSW`
+* Special Case[^1]: `UNMANAGED`
+
+Uplink port configurations:
+* 1xSFP + 1xRJ45: `1S1C`
+* 2xRJ45: `2C`
+* For the 8x1-variant: `1C`
+
+For example for `MY_BOARD_V1.0.c` the 1SFP, 1RJ, POE variant would be: `MY_BOARD_V1.0__1S1C_POE.c`
+
+[^1]: This is only used in the situation where it is necessary to disambiguate between a
+managed and unmanaged device that share the same PCB but do not share the same pin map. In all cases
+the managed switch assumes the base name and the unmanaged has _UNMANAGED appended.
 
 ## What a new device consists of
 
 | File | Purpose |
 |------|---------|
-| `machine/<NAME>.c` | the `struct machine machine` board definition |
-| `machine/<NAME>.h` | `MACHINE_MODEL` (the model string shown in the UI and the CLI) and `MACHINE_CHIPSET` (`RTL8372` or `RTL8373`) |
-| `machine/<NAME>_init.c` | optional `machine_custom_init()` boot hook, for registers the machine definition cannot express |
-| `doc/devices/<name>.md` + `doc/supported_devices.md` | (only if the board is verified and you want to support it publicly) user-facing documentation |
+| `machine/pcb/<MACHINE_PCB>.c` | `MACHINE_CHIPSET` and the `struct machine machine` board definition |
+| `machine/machines.json` | machine target, friendly name and PCB source name; the PCB name is shown in the GUI |
+| `doc/devices/<PCB_DOC_NAME>.md` and `doc/supported_devices.md` | user-facing documentation |
+| `doc/devices/photos/<PCB_DOC_NAME>/` | Directory for holding photos of the devices |
 
-`<NAME>` is the machine symbol without its `MACHINE_` prefix, so `MACHINE` is
+`<MACHINE>` is the machine symbol without its `MACHINE_` prefix, so `MACHINE` is
 passed exactly as spelled on the command line: `make MACHINE=MY_BOARD_1_0`
-needs `machine/MY_BOARD_1_0.c` and `machine/MY_BOARD_1_0.h`.
+needs an entry with `"machine": "MY_BOARD_1_0"` in `machine/machines.json`.
+- when everything works, update the documentation and open a pull request.
 
-## Step 1: the board header
+## Step 1: machine build settings
 
-`machine/<NAME>.h` carries the product string and the SoC family. Use the
-existing files as the template:
+The Makefile uses `jq` to read the matching `machine`, `friendly_name` and
+`pcb` entry from `machine/machines.json`. It passes the model as
+`-DFRIENDLY_NAME="..."` to the compiler. `MACHINE_CHIPSET` is read from the
+selected PCB source and passed to all translation units. It selects the
+default logical port range:
+`MACHINE_MIN_PORT` is `0` for RTL8373 and `3` for RTL8372, while
+`MACHINE_MAX_PORT` is `8`, the highest logical port index.
 
-```c
-#ifndef _MACHINE_MY_BOARD_1_0_H_
-#define _MACHINE_MY_BOARD_1_0_H_
-
-#define MACHINE_MODEL "Brand Model V1.0"
-#define MACHINE_CHIPSET RTL8373
-
-#endif
-```
-
-`MACHINE_CHIPSET` is `RTL8373` or `RTL8372`; a build without it will fail. It selects the default
-logical port range: `MACHINE_MIN_PORT` is `0` for RTL8373 and `3` for RTL8372, while
-`MACHINE_MAX_PORT` is `8`, the highest logical port index. A board with a different range defines
-`MACHINE_MIN_PORT` and/or `MACHINE_MAX_PORT` in its header to override the
-defaults.
-
-The device product string is what the CLI or the Web-Interface will print to identify the device; `machine.h` includes it by name.
+The device product string is what the CLI or the Web-Interface prints to
+identify the device.
 
 > [!NOTE]
-> `machine_name` is a `char[30]` and `MACHINE_MODEL` is copied into it at
-> compile time. A longer model string still builds, but SDCC emits
-> `warning 147: excess elements in array of chars initializer` and the name is
-> truncated in the UI. Keep it to 29 characters or less.
+> `machine_name` is a `char[30]` and can hold at most 29 characters plus the
+> null terminator. For `PCB=` builds, the product name is always
+> `GENERIC_PCB`. For registered machines, keep `friendly_name` to 29 characters
+> or less; longer values trigger an SDCC warning and are truncated.
 
-## Step 2: the board definition
+## Step 2: the machine description and PCB definition
 
-`machine/<NAME>.c` starts with the shared prelude and then defines the single
-`machine` object. Copy the closest existing board and adjust it — do not start
-from a blank file, the field meanings are easier to see in a real example.
-The best choice is usually a device that has the same number and type of Ethernet
-ports and the same number of SFP+ cages.
+The `machine/machines.json` registry records each target's name, product name
+and PCB source. Keep a separate entry for each product so multiple devices can
+share one PCB definition while retaining their own names:
+
+```json
+{
+  "machine": "BRAND_MODEL_V1_0",
+  "friendly_name": "Brand Model V1.0",
+  "pcb": "MY_BOARD_1_0"
+}
+```
+
+The `pcb` value is the PCB source basename without `.c`. The Makefile passes
+the model string with `-DFRIENDLY_NAME`, so it is available to all translation
+units.
+
+`machine/pcb/<MACHINE_PCB>.c` is the definition of this unique machine's PCB,
+even when that PCB file is itself a symlink to a shared definition. If you are
+unable to find an exact match, copy
+the closest existing board and adjust it; do not start from a blank file, the field
+meanings are easier to see in a real example. The best choice is usually a device
+that has the same number and type of Ethernet ports and the same number of SFP+
+cages.
+
+The struct should contain important comments such as the LED colour and
+port-type as shown in the following example and nothing else:
 
 ```c
 #include "machine_defs.h"
 
 __code const struct machine machine = {
 	MACHINE_COMMON_SETTING,
-	.n_sfp = 1,
-	.log_to_phys_port = {1, 2, 3, 4, 5, 6, 7, 8, 9},
-	.phys_to_log_port = {0, 1, 2, 3, 4, 5, 6, 7, 8},
-	.is_sfp = {0, 0, 0, 0, 0, 0, 0, 0, 1},
-
+	.n_sfp = 2,
+	.log_to_phys_port = {0, 0, 0, 6, 1, 2, 3, 4, 5},
+	.phys_to_log_port = {4, 5, 6, 7, 8, 3, 0, 0, 0},
+	.is_sfp= {0, 0, 0, 2, 0, 0, 0, 0, 1},
+	// Left SFP port (J4)
 	.sfp_port[0].pin_detect = GPIO30_ACL_BIT3_EN,
-	.sfp_port[0].pin_los = GPIO37,
+	.sfp_port[0].pin_los = GPIO_NA,
 	.sfp_port[0].pin_tx_disable = GPIO_NA,
 	.sfp_port[0].sds = 1,
 	.sfp_port[0].i2c = I2CBUS( GPIO39_I2C_SDA4, GPIO40_I2C_SCL3_MDC1 ),
-	.reset_pin = GPIO_NA,
-
+	// Right SFP port (J2)
+	.sfp_port[1].pin_detect = GPIO50_I2C_SCL2_UART1_TX,
+	.sfp_port[1].pin_los = GPIO_NA,
+	.sfp_port[1].pin_tx_disable = GPIO_NA,
+	.sfp_port[1].sds = 0,
+	.sfp_port[1].i2c = I2CBUS( GPIO41_I2C_SDA3_MDIO1, GPIO40_I2C_SCL3_MDC1 ),
+	.reset_pin = GPIO54_ACL_BIT2_EN,
 	.high_leds = { .mux = LED_27 | LED_29, .enable = LED_28_SYS | LED_29 },
-	.port_led_set = { 0, 0, 0, 0, 0, 0, 0, 0, 1 },
+	.port_led_set = { 0, 0, 0, 1, 0, 0, 0, 0, 1},
 	.led_sets = {
-		{   /* RJ45 ports */
-			LEDS_2G5 | LEDS_LINK,
-			LEDS_2G5 | LEDS_1G | LEDS_100M | LEDS_10M | LEDS_LINK | LEDS_ACT,
+		{   /* RJ45: Green LED */
+			 LEDS_10G | LEDS_1G | LEDS_100M | LEDS_10M | LEDS_ACT | LEDS_LINK,
 			0,
+			/* Amber LED */
+			LEDS_2G5 | LEDS_LINK | LEDS_ACT,
 			0
-		}, { /* SFP port, single green LED */
-			LEDS_10G | LEDS_2G5 | LEDS_1G | LEDS_100M | LEDS_10M | LEDS_LINK | LEDS_ACT,
+		}, { /* SFP PORT: SINGLE GREEN LED */
+			LEDS_10G | LEDS_2G5 | LEDS_1G | LEDS_100M | LEDS_10M | LEDS_ACT | LEDS_LINK,
 			0,
 			0,
-			0
-		}
+			0,
+		},
 	},
 };
 ```
 
 `MACHINE_COMMON_SETTING` (from `machine_defs.h`) initializes `machine_name` and
-`isRTL8373` from the header's `MACHINE_MODEL` and `MACHINE_CHIPSET`. The logical
-port range comes from `MACHINE_MIN_PORT` and `MACHINE_MAX_PORT` in `machine.h`.
+`isRTL8373` from `FRIENDLY_NAME` and `MACHINE_CHIPSET`. The logical port range
+comes from `MACHINE_MIN_PORT` and `MACHINE_MAX_PORT` in `machine.h`.
 Keep it as the first initializer and list the board-specific fields after it.
 
 ### Fields
 
 | Field | Meaning |
 |-------|---------|
-| `MACHINE_COMMON_SETTING` | expands to `machine_name` (`MACHINE_MODEL`) and `isRTL8373` (`1` for `RTL8373`, `0` for `RTL8372`); both are derived from the header's `MACHINE_CHIPSET` (see Step 1) |
+| `MACHINE_COMMON_SETTING` | expands to `machine_name` (`FRIENDLY_NAME`) and `isRTL8373` (`1` for `RTL8373`, `0` for `RTL8372`) |
 | `n_sfp` | number of SFP+ cages |
 | `n_10g` | SerDes 10G capability used by the RTL837xN init: `0` none, `1` one, `2` two 10G-capable SerDes |
 | `log_to_phys_port[9]` | logical port (0-based index) → physical front-panel port number |
@@ -127,61 +202,80 @@ pair is caught at compile time: SDCC reports
 `.i2c` line, because the macro deliberately turns an invalid bus number into an
 array of size 0.
 
+> [!TIP]
+> Instead of guessing the `led_sets` and `led_mux` of a new definition, extract
+> them from the **stock** firmware *before* you flash: run
+> `tools/led_gpio_utils/dec_leds_from_rtl837x_uart.py` against the switch while
+> it still has its original firmware. It reads the LED registers over the
+> console and prints `.led_mux`, `.led_sets` and the set each port uses,
+> formatted to paste into the board definition. This has to happen first because
+> RTLPlayground overwrites these registers at boot with the values from the
+> build that is flashed, so once it is running they no longer show the vendor
+> settings. See `tools/led_gpio_utils/README.md` for the options (`-p` port,
+> `--gpio`, ...).
+
 ### Reusing an existing definition
 
-If the new board is electrically identical to one that already exists — same
-port mapping, same SFP wiring, same LEDs — do not copy the file. Make the new
-`.c` a symlink and keep only a distinct `.h`, so the two boards cannot drift
-apart:
+If the new PCB board is electrically identical to one that already exists — same
+port mapping, same SFP wiring, same LEDs — do not copy the file. Make the new PCB
+file a symlink, so the two boards cannot drift apart:
 
 ```
-ln -s KP_9000_6XHML_X2.c machine/MY_BOARD_1_0.c
+ln -s EXISTING_PCB.c machine/pcb/MY_PCB_BOARD_1_0.c
 ```
+Then add a `machine/machines.json` entry with its own `machine`, `friendly_name`
+and `"pcb": "MY_PCB_BOARD_1_0"`. The entry names the new PCB, not
+`EXISTING_PCB.c`, so the chain is two steps, never a direct reference to the
+shared definition.[^2]
 
-The new board still needs `machine/MY_BOARD_1_0.h` (pick the version number on
-the PCB) with its own `MACHINE_MODEL` and `MACHINE_CHIPSET`: `MACHINE_MODEL` is
-what distinguishes the products, and `MACHINE_CHIPSET` must match the SoC of
-the board definition being reused.
-Existing examples: `machine/PCB_K0402WS_V3.c`, `machine/KP_9000_9XHML_X_V3_2.c`
-and the six `KP_9000_*` revision variants.
+The new board needs its own entry in `machine/machines.json`.
+`MACHINE_CHIPSET` stays with the shared PCB source and must match the SoC of the
+board definition being reused.
+Existing example: `machine/pcb/PCB_K0402WS_V3_0.c` is selected by the
+`HISOURCE_HI_K0402WS_PCB_K0402W_V3_0` entry in `machine/machines.json`, along
+with the six `KEEPLINK_KP_9000_*` revision variants.
 
 Two files that differ only in whitespace or comments are duplicates and should
 be collapsed this way.
 
-### Optional custom init hook
+[^2]: Always set `pcb` to this device's own PCB filename without `.c`, even
+    when that file is a symlink to a shared definition. The Makefile uses this
+    value for `MACHINE_PCB_NAME`, which the Web interface shows as `pcb_ver`.
+    If `machine/pcb/<MACHINE_PCB>.c` later turns out to be misconfigured, it
+    can be replaced by a regular file and fixed once for every machine using it.
 
-If the board needs custom initialization, add
-`machine/<NAME>_init.c` defining `machine_custom_init()`. The Makefile picks the
-file up by name and compiles it.
+### Custom initialization
 
-Boards that need the same hook share one file: keep the code in a single
-`machine/<NAME>_init.c` whose `machine/<NAME>.c` is a real file (not a symlink),
-and make the other boards' `_init.c` symlinks to it, for example:
+When a PCB needs custom initialization, define its `machine_custom_init()`
+hook with `MACHINE_CUSTOM_INIT(body)` at the end of
+`machine/pcb/<MACHINE_PCB>.c`. The macro places the hook in `BANK2`. If no
+custom initialization is needed, omit the macro; the Makefile links a default
+empty hook. Do not add `#pragma constseg BANK2` here: default constants and the
+machine descriptor reside in the fixed `HOME` area so they can be read from
+every code bank.
 
-```
-ln -s KP_9000_6XH_X2_init.c machine/MY_BOARD_1_0_init.c
-```
+The hook is compiled with the PCB definition, so every machine that includes
+that PCB source uses the same initialization.
 
 ## Step 3: build and verify
 
 ```
-make MACHINE=MY_BOARD_1_0
+make MACHINE=MY_BOARD_1_0 CI=1
 ```
 
-The generated flash image appears as `output/rtlplayground-<version>-MY_BOARD_1_0.bin`. An
-unknown or empty `MACHINE` fails immediately with a message naming the expected
-file, before anything is compiled.
+The generated flash image appears as `output/rtlplayground-<version>-MY_BOARD_1_0.bin`.
+An unknown or empty `MACHINE` fails before anything is compiled.
 
 Then run the checks CI runs:
 
 ```
-make machine_check    # compiles machine/<NAME>.c and its optional _init.c for every machine
+make machine_check    # compiles every selected PCB and any default init hook it needs
 make -C test          # host-side unit tests
 ```
 
-`make machine_check` discovers the definitions with
-`$(wildcard machine/*.c)`, so a new file is covered without registering it
-anywhere. CI (`.github/workflows/build.yml`) runs it on every push and pull
+`make machine_check` checks every entry in `machine/machines.json`, so a new
+target is covered without registering it anywhere else. CI
+(`.github/workflows/build.yml`) runs it on every push and pull
 request, alongside full builds for a 4+2 and an 8+1 board.
 
 A successful compile only proves the definition is syntactically valid. The
@@ -194,17 +288,31 @@ tools for that.
 Once the board has been tested on hardware:
 
 1. Add a row to the table in [Supported devices](supported_devices.md).
-2. Add `doc/devices/<name>.md` describing the board, the build target
+   Keep the table sorted by brand and then type, both case insensitive.
+2. Add `doc/devices/<PCB_DOC_NAME>.md` describing the board, the build target
    (`make MACHINE=MY_BOARD_1_0`), what works and what is unverified, plus
    photos and the PCB silkscreen marking.
+   The photos should consist of: the front and reverse of the PCB and should be
+   as straight as possible and croppped to show just the PCB; front of the device.
+   The rear of the device is only necessary if it has a switch or power-port, other
+   photos such as the label are not required.
+   The file sizes should be a maximum of 4MB, jpeg format.
+   If there is a specific detail that needs to be visible
+   it is acceptable to include another photo zoomed into the detail.
+   If the device has an internal power supply, it is critical that a warning is
+   added to the documentation regarding the danger such as:
+
+> [!CAUTION]
+> This device contains a mains voltage power supply, which is a potentially lethal hazard. Even after the device is unplugged, high-voltage capacitors can remain charged afterward and may still shock you. Do not attempt to open/disassemble a mains powered device unless you understand how to do so safely.
+
+
 3. If the board shares a PCB with other revisions, follow
    `doc/devices/KP-9000-6XH-X2.md` and document which `MACHINE` to pick for
    which silkscreen.
 
 ### Identifying the CPU variant
 
-For RTL8373-based devices, use the read-only console command below to distinguish
-the N and non-N CPU variants:
+Use the read-only console command below to distinguish the CPU variants:
 
 ```text
 regget 4
@@ -212,9 +320,14 @@ regget 4
 
 | Register 0x0004 value | CPU |
 |---|---|
-| `0x83730000` | RTL8373 (non-N) |
+| `0x83720000` | RTL8372 |
+| `0x83727000` | RTL8372N |
+| `0x83730000` | RTL8373 |
 | `0x83737000` | RTL8373N |
 
 Record the identified CPU in the device documentation. These values identify
 only the CPU variant; document PHY and flash-chip models separately when verified.
 
+Note:
+The RTL8372 is always paired with the RTL8224 whereas
+the RTL8372N is always paired with the RTL8224N

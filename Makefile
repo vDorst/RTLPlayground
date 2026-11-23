@@ -8,6 +8,14 @@ HTML_LOCATION = 262144
 # machine with its own configuration: make MACHINE=<name> CONFIG=<file>
 CONFIG ?= config.txt
 
+ifneq ($(strip $(PCB)),)
+ifneq ($(strip $(MACHINE)),)
+$(error Specify only one of MACHINE or PCB)
+endif
+MACHINE := GENERIC_$(PCB)
+GENERIC_PCB_BUILD := 1
+endif
+
 SDCC_TOOLCHAIN = sdcc-$(shell cat sdcc/* | cksum | cut -d' ' -f1)
 SDCC_PREFIX = toolchain/$(SDCC_TOOLCHAIN)
 ifeq ($(origin CC),default)
@@ -24,36 +32,88 @@ SDCC_BANNER = $(if $(SDCC_REV),sdcc/ at $(SDCC_REV),$(SDCC_TOOLCHAIN)) ($(words 
 else
 SDCC_BANNER = system
 endif
+# Keep default constants in the fixed HOME code area.
 CC_FLAGS = -mmcs51 -I. -Imachine -Ihttpd -Iuip
+MACHINE_CC_FLAGS =
 ASM ?= sdas8051
 AFLAGS= -plosgff
 
 SUBDIRS := tools
 SUBDIRSCLEAN=$(addsuffix clean,$(SUBDIRS))
+MACHINE_REGISTRY = machine/machines.json
 
-# $MACHINE selects machine/$(MACHINE).c as the board definition and is passed
-# on as -DMACHINE_NAME, which machine.h uses to include machine/$(MACHINE).h.
-# Board selection itself needs no MACHINE_* symbol for #if chains, so the
-# definition is all the compiler has to know.
+# $MACHINE selects a JSON machine description and is passed as -DMACHINE_NAME.
+# Its friendly_name and PCB fields select the PCB source and compiler flags.
+# Alternatively, PCB selects a PCB source and gives it a generic machine name.
 ifneq ($(MACHINE),)
-	CC_FLAGS += -DMACHINE_NAME=$(MACHINE)
+	MACHINE_CC_FLAGS += -DMACHINE_NAME=$(MACHINE)
+endif
+ifeq ($(GENERIC_PCB_BUILD),1)
+	MACHINE_SRC = machine/pcb/$(PCB).c
+	MACHINE_PCB_SOURCE = $(MACHINE_SRC)
+	FRIENDLY_NAME = GENERIC_PCB
+	MACHINE_PCB_NAME = $(PCB)
+	MACHINE_LINK_TARGET := $(shell readlink $(MACHINE_SRC) 2>/dev/null)
+	ifneq ($(MACHINE_LINK_TARGET),)
+		MACHINE_PCB_NAME = $(basename $(notdir $(MACHINE_LINK_TARGET)))
+	endif
+else ifneq ($(strip $(MACHINE)),)
+	MACHINE_DESCRIPTOR = $(MACHINE_REGISTRY)
+	ifneq ($(wildcard $(MACHINE_DESCRIPTOR)),)
+	FRIENDLY_NAME := $(shell jq -er --arg machine "$(MACHINE)" '[.[] | select(.machine == $$machine)] | if length == 1 then .[0].friendly_name else error("expected exactly one machine entry") end' $(MACHINE_DESCRIPTOR))
+	MACHINE_PCB_NAME := $(shell jq -er --arg machine "$(MACHINE)" '[.[] | select(.machine == $$machine)] | if length == 1 then .[0].pcb else error("expected exactly one machine entry") end' $(MACHINE_DESCRIPTOR))
+	ifeq ($(strip $(FRIENDLY_NAME)),)
+	$(error MACHINE='$(MACHINE)' has no valid entry in $(MACHINE_DESCRIPTOR))
+	endif
+	MACHINE_SRC = machine/pcb/$(MACHINE_PCB_NAME).c
+	MACHINE_PCB_SOURCE = $(MACHINE_SRC)
+	else
+	$(error Machine registry $(MACHINE_DESCRIPTOR) does not exist)
+	endif
+else
+	MACHINE_SRC =
+	MACHINE_PCB_SOURCE =
+endif
+
+MACHINE_INIT_DEFAULT := machine/default_machine_init.c
+ifneq ($(strip $(MACHINE_PCB_SOURCE)),)
+MACHINE_HAS_CUSTOM_INIT := $(shell grep -q 'MACHINE_CUSTOM_INIT' $(MACHINE_PCB_SOURCE) 2>/dev/null && echo yes)
+ifeq ($(MACHINE_HAS_CUSTOM_INIT),)
+	MACHINE_INIT_SRC := $(MACHINE_INIT_DEFAULT)
+endif
+endif
+
+# PCB information
+ifneq ($(strip $(MACHINE_PCB_SOURCE)),)
+MACHINE_CHIPSET := $(shell sed -n 's/^#define MACHINE_CHIPSET //p' $(MACHINE_PCB_SOURCE) 2>/dev/null | head -n 1)
+else
+MACHINE_CHIPSET =
+endif
+ifneq ($(strip $(MACHINE)),)
+ifneq ($(wildcard $(MACHINE_PCB_SOURCE)),)
+ifeq ($(strip $(MACHINE_CHIPSET)),)
+$(error MACHINE_CHIPSET is missing from $(MACHINE_PCB_SOURCE))
+endif
+	MACHINE_CC_FLAGS += -DMACHINE_CHIPSET=$(MACHINE_CHIPSET)
+ifeq ($(strip $(FRIENDLY_NAME)),)
+$(error friendly_name is missing from $(MACHINE_DESCRIPTOR))
+endif
+	MACHINE_CC_FLAGS += -DFRIENDLY_NAME='"$(FRIENDLY_NAME)"'
+ifneq ($(MACHINE_PCB_NAME),)
+	MACHINE_CC_FLAGS += -DMACHINE_PCB_NAME=$(MACHINE_PCB_NAME)
+endif
+endif
 endif
 # Health instrumentation and the "health" console command: HEALTH=1 gmake ...
 ifneq ($(HEALTH),)
 	CC_FLAGS += -DHEALTH
 endif
+ifneq ($(DEBUG),)
+	CC_FLAGS += -DDEBUG
+endif
 
 ifeq ($(CI),1)
 	CC_FLAGS += --Werror
-endif
-
-# The board definition being built: one file per MACHINE_* symbol in machine.h.
-MACHINE_SRC = machine/$(MACHINE).c
-
-MACHINE_INIT_DEFAULT := machine/default_machine_init.c
-MACHINE_INIT_SRC := $(wildcard machine/$(MACHINE)_init.c)
-ifeq ($(MACHINE_INIT_SRC),)
-	MACHINE_INIT_SRC := $(MACHINE_INIT_DEFAULT)
 endif
 
 ifndef BUILDDIR
@@ -72,6 +132,21 @@ endif
 VERSION_EXTENSION = v$(VERSION)-$(GIT_VERSION)
 FILENAME_EXTENSION = $(VERSION_EXTENSION)-$(MACHINE)
 
+# Path and file name of the final image. BUILDDIR still holds the intermediate
+# objects and tools. OUTPUT_DIR is the destination directory. OUTPUT_PREFIX is
+# prepended to the automatic file name (version, git hash and machine);
+# OUTPUT_NAME replaces that whole name and takes precedence, so use only one of
+# OUTPUT_PREFIX and OUTPUT_NAME. Both refer to OUTPUT_DIR. OUTPUT sets a
+# complete path and overrides all three:
+# make MACHINE=<name> OUTPUT_DIR=/path/to/firmware
+# make MACHINE=<name> OUTPUT_DIR=/path/to/firmware OUTPUT_PREFIX=my-switch-
+# make MACHINE=<name> OUTPUT_DIR=/path/to/firmware OUTPUT_NAME=my-switch.bin
+# make MACHINE=<name> OUTPUT=/path/to/firmware.bin
+OUTPUT_DIR ?= $(BUILDDIR)
+OUTPUT_PREFIX ?= rtlplayground-
+OUTPUT_NAME ?= $(OUTPUT_PREFIX)$(FILENAME_EXTENSION).bin
+OUTPUT ?= $(OUTPUT_DIR)/$(OUTPUT_NAME)
+
 # Deterministic build date: honor SOURCE_DATE_EPOCH, else the HEAD commit date,
 # else wall-clock (no-git fallback). Keeps same-commit builds byte-identical
 # (BUILD_DATE is baked into the image and covered by the trailing CRC).
@@ -83,10 +158,17 @@ BUILD_DATE := $(shell date -u -d @$(SOURCE_DATE_EPOCH) +"%Y-%m-%d %H:%M:%S" 2>/d
 	|| date -u -r $(SOURCE_DATE_EPOCH) +"%Y-%m-%d %H:%M:%S")
 endif
 
-# $(MACHINE_SRC) and $(CONFIG) are listed here so an unknown $MACHINE or a
-# missing config file fails before anything else is built, including the tools/
-# subdirectory.
-all: create_build_dir $(VERSION_HEADER) $(MACHINE_SRC) $(CONFIG) $(SUBDIRS) $(BUILDDIR)/rtlplayground-$(FILENAME_EXTENSION).bin
+# $(MACHINE_DESCRIPTOR), $(MACHINE_SRC) and $(CONFIG) are listed here so an
+# unknown $MACHINE, missing PCB source or missing config fails before anything
+# else is built, including the tools/ subdirectory.
+ifeq ($(strip $(MACHINE)),)
+all:
+	@echo "ERROR: Specify MACHINE=<name> or PCB=<name>." >&2
+	@echo "       See machine/machines.json and machine/pcb/*.c for supported targets." >&2
+	@false
+else
+all: create_build_dir $(VERSION_HEADER) $(MACHINE_DESCRIPTOR) $(MACHINE_SRC) $(CONFIG) $(SUBDIRS) $(OUTPUT)
+endif
 
 bank_size:
 	tools/bank_occupancy.sh "$(MACHINE)"
@@ -96,17 +178,30 @@ create_build_dir: $(SDCC)
 	mkdir -p "$(BUILDDIR)/uip"
 	mkdir -p "$(BUILDDIR)/httpd"
 	mkdir -p "$(BUILDDIR)/machine"
+	mkdir -p "$(BUILDDIR)/machine/pcb"
 	mkdir -p "$(BUILDDIR)/crypto"
 
-# Every machine is a pair machine/<MACHINE>.c + machine/<MACHINE>.h. Selecting
-# them by name means no #if/#elif chain, so an unknown or empty $MACHINE is
-# caught here instead of by a #error further down the build.
+$(MACHINE_REGISTRY):
+	@echo "ERROR: machine registry is missing (expected $(MACHINE_REGISTRY))." >&2
+	@false
+
+# Machine builds compile the PCB source named in machine/machines.json.
+# Generic PCB builds use machine/pcb/<PCB>.c directly.
+ifeq ($(GENERIC_PCB_BUILD),1)
 $(MACHINE_SRC):
-	@echo "ERROR: MACHINE='$(MACHINE)' has no definition (expected $(MACHINE_SRC))." >&2
-	@echo "       Every machine is one file pair under machine/, named after the" >&2
-	@echo "       MACHINE_* symbol it defines; see machine/*.c for the full list." >&2
+	@echo "ERROR: PCB='$(PCB)' has no source (expected $(MACHINE_SRC))." >&2
+	@false
+else
+ifneq ($(strip $(MACHINE)),)
+ifneq ($(strip $(MACHINE_SRC)),)
+$(MACHINE_SRC):
+	@echo "ERROR: selected machine has no PCB source (expected $(MACHINE_SRC))." >&2
+	@echo "       See machine/machines.json and machine/pcb/*.c for supported machines." >&2
 	@echo "       Example: make MACHINE=KP_9000_6XHML_X2" >&2
 	@false
+endif
+endif
+endif
 
 # Fail with a clear message when CONFIG names a file that does not exist.
 $(CONFIG):
@@ -114,8 +209,7 @@ $(CONFIG):
 	@echo "       Point CONFIG at a configuration file, or omit it to use config.txt." >&2
 	@false
 
-# Keep the per-machine definition in first position to fail immediately on an
-# invalid $MACHINE value
+# Keep the selected PCB source first so an invalid $MACHINE value fails early.
 SRCS = \
 	$(MACHINE_SRC) \
 	$(MACHINE_INIT_SRC) \
@@ -132,6 +226,7 @@ SRCS = \
 	ntp.c \
 	ntp_cli.c \
 	syslog.c \
+	timer.c \
 	udp_apps.c \
 	crypto/chacha20.c
 
@@ -157,9 +252,9 @@ SRCS += \
 SRCS += \
 	httpd/httpd.c \
 	httpd/page_impl.c \
+	httpd/html_out.c \
 	httpd/page_stp.c
 SRCS += \
-	uip/timer.c \
 	uip/uip.c \
 	uip/uiplib.c \
 	uip/uip_arp.c \
@@ -168,6 +263,8 @@ SRCS += \
 	uip/uip-split.c
 
 OBJS = ${SRCS:%.c=$(BUILDDIR)/%.rel}
+MACHINE_OBJ = $(BUILDDIR)/$(MACHINE_SRC:.c=.rel)
+STARTUP_OBJ = $(BUILDDIR)/rtlplayground.rel
 DEPS := ${SRCS:%.c=$(BUILDDIR)/%.d}
 HTML := $(shell find html -name '*.html' -or -name '*.svg' -or -name '*.css' -or -name '*.ico')
 
@@ -193,7 +290,7 @@ $(HTML_MIN_STAMP): $(HTML) html/app.js $(HTML_MIN_LIST) tools/minify.py tools/rj
 	@touch $@
 
 html_data.c html_data.h &: $(HTML_MIN_STAMP) | tools
-	tools/$(BUILDDIR)/fileadder -a $(HTML_LOCATION) -s $(IMAGESIZE) -b BANK1 -z -d $(HTML_MIN) -p html_data
+	tools/$(BUILDDIR)/fileadder -a $(HTML_LOCATION) -s $(IMAGESIZE) -l $(DEFAULT_CONFIG_LOCATION) -b BANK1 -z -d $(HTML_MIN) -p html_data
 
 $(VERSION_HEADER): FORCE
 	@printf '%s\n' "#ifndef VERSION_H" "#define VERSION_H" \
@@ -221,6 +318,7 @@ distclean: $(SUBDIRSCLEAN)
 
 ifneq ($(SDCC),)
 $(SDCC):
+	@echo "Building the SDCC toolchain; this may take several minutes."
 	sh sdcc/build.sh $(abspath $(SDCC_PREFIX))
 endif
 
@@ -228,14 +326,14 @@ $(SUBDIRSCLEAN):
 	$(MAKE) -C $(@:clean=) clean
 
 # Objects depend on the flags they were built with, through a stamp file that
-# is rewritten only when CC_FLAGS actually changes.
+# is rewritten only when the compiler flags actually change.
 CCFLAGS_STAMP := $(BUILDDIR)/.ccflags
 
 .PHONY: FORCE
 FORCE:
 
 $(CCFLAGS_STAMP): FORCE | create_build_dir
-	@echo '$(CC_FLAGS)' | cmp -s - $@ 2>/dev/null || echo '$(CC_FLAGS)' > $@
+	@echo '$(CC_FLAGS) $(MACHINE_CC_FLAGS)' | cmp -s - $@ 2>/dev/null || echo '$(CC_FLAGS) $(MACHINE_CC_FLAGS)' > $@
 
 # The same for $(CONFIG): its path is stamped so switching to a config file
 # older than the image still rebuilds it, while $(CONFIG) itself as a normal
@@ -244,51 +342,58 @@ $(CONFIG_STAMP): FORCE | create_build_dir
 	@echo '$(CONFIG)' | cmp -s - $@ 2>/dev/null || echo '$(CONFIG)' > $@
 
 $(BUILDDIR)/%.rel: %.c $(CCFLAGS_STAMP) | create_build_dir html_data.h
-	$(CC) -MMD $(CC_FLAGS) -o $@ -c $<
+	$(CC) -MMD $(CC_FLAGS) $(MACHINE_CC_FLAGS) -o $@ -c $<
+
+ifneq ($(strip $(MACHINE_DESCRIPTOR)),)
+$(BUILDDIR)/machine/pcb/$(MACHINE_PCB_NAME).rel: $(MACHINE_DESCRIPTOR)
+endif
 
 $(BUILDDIR)/%.rel: %.asm $(CCFLAGS_STAMP) | create_build_dir
 	${ASM} ${AFLAGS} -o $@ $<
 #	mv -f $(addprefix $(basename $^), .lst .rel .sym) .
 
-$(BUILDDIR)/rtlplayground.ihx: $(OBJS) $(BUILDDIR)/crtbank.rel $(BUILDDIR)/crc16.rel $(BUILDDIR)/crypto/chacha_8051.rel
-	$(CC) $(CC_FLAGS) --xram-size 49151 -Wl-bHOME=0x00000 -Wl-bBANK1=0x14000 -Wl-bBANK2=0x24000 -Wl-bBANK3=0x34000 -Wl-bBANK4=0x44000 -Wl-r -o $@ $^
+# Keep the reset vector first in HOME and append the machine descriptor last.
+$(BUILDDIR)/rtlplayground.ihx: $(STARTUP_OBJ) $(filter-out $(STARTUP_OBJ) $(MACHINE_OBJ),$(OBJS)) $(BUILDDIR)/crtbank.rel $(BUILDDIR)/crc16.rel $(BUILDDIR)/crypto/chacha_8051.rel $(MACHINE_OBJ)
+	$(CC) $(CC_FLAGS) $(MACHINE_CC_FLAGS) --xram-size 49151 -Wl-bHOME=0x00000 -Wl-bBANK1=0x14000 -Wl-bBANK2=0x24000 -Wl-bBANK3=0x34000 -Wl-bBANK4=0x44000 -Wl-r -o $@ $^
 
 $(BUILDDIR)/rtlplayground.img: $(BUILDDIR)/rtlplayground.ihx
 	objcopy --input-target=ihex -O binary $< $@
 
-$(BUILDDIR)/rtlplayground-$(FILENAME_EXTENSION).bin: $(BUILDDIR)/rtlplayground.img $(CONFIG) $(CONFIG_STAMP) | tools
-	if [ -e $@ ]; then rm $@; fi
-	tools/$(BUILDDIR)/imagebuilder -i $(BUILDDIR)/rtlplayground.img $@
-	tools/$(BUILDDIR)/fileadder -a $(DEFAULT_CONFIG_LOCATION) -s $(IMAGESIZE) -d "$(CONFIG)" $@
-	tools/$(BUILDDIR)/fileadder -a $(CONFIG_LOCATION) -s $(IMAGESIZE) -d "$(CONFIG)" $@
-	tools/$(BUILDDIR)/fileadder -a $(HTML_LOCATION) -s $(IMAGESIZE) -z -d $(HTML_MIN) -b BANK1 $@
-	tools/$(BUILDDIR)/crc_calculator -u $@
-	ln -sf $(MACHINE)/rtlplayground-$(FILENAME_EXTENSION).bin $(BUILDDIR)/../rtlplayground.bin
+$(OUTPUT): $(BUILDDIR)/rtlplayground.img $(CONFIG) $(CONFIG_STAMP) | tools
+	@mkdir -p "$(dir $@)"
+	if [ -e "$@" ]; then rm "$@"; fi
+	tools/$(BUILDDIR)/imagebuilder -i $(BUILDDIR)/rtlplayground.img "$@"
+	tools/$(BUILDDIR)/fileadder -a $(DEFAULT_CONFIG_LOCATION) -s $(IMAGESIZE) -l $(CONFIG_LOCATION) -d "$(CONFIG)" "$@"
+	tools/$(BUILDDIR)/fileadder -a $(CONFIG_LOCATION) -s $(IMAGESIZE) -l $(IMAGESIZE) -d "$(CONFIG)" "$@"
+	tools/$(BUILDDIR)/fileadder -a $(HTML_LOCATION) -s $(IMAGESIZE) -l $(DEFAULT_CONFIG_LOCATION) -z -d $(HTML_MIN) -b BANK1 "$@"
+	tools/$(BUILDDIR)/crc_calculator -u "$@"
+	if [ "$(OUTPUT)" = "$(BUILDDIR)/rtlplayground-$(FILENAME_EXTENSION).bin" ]; then \
+		ln -sf $(MACHINE)/rtlplayground-$(FILENAME_EXTENSION).bin "$(BUILDDIR)/../rtlplayground.bin"; \
+	fi
 
 .PHONY: clean distclean all $(SUBDIRS) $(SUBDIRSCLEAN) create_build_dir
 
-# Every machine/ definition is compiled, so a machine added to machine/ is
-# covered without registering it anywhere. A board only counts once both its
-# <machine>.c and its <machine>.h are present: the header is what the rest of
-# the build includes, so a .c without one is an incomplete board. The _init.c
-# files are excluded here: they are the boot hooks, compiled separately below
-# (the board's own if it exists, otherwise default_machine_init.c). The
-# machine-specific defines are filtered out of $(CC_FLAGS) and supplied per
-# iteration instead, so this also works as "make machine_check MACHINE=...".
-MACHINE_DEFS := $(sort $(filter $(patsubst machine/%.h,%,$(wildcard machine/*.h)),$(patsubst machine/%.c,%,$(filter-out machine/%_init.c,$(wildcard machine/*.c)))))
-MACHINE_LESS_CC_FLAGS = $(filter-out -DMACHINE_%,$(CC_FLAGS))
+# Every machine description is checked by compiling its selected PCB source.
+MACHINE_DEFS := $(shell jq -er 'if type == "array" then .[].machine else error("expected an array") end' $(MACHINE_REGISTRY))
 
 .PHONY: machine_check
-machine_check: $(SDCC)
+machine_check: $(SDCC) $(MACHINE_REGISTRY)
 	@mkdir -p $(BUILDDIR)/tmp
 	@set -eo pipefail; \
+	test -n "$(MACHINE_DEFS)" || { echo "ERROR: No machine entries found in $(MACHINE_REGISTRY)." >&2; exit 1; }; \
 	for MACHINE in $(MACHINE_DEFS); \
 	do \
 	echo "Checking $${MACHINE}"; \
-	$(CC) $(MACHINE_LESS_CC_FLAGS) -DMACHINE_NAME=$${MACHINE} -MMD -o $(BUILDDIR)/tmp/machine_check -c machine/$${MACHINE}.c; \
-	INIT=machine/$${MACHINE}_init.c; \
-	if [ ! -e $$INIT ] && [ ! -L $$INIT ]; then INIT=$(MACHINE_INIT_DEFAULT); fi; \
-	$(CC) $(MACHINE_LESS_CC_FLAGS) -DMACHINE_NAME=$${MACHINE} -MMD -o $(BUILDDIR)/tmp/machine_check -c $$INIT; \
+	DESCRIPTION=$(MACHINE_REGISTRY); \
+	FRIENDLY_NAME=$$(jq -er --arg machine "$${MACHINE}" '.[] | select(.machine == $$machine) | .friendly_name' $$DESCRIPTION); \
+	PCB=$$(jq -er --arg machine "$${MACHINE}" '.[] | select(.machine == $$machine) | .pcb' $$DESCRIPTION); \
+	CHIPSET_SOURCE=machine/pcb/$${PCB}.c; \
+	CHIPSET=$$(sed -n 's/^#define MACHINE_CHIPSET //p' $$CHIPSET_SOURCE 2>/dev/null | head -n 1); \
+	test -n "$$CHIPSET" || { echo "ERROR: $$CHIPSET_SOURCE has no MACHINE_CHIPSET definition." >&2; exit 1; }; \
+	$(CC) $(CC_FLAGS) -DMACHINE_NAME=$${MACHINE} -DMACHINE_CHIPSET=$$CHIPSET "-DFRIENDLY_NAME=\"$$FRIENDLY_NAME\"" -DMACHINE_PCB_NAME=$${PCB} -MMD -o $(BUILDDIR)/tmp/machine_check -c $$CHIPSET_SOURCE; \
+	if ! grep -q 'MACHINE_CUSTOM_INIT(' $$CHIPSET_SOURCE; then \
+		$(CC) $(CC_FLAGS) -DMACHINE_NAME=$${MACHINE} -DMACHINE_CHIPSET=$$CHIPSET "-DFRIENDLY_NAME=\"$$FRIENDLY_NAME\"" -DMACHINE_PCB_NAME=$${PCB} -MMD -o $(BUILDDIR)/tmp/machine_check -c $(MACHINE_INIT_DEFAULT); \
+	fi; \
 	done
 	@rm -rf $(BUILDDIR)/tmp
 

@@ -152,6 +152,11 @@ void phy_config(uint8_t phy) __banked
 {
 	print_string("\r\nphy_config: ");
 	write_char('0' + phy);
+	print_string(", PHY_ID: ");
+	phy_read(phy, PHY_MMD_AN, 02);
+	print_short(SFR_DATA_U16);
+	phy_read(phy, PHY_MMD_AN, 03);
+	print_short(SFR_DATA_U16);
 
 	delay(20);
 	// PHY configuration: External 8221B?

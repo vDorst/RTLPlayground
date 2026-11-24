@@ -748,7 +748,7 @@ void rtl8373_init(void) __banked
 		enum sds_type usage = machine.sds_settings[sds].usage;
 		switch (usage) {
 			case SDS_EPHY:
-				uint8_t port = sds == 1 ? MAC_SDS1 : MAC_SDS0;
+				uint8_t phy_addr = machine.sds_settings[sds].sds_settings_t.ephy.phy_addr;
 				uint8_t phy_type = machine.sds_settings[sds].sds_settings_t.ephy.type;
 				// uint8_t speed = get_phy_max_speed(phy_type);
 				switch (phy_type) {
@@ -758,12 +758,12 @@ void rtl8373_init(void) __banked
 						rtl8224_phy_enable();
 						break;
 					case RTL8261BE:
-						phy_config_8261(port, sds);
+						phy_config_8261(phy_addr, sds);
 						sds_pcs_config(sds, SDS_10G_USXGMII, true);
 						break;
 					case RTL8221B:
-						phy_config(port);	// PHY configuration: External 8221B?
-						sds_pcs_config(sds, SDS_2G5_SGMII, true);
+						phy_config(phy_addr);	// PHY configuration: External 8221B?
+						sds_pcs_config(sds, SDS_SGMII, true);
 						break;
 					default:
 						print_string("\tERROR: Unknown phy_type\n");

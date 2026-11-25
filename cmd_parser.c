@@ -1216,7 +1216,7 @@ void parse_phy(void)
 					return;
 				}
 			} else if (machine.sds_settings[sds].usage == SDS_EPHY) {
-				phy_write(machine.sds_settings[sds].sds_settings_t.ephy.phy_addr, devad, reg, val);
+				phy_write(port, devad, reg, val);
 			} else {
 				print_string("Not a SFP or EPHY");
 				return;
@@ -1238,7 +1238,7 @@ void parse_phy(void)
 					return;
 				}
 			} else if (machine.sds_settings[sds].usage == SDS_EPHY) {
-				phy_read(machine.sds_settings[sds].sds_settings_t.ephy.phy_addr, devad, reg);
+				phy_read(port, devad, reg);
 			} else {
 				print_string("Not a SFP or EPHY");
 				return;
@@ -1468,18 +1468,17 @@ err:
 
 void parse_phyget(void)
 {
-	__xdata uint8_t phy_id, dev_id, hex_size;
+	__xdata uint8_t port, dev_id, hex_size;
 	__xdata uint16_t reg;
 
 	if (cmd_words_len != 4) {
 		goto err;
 	}
 
-	if (!atoi_byte(cmd_words_b[1])) {
+	if (!cmd_parse_port_separator(cmd_words_b[1])) {
 		goto err;
 	}
-	phy_id = atoi_results_u8;
-
+	port = atoi_results_u8;
 
 	if (!atoi_byte(cmd_words_b[2])) {
 		goto err;
@@ -1497,37 +1496,37 @@ void parse_phyget(void)
 	}
 
 	print_string("PHYGET: ");
-	itoa(phy_id);
+	print_phys_port(port);
 	print_string(":");
 	itoa(dev_id);
 	print_string(".");
 	print_short(reg);
 	print_string(": VAL: ");
 
-	phy_read(phy_id, dev_id, reg);
+	phy_read(port, dev_id, reg);
 	print_phy_data();
 	write_char('\n');
 	return;
 
 err:
-	cmd_error("phyget <phy-id> <dev-id> <hex:reg>\n");
+	cmd_error("phyget <mac> <dev-id> <hex:reg>\n");
 	return;
 }
 
 
 void parse_physet(void)
 {
-	__xdata uint8_t phy_id, dev_id, hex_size;
+	__xdata uint8_t port, dev_id, hex_size;
 	__xdata uint16_t reg, val;
 
 	if (cmd_words_len != 5) {
 		goto err;
 	}
 
-	if (!atoi_byte(cmd_words_b[1])) {
+	if (!cmd_parse_port_separator(cmd_words_b[1])) {
 		goto err;
 	}
-	phy_id = atoi_results_u8;
+	port = atoi_results_u8;
 
 
 	if (!atoi_byte(cmd_words_b[2])) {
@@ -1556,14 +1555,14 @@ void parse_physet(void)
 	}
 
 	print_string("PHYSET: ");
-	itoa(phy_id);
+	print_phys_port(port);
 	print_string(":");
 	itoa(dev_id);
 	print_string(".");
 	print_short(reg);
 	print_string(": VAL: ");
 
-	phy_write(phy_id, dev_id, reg, val);
+	phy_write(port, dev_id, reg, val);
 
 	print_short(val);
 	write_char('\n');

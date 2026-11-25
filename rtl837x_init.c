@@ -694,14 +694,17 @@ void static sds_init(void)
 						RTL8224_SDS_WRITE(0, 6, 2, 0x2000);
 						break;
 					default:
-						REG_SET(RTL837X_CFG_PHY_MDI_REVERSE, 0xc);
-						REG_SET(RTL837X_CFG_PHY_TX_POLARITY_SWAP, 0x0000596a);
 						break;
 
 				}
 			}
 		}
 	}
+
+	// Set Internal PHY MDI pinning
+	REG_SET(RTL837X_CFG_PHY_MDI_REVERSE, 0xc);
+	REG_SET(RTL837X_CFG_PHY_TX_POLARITY_SWAP, 0x0000596a);
+
 	print_string("\nsds_init done\n");
 }
 
@@ -748,7 +751,7 @@ void rtl8373_init(void) __banked
 		enum sds_type usage = machine.sds_settings[sds].usage;
 		switch (usage) {
 			case SDS_EPHY:
-				uint8_t phy_addr = machine.sds_settings[sds].sds_settings_t.ephy.phy_addr;
+				uint8_t mac = sds ? MAC_SDS1 : MAC_SDS0;
 				uint8_t phy_type = machine.sds_settings[sds].sds_settings_t.ephy.type;
 				// uint8_t speed = get_phy_max_speed(phy_type);
 				switch (phy_type) {
@@ -758,11 +761,11 @@ void rtl8373_init(void) __banked
 						rtl8224_phy_enable();
 						break;
 					case RTL8261BE:
-						phy_config_8261(phy_addr, sds);
+						phy_config_8261(mac, sds);
 						sds_pcs_config(sds, SDS_10G_USXGMII, true);
 						break;
 					case RTL8221B:
-						phy_config(phy_addr);	// PHY configuration: External 8221B?
+						phy_config(mac);	// PHY configuration: External 8221B?
 						sds_pcs_config(sds, SDS_SGMII, true);
 						break;
 					default:
@@ -829,15 +832,32 @@ void rtl8373_init(void) __banked
 	// TODO: patch the PHYs
 
 	// Re-enable PHY after configuration
-	phy_write_mask(machine.isRTL8373 ? 0xFF : 0xF0, PHY_MMD31, 0xa610, 0x2058);
+	uint16_t phy_mask = 0x00F0;
+	if (machine.isRTL8373)
+		phy_mask |= 0xFF;
+	else if (machine.sds_settings[0].usage == SDS_EPHY)
+		phy_mask |= 0x08;
+	if (machine.sds_settings[1].usage == SDS_EPHY)
+		phy_mask |= 0x100;
+	phy_write_mask(phy_mask, PHY_MMD31, 0xa610, 0x2058);
 
 	// Enables MAC access, SMI_GLB_CTRL
 	// Set bits 0xc-0x14 of 0x632c to 0x1f8, see rtl8372_init
 	// r632c:00000540 R632c-001f8540 // RTL8373: 001ff540
 	reg_read_m(0x632c);
-	sfr_mask_data(1, 0x70, machine.isRTL8373 ? 0xF0 : 0x80);
-	sfr_mask_data(2, 0x10, 0x1f);
+	uint8_t set = 0x00;
+		if (machine.isRTL8373)
+		set = 0xF0;
+	else if (machine.sds_settings[0].usage == SDS_EPHY)
+		set = 0x80;
+	sfr_mask_data(1, 0xF0, set);
+	set = 0x0f;
+	if (machine.sds_settings[1].usage == SDS_EPHY)
+		set |= 0x10;
+	sfr_mask_data(2, 0x10, set);
 	reg_write_m(0x632c);
+
+	// 1 1111 1000 0101 0100 0000
 
 	print_string("\nrtl837x_init done\n");
 }

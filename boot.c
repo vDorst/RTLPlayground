@@ -234,29 +234,34 @@ void init_smi(void) __banked
 	reg_write_m(RTL837X_REG_SMI_CTRL);
 	delay(50);
 
-	// Program the PHY addresses for MAC 0-5.
+	// Program the PHY addresses associated with MAC/logical port number 0-5.
+	// To access the PHY, with phy_{read,write} we are using logical port number not the real PHY-ID.
 	if (machine_detected.isRTL8373) {
 		// RTL8373, we assume that all the PHY_ADDR are start from 0 are counting up to 5.
 		SFR_DATA_0 = 0x20;
 		SFR_DATA_8 = 0x88;
 		SFR_DATA_16 = 0x41;
 	} else {
-		// RTL8372, we assume that all the PHY_ADDR are start from 4 are counting up to 5.
-		// Other unused macs are are set to zero.
-		// When a external phy is connected to MAC 3 / SDS 0, the external PHY_ADDR is also programmed.
-		uint8_t phy_addr_mac3 = 0x00;
+		// // RTL8372, we assume that all the PHY_ADDR are start from 4 are counting up to 5.
+		// // Other unused macs are are set to zero.
+		// // When a external phy is connected to MAC 3 / SDS 0, the external PHY_ADDR is also programmed.
+		// uint8_t phy_addr_mac3 = 0x1f; // Don't use 0, this is a by default boardcast ID for RTL8221.
 
-		SFR_DATA_0 = 0x00;
-		if (machine.sds_settings[0].usage == SDS_EPHY)
-			phy_addr_mac3 = machine.sds_settings[0].sds_settings_t.ephy.phy_addr;
-		SFR_DATA_8 = (phy_addr_mac3 << 7);
-		SFR_DATA_16 = 0x40 | (phy_addr_mac3 >> 1);
+		// SFR_DATA_0 = (0x1f << 5) | 0x1f;
+		// if (machine.sds_settings[0].usage == SDS_EPHY)
+		// 	phy_addr_mac3 = machine.sds_settings[0].sds_settings_t.ephy.phy_addr;
+		// SFR_DATA_8 = (phy_addr_mac3 << 7) | (0x1f >> 3);
+		// SFR_DATA_16 = (phy_addr_mac3 >> 1) | 0x40;
+
+		SFR_DATA_0 = 0x20;
+		SFR_DATA_8 = 0x08;
+		SFR_DATA_16 = 0x40;
 	}
 	SFR_DATA_24 = 0x0a;
 	reg_write(RTL837X_REG_SMI_PORT0_5_ADDR);
 
 	// Program the PHY addresses for MAC 6-8.
-	uint8_t phy_addr_mac8 = 0;
+	uint8_t phy_addr_mac8 = 0x1f;
 	if (machine.sds_settings[1].usage == (uint8_t)SDS_EPHY)
 		phy_addr_mac8 = machine.sds_settings[1].sds_settings_t.ephy.phy_addr;
 	// Set address of external PHY connected MAC 8 / SDS 1

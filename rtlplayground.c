@@ -1144,6 +1144,8 @@ void check_links(void)
 	reg_read(RTL837X_REG_LINKS_89);
 	__xdata uint8_t linkbits_p89 = SFR_DATA_0;
 
+	__xdata uint8_t change_sds[2] = { SDS_OFF, SDS_OFF };
+
 	reg_read_m(RTL837X_REG_LINKS);
 	if (cmp_4(sfr_data, linkbits_last) || (linkbits_p89 != linkbits_last_p89)) {
 		print_string("\n<new link: ");
@@ -1158,16 +1160,16 @@ void check_links(void)
 			// Skip unused ports
 			if (machine.log_to_phys_port[port] == NOP)
 				continue;
-
 			uint8_t new;
 			uint8_t old;
 			if (port < 8) {
 				uint8_t idx = port >> 1;
-				new = sfr_data[idx];
-				old = linkbits_last[idx];
+				new = sfr_data[3-idx];
+				old = linkbits_last[3-idx];
 			} else {
 				new = linkbits_p89;
 				old = linkbits_last_p89;
+				linkbits_last_p89 = linkbits_p89;
 			}
 			if (port & 1) {
 				new = (new << 4) | (new >> 4);
@@ -1181,6 +1183,19 @@ void check_links(void)
 
 			if (change) {
 				print_phys_port(port);
+				if (port_to_sds_usage(port) == SDS_EPHY) {
+					print_string(" EPHY");
+					// RTL8221B need a SDS mode change for 2.5G-bit.
+					uint8_t sds = port == MAC_SDS1;
+					if (machine.sds_settings[sds].sds_settings_t.ephy.type == RTL8221B) {
+						print_string(" RTL8221B");
+						if (new == 0x05)
+							change_sds[sds] = SDS_2G5_SGMII;
+						else if (old == 0x05)
+							change_sds[sds] = SDS_SGMII;
+					}
+				}
+
 				write_char(':');
 				print_byte(old);
 				write_char('>');
@@ -1188,9 +1203,12 @@ void check_links(void)
 				write_char('\n');
 			}
 		}
-
-		linkbits_last_p89 = linkbits_p89;
 		cpy_4(linkbits_last, sfr_data);
+
+		for (uint8_t sds = 0; sds < 2; sds++) {
+			if (change_sds[sds] != SDS_OFF)
+				sds_pcs_config(sds, change_sds[sds], true);
+		}
 	}
 }
 

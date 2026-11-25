@@ -766,6 +766,8 @@ void rtl8373_init(void) __banked
 						break;
 					case RTL8221B:
 						phy_config(mac);	// PHY configuration: External 8221B?
+						// Allways start with SGMII.
+						// Link-change will switch over to SDS_2G5_SGMII when 2.5G-link is needed.
 						sds_pcs_config(sds, SDS_SGMII, true);
 						break;
 					default:

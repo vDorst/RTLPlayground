@@ -9,11 +9,17 @@ __code const struct machine machine = {
     .is_sfp = {0, 0, 0, 1, 0, 0, 0, 0, 2},
 
     // SFP port on SDS0 / logical port 3
-    .sfp_port[0].pin_detect = GPIO37,
-    .sfp_port[0].pin_los = GPIO_NA,
-    .sfp_port[0].pin_tx_disable = GPIO_NA,
-    .sfp_port[0].sds = 0,
-    .sfp_port[0].i2c = I2CBUS( GPIO41_I2C_SDA3_MDIO1, GPIO40_I2C_SCL3_MDC1 ),
+    .sds_settings[0].usage = SDS_SFP,
+    .sds_settings[0].sds_settings_t.sfp.pin_detect = GPIO37,
+    .sds_settings[0].sds_settings_t.sfp.pin_los = GPIO_NA,
+    .sds_settings[0].sds_settings_t.sfp.pin_tx_disable = GPIO_NA,
+    .sds_settings[0].sds_settings_t.sfp.i2c = I2CBUS( GPIO41_I2C_SDA3_MDIO1, GPIO40_I2C_SCL3_MDC1 ),
+    // SFP port (J3)
+    .sds_settings[1].usage = SDS_SFP,
+    .sds_settings[1].sds_settings_t.sfp.pin_detect = GPIO38,
+    .sds_settings[1].sds_settings_t.sfp.pin_los = GPIO_NA,
+    .sds_settings[1].sds_settings_t.sfp.pin_tx_disable = GPIO_NA,
+    .sds_settings[1].sds_settings_t.sfp.i2c = I2CBUS( GPIO39_I2C_SDA4, GPIO40_I2C_SCL3_MDC1 ),
 
     // SFP port on SDS1 / logical port 8
     .sfp_port[1].pin_detect = GPIO38,

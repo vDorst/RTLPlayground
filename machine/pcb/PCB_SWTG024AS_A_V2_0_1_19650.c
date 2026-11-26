@@ -4,24 +4,21 @@
 __code const struct machine machine = {
     MACHINE_COMMON_SETTING,
     .mac_flash_offset = 0x1FC000,
-    .n_sfp = 2,
     .log_to_phys_port = {0, 0, 0, 5, 1, 2, 3, 4, 6},
-    .phys_to_log_port = {4, 5, 6, 7, 3, 8, 0, 0, 0},
-    .is_sfp = {0, 0, 0, 1, 0, 0, 0, 0, 2},
 
     // SFP port on SDS0 / logical port 3
-    .sfp_port[0].pin_detect = GPIO37,
-    .sfp_port[0].pin_los = GPIO_NA,
-    .sfp_port[0].pin_tx_disable = GPIO_NA,
-    .sfp_port[0].sds = 0,
-    .sfp_port[0].i2c = I2CBUS( GPIO41_I2C_SDA3_MDIO1, GPIO40_I2C_SCL3_MDC1 ),
+    .sds_settings[0].usage = SDS_SFP,
+    .sds_settings[0].sds_settings_t.sfp.pin_detect = GPIO37,
+    .sds_settings[0].sds_settings_t.sfp.pin_los = GPIO_NA,
+    .sds_settings[0].sds_settings_t.sfp.pin_tx_disable = GPIO_NA,
+    .sds_settings[0].sds_settings_t.sfp.i2c = I2CBUS( GPIO41_I2C_SDA3_MDIO1, GPIO40_I2C_SCL3_MDC1 ),
+    // SFP port (J3)
+    .sds_settings[1].usage = SDS_SFP,
+    .sds_settings[1].sds_settings_t.sfp.pin_detect = GPIO38,
+    .sds_settings[1].sds_settings_t.sfp.pin_los = GPIO_NA,
+    .sds_settings[1].sds_settings_t.sfp.pin_tx_disable = GPIO_NA,
+    .sds_settings[1].sds_settings_t.sfp.i2c = I2CBUS( GPIO39_I2C_SDA4, GPIO40_I2C_SCL3_MDC1 ),
 
-    // SFP port on SDS1 / logical port 8
-    .sfp_port[1].pin_detect = GPIO38,
-    .sfp_port[1].pin_los = GPIO_NA,
-    .sfp_port[1].pin_tx_disable = GPIO_NA,
-    .sfp_port[1].sds = 1,
-    .sfp_port[1].i2c =  I2CBUS( GPIO39_I2C_SDA4, GPIO40_I2C_SCL3_MDC1 ),
 
     .reset_pin = GPIO48_I2C_SCL1,
     .high_leds = { .mux =  LED_28_SYS | LED_29, .enable = LED_27 | LED_28_SYS | LED_29 },

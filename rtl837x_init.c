@@ -362,7 +362,6 @@ void static serdes_reset_r(uint8_t sds) {
 	sds_modify(sds, 0x36, 0x05, ((uint16_t)0xf) << 11, ((uint16_t)0x8) << 11);
 	sds_write_v(sds, 0x1f, 0x02, 0x1f);
 
-
 	// Get RX status
 	sds_read(sds, 0x1f, 0x15);
 	val = SFR_DATA_U16;
@@ -370,8 +369,10 @@ void static serdes_reset_r(uint8_t sds) {
 	bool rx_idle = (val & BIT(7)) == BIT(7);
 	bool nsq = (val & BIT(6)) == BIT(6);
 
-	if (!(nsq == true || rx_idle == false))
+	if (!(nsq == true || rx_idle == false)) {
+		print_string("No reset because not active\n");
 		return;
+	}
 
 	sds_read(sds, SDS_PAGE_CTRL05, SDS_REG_CTRL05_10GR_STS);
 	val = SFR_DATA_U16;

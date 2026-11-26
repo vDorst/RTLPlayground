@@ -845,22 +845,20 @@ void rtl8373_init(void) __banked
 	phy_write_mask(phy_mask, PHY_MMD31, 0xa610, 0x2058);
 
 	// Enables MAC access, SMI_GLB_CTRL
-	// Set bits 0xc-0x14 of 0x632c to 0x1f8, see rtl8372_init
-	// r632c:00000540 R632c-001f8540 // RTL8373: 001ff540
-	reg_read_m(0x632c);
+	// SMI_POLLING bit 12..21 needed to be set when the MAC is used even without a PHY.
+	// Otherwise, SFP-link is not detected/get a link.
+	reg_read_m(SMI_GLB_CTRL);
 	uint8_t set = 0x00;
 		if (machine.isRTL8373)
-		set = 0xF0;
-	else if (machine.sds_settings[0].usage == SDS_EPHY)
-		set = 0x80;
+		set = 0xF0; // mac 0-3
+	else if (machine.log_to_phys_port[MAC_SDS0] != NOP)
+		set = 0x80; // mac 3
 	sfr_mask_data(1, 0xF0, set);
-	set = 0x0f;
-	if (machine.sds_settings[1].usage == SDS_EPHY)
-		set |= 0x10;
-	sfr_mask_data(2, 0x10, set);
-	reg_write_m(0x632c);
-
-	// 1 1111 1000 0101 0100 0000
+	set = 0x0f; // default mac 4-7
+	if (machine.log_to_phys_port[MAC_SDS1] != NOP)
+		set |= 0x10; // mac 8
+	sfr_mask_data(2, 0x1f, set);
+	reg_write_m(SMI_GLB_CTRL);
 
 	print_string("\nrtl837x_init done\n");
 }

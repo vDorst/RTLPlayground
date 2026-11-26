@@ -385,6 +385,11 @@ enum sds_modes
 #define EGBW_INC_IFG			0x02
 #define EGBW_CPUMODE			0x01
 
+/*
+ * SMI
+ */
+#define SMI_GLB_CTRL	0x632c
+
 #ifdef REGDBG
 
 #define REG_SET(r, v) do { \

@@ -9,7 +9,7 @@ __code const struct machine machine = {
     // Left port (J2)
     .sds_settings[0].usage = SDS_EPHY,
     .sds_settings[0].sds_settings_t.ephy.type = RTL8221B,
-    .sds_settings[0].sds_settings_t.ephy.phy_addr = 1,
+    .sds_settings[0].sds_settings_t.ephy.phy_addr = 0,
     .sds_settings[0].sds_settings_t.ephy.reset_pin = GPIO_NA,
 
     // SFP port (J3)

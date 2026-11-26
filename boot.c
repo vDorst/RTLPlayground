@@ -242,20 +242,16 @@ void init_smi(void) __banked
 		SFR_DATA_8 = 0x88;
 		SFR_DATA_16 = 0x41;
 	} else {
-		// // RTL8372, we assume that all the PHY_ADDR are start from 4 are counting up to 5.
-		// // Other unused macs are are set to zero.
-		// // When a external phy is connected to MAC 3 / SDS 0, the external PHY_ADDR is also programmed.
-		// uint8_t phy_addr_mac3 = 0x1f; // Don't use 0, this is a by default boardcast ID for RTL8221.
+		// RTL8372, we assume that all the PHY_ADDR are start from 4 are counting up to 5.
+		// Other unused macs are are set to zero.
+		// When a external phy is connected to MAC 3 / SDS 0, the external PHY_ADDR is also programmed.
+		uint8_t phy_addr_mac3 = 0x1f; // Don't use 0, this is a by default boardcast ID for RTL8221.
 
-		// SFR_DATA_0 = (0x1f << 5) | 0x1f;
-		// if (machine.sds_settings[0].usage == SDS_EPHY)
-		// 	phy_addr_mac3 = machine.sds_settings[0].sds_settings_t.ephy.phy_addr;
-		// SFR_DATA_8 = (phy_addr_mac3 << 7) | (0x1f >> 3);
-		// SFR_DATA_16 = (phy_addr_mac3 >> 1) | 0x40;
-
-		SFR_DATA_0 = 0x20;
-		SFR_DATA_8 = 0x08;
-		SFR_DATA_16 = 0x40;
+		SFR_DATA_0 = (0x1f << 5) | 0x1f;
+		if (machine.sds_settings[0].usage == SDS_EPHY)
+			phy_addr_mac3 = machine.sds_settings[0].sds_settings_t.ephy.phy_addr;
+		SFR_DATA_8 = (phy_addr_mac3 << 7) | (0x1f >> 3);
+		SFR_DATA_16 = (phy_addr_mac3 >> 1) | 0x40;
 	}
 	SFR_DATA_24 = 0x0a;
 	reg_write(RTL837X_REG_SMI_PORT0_5_ADDR);
@@ -269,8 +265,14 @@ void init_smi(void) __banked
 	REG_WRITE(RTL837X_REG_SMI_PORT6_9_ADDR, 0x00, 0x00, phy_addr_mac8 << 2, 0xe6);
 }
 
+//  RTL837X_REG_SMI_PORT0_5_ADDR 0x644C
+// A408820
+// 1010010000 00 0111 1111 1111 1111 
+// a407fff
 
+// a427fff
 
+// regset 644C a427fff
 
 void setup_i2c(void) __banked
 {

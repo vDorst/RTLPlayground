@@ -160,10 +160,12 @@ void phy_config(uint8_t phy) __banked
 	print_byte(SFR_DATA_8);
 	print_byte(SFR_DATA_0);
 
+	// TODO: Why this is needed, without this reset the led is blinking fast and not real-link
+	// Only needed called once.
 	// Reset SERDES register
-	phy_write(phy, PHY_MMD30, 0x7b20, 0x0001);
+	phy_write(phy, PHY_MMD30, 0x758b, 0x0001);
 	delay(20);
-	phy_write(phy, PHY_MMD30, 0x7b20, 0x0005);
+	phy_write(phy, PHY_MMD30, 0x758b, 0x0005);
 
 	delay(20);
 	// PHY configuration: External 8221B?

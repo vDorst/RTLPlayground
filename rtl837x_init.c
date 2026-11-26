@@ -418,7 +418,7 @@ void static serdes_an_patch(uint8_t sds, enum sds_modes interface) {
 		case SDS_10G_USXGMII:
 			if (!isN) {
 				print_string_no_syslog("Patch: patch_an_10p3125g_a: ");
-				ptr = patch_an_10p3125g_a;				
+				ptr = patch_an_10p3125g_a;
 			} else {
 				print_string_no_syslog("Patch: patch_an_10p3125g_b: ");
 				ptr = patch_an_10p3125g_b;
@@ -428,7 +428,7 @@ void static serdes_an_patch(uint8_t sds, enum sds_modes interface) {
 		case SDS_2500BASEX:
 			if (!isN) {
 				print_string_no_syslog("Patch: patch_an_3p125g_a: ");
-				ptr = patch_an_3p125g_a;				
+				ptr = patch_an_3p125g_a;
 			} else {
 				print_string_no_syslog("Patch: patch_an_3p125g_b: ");
 				ptr = patch_an_3p125g_b;
@@ -439,7 +439,7 @@ void static serdes_an_patch(uint8_t sds, enum sds_modes interface) {
 		case SDS_1000BASEX:
 			if (!isN) {
 				print_string_no_syslog("Patch: patch_an_1p25g_a: ");
-				ptr = patch_an_1p25g_a;				
+				ptr = patch_an_1p25g_a;
 			} else {
 				print_string_no_syslog("Patch: patch_an_1p25g_b: ");
 				ptr = patch_an_1p25g_b;
@@ -448,7 +448,7 @@ void static serdes_an_patch(uint8_t sds, enum sds_modes interface) {
 		case SDS_100FX:
 			if (!isN) {
 				print_string_no_syslog("Patch: patch_an_125m_a: ");
-				ptr = patch_an_125m_a;				
+				ptr = patch_an_125m_a;
 			} else {
 				print_string_no_syslog("Patch: patch_an_125m_b: ");
 				ptr = patch_an_125m_b;
@@ -701,10 +701,6 @@ void static sds_init(void)
 			}
 		}
 	}
-
-	// Set Internal PHY MDI pinning
-	REG_SET(RTL837X_CFG_PHY_MDI_REVERSE, 0xc);
-	REG_SET(RTL837X_CFG_PHY_TX_POLARITY_SWAP, 0x0000596a);
 
 	print_string("\nsds_init done\n");
 }
